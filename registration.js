@@ -146,10 +146,12 @@ async function handleRegistration(event) {
             document.querySelector('.registration-form').style.display = 'none';
             const successMessage = document.querySelector('.success-message');
             successMessage.style.display = 'block';
-            successMessage.querySelector('.business-id').textContent = result.businessID;
-            successMessage.querySelector('.business-code').textContent = result.businessCode;
-            successMessage.querySelector('.property-code').textContent = result.umbrellaAccount.mainPropertyCode;
-            successMessage.querySelector('.property-connection-code').textContent = result.propertyConnectionCode;
+            successMessage.querySelector('.business-id').textContent = result.businessId;
+            successMessage.querySelector('.property-code').textContent = result.connectionCode;
+
+            // Save the codes in localStorage for future reference
+            localStorage.setItem('businessId', result.businessId);
+            localStorage.setItem('connectionCode', result.connectionCode);
         } else {
             throw new Error('Failed to create business account');
         }
