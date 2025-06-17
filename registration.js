@@ -125,10 +125,10 @@ async function handleRegistration(event) {
 
         // Prepare business data
         const businessData = {
-            companyName,
+            businessName: companyName,
             ownerName,
-            companyEmail,
-            companyPhone,
+            email: companyEmail,
+            phone: companyPhone,
             propertyName,
             businessType,
             address,
