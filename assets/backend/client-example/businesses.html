@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zentry POS - Business Management</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background-color: #4285f4;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo h2 {
+            margin: 0;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        .user-info span {
+            margin-right: 15px;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #ffffff;
+            color: #4285f4;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button:hover {
+            background-color: #f1f1f1;
+        }
+        button.primary {
+            background-color: #4285f4;
+            color: white;
+        }
+        button.primary:hover {
+            background-color: #3367d6;
+        }
+        .dashboard-content {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 30px;
+        }
+        .sidebar {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            padding: 20px;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar li {
+            margin-bottom: 10px;
+        }
+        .sidebar a {
+            display: block;
+            padding: 10px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .sidebar a:hover, .sidebar a.active {
+            background-color: #f1f1f1;
+            color: #4285f4;
+        }
+        .main-content {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            padding: 30px;
+        }
+        h1 {
+            margin-top: 0;
+            color: #333;
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .business-list {
+            margin-top: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        .action-buttons button {
+            margin-right: 5px;
+            background-color: transparent;
+            color: #4285f4;
+            padding: 5px 10px;
+        }
+        .action-buttons button:hover {
+            background-color: #f1f1f1;
+        }
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #4285f4;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            overflow: auto;
+        }
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .close {
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .form-group textarea {
+            height: 100px;
+        }
+        .form-actions {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .form-actions button {
+            margin-left: 10px;
+        }
+        .error-message {
+            color: #d93025;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h2>Zentry POS</h2>
+        </div>
+        <div class="user-info">
+            <span id="userDisplay">Loading...</span>
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="dashboard-content">
+            <div class="sidebar">
+                <ul>
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="#" class="active">Businesses</a></li>
+                    <li><a href="properties.html">Properties</a></li>
+                    <li><a href="#">Users</a></li>
+                    <li><a href="#">Settings</a></li>
+                </ul>
+            </div>
+
+            <div class="main-content">
+                <div class="page-header">
+                    <h1>Business Management</h1>
+                    <button id="addBusinessBtn" class="primary">Add Business</button>
+                </div>
+
+                <div class="business-list">
+                    <div id="businessesTable" class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Business Form Modal -->
+    <div id="businessModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Business</h2>
+                <span class="close">&times;</span>
+            </div>
+            
+            <form id="businessForm">
+                <input type="hidden" id="businessId">
+                
+                <div class="form-group">
+                    <label for="businessName">Business Name *</label>
+                    <input type="text" id="businessName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="businessAddress">Address</label>
+                    <textarea id="businessAddress"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="businessEmail">Email</label>
+                    <input type="email" id="businessEmail">
+                </div>
+                
+                <div class="form-group">
+                    <label for="businessPhone">Phone</label>
+                    <input type="tel" id="businessPhone">
+                </div>
+                
+                <p class="error-message" id="formErrorMessage"></p>
+                
+                <div class="form-actions">
+                    <button type="button" class="close-btn">Cancel</button>
+                    <button type="submit" class="primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import SuperAdminManager from './SuperAdminManager.js';
+        
+        const manager = new SuperAdminManager();
+        
+        // Check if authenticated
+        if (!manager.isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+        
+        // DOM Elements
+        const userDisplay = document.getElementById('userDisplay');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const businessesTable = document.getElementById('businessesTable');
+        const addBusinessBtn = document.getElementById('addBusinessBtn');
+        const businessModal = document.getElementById('businessModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const businessForm = document.getElementById('businessForm');
+        const businessIdInput = document.getElementById('businessId');
+        const businessNameInput = document.getElementById('businessName');
+        const businessAddressInput = document.getElementById('businessAddress');
+        const businessEmailInput = document.getElementById('businessEmail');
+        const businessPhoneInput = document.getElementById('businessPhone');
+        const formErrorMessage = document.getElementById('formErrorMessage');
+        const closeModal = document.querySelector('.close');
+        const closeBtn = document.querySelector('.close-btn');
+        
+        // State
+        let businesses = [];
+        
+        // Handle logout
+        logoutBtn.addEventListener('click', () => {
+            manager.logout();
+            window.location.href = 'login.html';
+        });
+        
+        // Event Listeners
+        closeModal.addEventListener('click', () => businessModal.style.display = 'none');
+        closeBtn.addEventListener('click', () => businessModal.style.display = 'none');
+        window.addEventListener('click', (e) => {
+            if (e.target === businessModal) {
+                businessModal.style.display = 'none';
+            }
+        });
+        
+        addBusinessBtn.addEventListener('click', () => {
+            modalTitle.textContent = 'Add Business';
+            businessForm.reset();
+            businessIdInput.value = '';
+            formErrorMessage.style.display = 'none';
+            businessModal.style.display = 'block';
+        });
+        
+        businessForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            formErrorMessage.style.display = 'none';
+            
+            const businessData = {
+                name: businessNameInput.value,
+                address: businessAddressInput.value,
+                email: businessEmailInput.value,
+                phone: businessPhoneInput.value
+            };
+            
+            try {
+                if (businessIdInput.value) {
+                    // Update existing business
+                    await manager.updateBusiness(businessIdInput.value, businessData);
+                } else {
+                    // Create new business
+                    await manager.createBusiness(businessData);
+                }
+                
+                businessModal.style.display = 'none';
+                loadBusinesses();
+            } catch (error) {
+                formErrorMessage.textContent = error.message || 'Error saving business';
+                formErrorMessage.style.display = 'block';
+            }
+        });
+        
+        // Load user profile and businesses
+        async function loadData() {
+            try {
+                // Load user profile
+                const user = await manager.getUserProfile();
+                userDisplay.textContent = `${user.username} (${user.role})`;
+                
+                // Load businesses
+                await loadBusinesses();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                
+                // If authentication error, redirect to login
+                if (error.message === 'Not authenticated' || error.message === 'Authentication failed') {
+                    window.location.href = 'login.html';
+                } else {
+                    // Try to use localStorage fallback for demo
+                    try {
+                        const user = JSON.parse(localStorage.getItem('user') || '{}');
+                        userDisplay.textContent = `${user.username || 'Demo User'} (${user.role || 'super_admin'})`;
+                        
+                        const localBusinesses = JSON.parse(localStorage.getItem('businesses') || '[]');
+                        renderBusinessesTable(localBusinesses);
+                        
+                        // Show notice about using localStorage
+                        alert('Note: Using localStorage fallback data. Database connection may be unavailable.');
+                    } catch (localError) {
+                        console.error('Local storage fallback error:', localError);
+                    }
+                }
+            }
+        }
+        
+        // Load businesses
+        async function loadBusinesses() {
+            try {
+                businessesTable.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+                
+                businesses = await manager.getBusinesses();
+                renderBusinessesTable(businesses);
+            } catch (error) {
+                console.error('Error loading businesses:', error);
+                businessesTable.innerHTML = '<p>Error loading businesses. Please try again.</p>';
+            }
+        }
+        
+        // Render businesses table
+        function renderBusinessesTable(businesses) {
+            if (businesses.length === 0) {
+                businessesTable.innerHTML = '<p>No businesses found</p>';
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Properties</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            businesses.forEach(business => {
+                html += `
+                    <tr>
+                        <td>${business.name}</td>
+                        <td>${business.email || '-'}</td>
+                        <td>${business.phone || '-'}</td>
+                        <td>${business.properties ? business.properties.length : 0}</td>
+                        <td class="action-buttons">
+                            <button data-id="${business._id}" class="view-btn">View</button>
+                            <button data-id="${business._id}" class="edit-btn">Edit</button>
+                            <button data-id="${business._id}" class="delete-btn">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            businessesTable.innerHTML = html;
+            
+            // Add event listeners to action buttons
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    viewBusiness(btn.dataset.id);
+                });
+            });
+            
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    editBusiness(btn.dataset.id);
+                });
+            });
+            
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    deleteBusiness(btn.dataset.id);
+                });
+            });
+        }
+        
+        // View business details
+        function viewBusiness(id) {
+            const business = businesses.find(b => b._id === id);
+            if (!business) return;
+            
+            alert(`Business Details:
+Name: ${business.name}
+Email: ${business.email || 'N/A'}
+Phone: ${business.phone || 'N/A'}
+Address: ${business.address || 'N/A'}
+Properties: ${business.properties ? business.properties.length : 0}`);
+        }
+        
+        // Edit business
+        function editBusiness(id) {
+            const business = businesses.find(b => b._id === id);
+            if (!business) return;
+            
+            modalTitle.textContent = 'Edit Business';
+            businessIdInput.value = business._id;
+            businessNameInput.value = business.name;
+            businessAddressInput.value = business.address || '';
+            businessEmailInput.value = business.email || '';
+            businessPhoneInput.value = business.phone || '';
+            
+            formErrorMessage.style.display = 'none';
+            businessModal.style.display = 'block';
+        }
+        
+        // Delete business
+        async function deleteBusiness(id) {
+            if (confirm('Are you sure you want to delete this business? This will also remove all associated properties.')) {
+                try {
+                    await manager.deleteBusiness(id);
+                    await loadBusinesses();
+                } catch (error) {
+                    alert(`Error deleting business: ${error.message}`);
+                }
+            }
+        }
+        
+        // Load initial data
+        loadData();
+    </script>
+</body>
+</html>

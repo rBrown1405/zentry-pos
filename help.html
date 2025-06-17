@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Macros POS - Help Center</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Help Page Specific Styles */
+        .help-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .help-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 3px solid #000;
+        }
+
+        .help-title {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .help-subtitle {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 2rem;
+        }
+
+        .help-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 3rem;
+        }
+
+        .help-nav-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #000;
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            text-decoration: none;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .help-nav-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .help-content {
+            display: grid;
+            gap: 2rem;
+        }
+
+        .help-section {
+            background: rgba(255, 255, 255, 0.7);
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .help-section:hover {
+            border-color: #667eea;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-5px);
+        }
+
+        .section-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #1a202c;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-icon {
+            font-size: 2rem;
+            opacity: 0.8;
+        }
+
+        .help-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .help-card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .help-card:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-content {
+            color: #6b7280;
+            line-height: 1.6;
+        }
+
+        .card-content ul {
+            margin: 0.75rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .card-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .quick-link {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .quick-link:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.3);
+            border-color: #000;
+            color: white;
+        }
+
+        .faq-item {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .faq-question {
+            background: #f8fafc;
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: #374151;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .faq-question:hover {
+            background: #e2e8f0;
+        }
+
+        .faq-answer {
+            padding: 1.5rem;
+            color: #6b7280;
+            line-height: 1.6;
+            display: none;
+        }
+
+        .faq-answer.active {
+            display: block;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .contact-card {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border: 2px solid #000;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .contact-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .contact-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .breadcrumb {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .help-container {
+                padding: 1rem;
+                margin: 1rem;
+            }
+
+            .help-title {
+                font-size: 2rem;
+            }
+
+            .help-navigation {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .help-grid,
+            .quick-links,
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Animation for page load */
+        .help-section {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .help-section:nth-child(1) { animation-delay: 0.1s; }
+        .help-section:nth-child(2) { animation-delay: 0.2s; }
+        .help-section:nth-child(3) { animation-delay: 0.3s; }
+        .help-section:nth-child(4) { animation-delay: 0.4s; }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="back-button" onclick="goBack()">
+        <span class="back-button-icon">←</span>
+        <span>Back</span>
+    </button>
+
+    <div class="animated-background">
+        <div class="gradient-sphere"></div>
+        <div class="gradient-sphere"></div>
+        <div class="gradient-sphere"></div>
+    </div>
+
+    <div class="help-container">
+        <div class="breadcrumb">
+            <span>🏠</span>
+            <a href="index.html">Home</a>
+            <span>></span>
+            <span>Help Center</span>
+        </div>
+
+        <div class="help-header">
+            <h1 class="help-title">📚 Help Center</h1>
+            <p class="help-subtitle">Everything you need to know about Macros POS System</p>
+            
+            <div class="help-navigation">
+                <a href="#getting-started" class="help-nav-btn">
+                    <span>🚀</span>
+                    Getting Started
+                </a>
+                <a href="#account-types" class="help-nav-btn">
+                    <span>👤</span>
+                    Account Types
+                </a>
+                <a href="#pos-features" class="help-nav-btn">
+                    <span>💳</span>
+                    POS Features
+                </a>
+                <a href="#troubleshooting" class="help-nav-btn">
+                    <span>🔧</span>
+                    Troubleshooting
+                </a>
+                <a href="#contact" class="help-nav-btn">
+                    <span>📞</span>
+                    Contact Support
+                </a>
+            </div>
+        </div>
+
+        <div class="help-content">
+            <!-- Getting Started Section -->
+            <section id="getting-started" class="help-section">
+                <h2 class="section-title">
+                    <span class="section-icon">🚀</span>
+                    Getting Started
+                </h2>
+                <div class="help-grid">
+                    <div class="help-card">
+                        <h3 class="card-title">
+                            <span>📝</span>
+                            First Time Setup
+                        </h3>
+                        <div class="card-content">
+                            <ul>
+                                <li>Choose your account type (Business or Staff)</li>
+                                <li>Complete the registration process</li>
+                                <li>Verify your email address</li>
+                                <li>Set up your business information</li>
+                                <li>Configure initial settings</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <h3 class="card-title">
+                            <span>🔐</span>
+                            Login Process
+                        </h3>
+                        <div class="card-content">
+                            <p>Access your account using one of three login methods:</p>
+                            <ul>
+                                <li><strong>Staff Login:</strong> Use your Staff ID</li>
+                                <li><strong>Company Login:</strong> Use your Business ID</li>
+                                <li><strong>Super Admin:</strong> Administrative access</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <h3 class="card-title">
+                            <span>⚙️</span>
+                            Initial Configuration
+                        </h3>
+                        <div class="card-content">
+                            <ul>
+                                <li>Set up your menu items and pricing</li>
+                                <li>Configure tax rates and payment methods</li>
+                                <li>Add staff members and assign roles</li>
+                                <li>Customize receipt templates</li>
+                                <li>Set up table management (if applicable)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Account Types Section -->
+            <section id="account-types" class="help-section">
+                <h2 class="section-title">
+                    <span class="section-icon">👤</span>
+                    Account Types & Permissions
+                </h2>
+                <div class="help-grid">
+                    <div class="help-card">
+                        <h3 class="card-title">
+                            <span>🏢</span>
+                            Business Account
+                        </h3>
+                        <div class="card-content">
+                            <p><strong>Perfect for:</strong> Restaurant owners, managers, business administrators</p>
+                            <ul>
+                                <li>Full POS system access</li>
+                                <li>Staff management capabilities</li>
+                                <li>Business settings and configuration</li>
+                                <li>Reports and analytics</li>
+                                <li>Payment processing setup</li>
+                                <li>Menu and inventory management</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <h3 class="card-title">
+                            <span>👥</span>
+                            Staff Account
+                        </h3>
+                        <div class="card-content">
+                            <p><strong>Perfect for:</strong> Servers, cashiers, kitchen staff, bartenders</p>
+                            <ul>
+                                <li>POS operations (orders, payments)</li>
+                                <li>Table management</li>
+                                <li>Order processing</li>
+                                <li>Basic inventory updates</li>
+                                <li>Customer service features</li>
+                                <li>Role-based access restrictions</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <h3 class="card-title">
+                            <span>👑</span>
+                            Super Admin
+                        </h3>
+                        <div class="card-content">
+                            <p><strong>System-wide access for:</strong> Technical administrators</p>
+                            <ul>
+                                <li>Multi-business management</li>
+                                <li>System-wide settings</li>
+                                <li>Global user management</li>
+                                <li>Advanced reporting</li>
+                                <li>System maintenance</li>
+                                <li>Database administration</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- POS Features Section -->
+            <section id="pos-features" class="help-section">
+                <h2 class="section-title">
+                    <span class="section-icon">💳</span>
+                    POS Features & Functions
+                </h2>
+                <div class="help-grid">
+                    <div class="help-card">
+                        <h3 class="card-title">
+                            <span>🛒</span>
+                            Order Management
+                        </h3>
+                        <div class="card-content">
+                            <ul>
+                                <li>Add items to cart with easy menu navigation</li>
+                                <li>Modify orders with customizations</li>
+                                <li>Split checks and merge orders</li>
+                                <li>Hold and retrieve orders</li>
+                                <li>Print receipts and kitchen tickets</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <h3 class="card-title">
+                            <span>🪑</span>
+                            Table Management
+                        </h3>
+                        <div class="card-content">
+                            <ul>
+                                <li>Visual table layout with status indicators</li>
+                                <li>Seat guests and track occupancy</li>
+                                <li>Make and manage reservations</li>
+                                <li>Table tagging for special events</li>
+                                <li>Track table turnover times</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <h3 class="card-title">
+                            <span>💰</span>
+                            Payment Processing
+                        </h3>
+                        <div class="card-content">
+                            <ul>
+                                <li>Multiple payment methods (cash, card, digital)</li>
+                                <li>Split payments and tips</li>
+                                <li>Tax calculation and application</li>
+                                <li>Discount and coupon management</li>
+                                <li>Receipt generation and printing</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <h3 class="card-title">
+                            <span>📊</span>
+                            Reports & Analytics
+                        </h3>
+                        <div class="card-content">
+                            <ul>
+                                <li>Daily, weekly, and monthly sales reports</li>
+                                <li>Staff performance tracking</li>
+                                <li>Menu item popularity analysis</li>
+                                <li>Inventory usage reports</li>
+                                <li>Customer analytics and trends</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <h3 class="card-title">
+                            <span>⌨️</span>
+                            Keyboard Shortcuts
+                        </h3>
+                        <div class="card-content">
+                            <ul>
+                                <li><kbd>F1</kbd> - Show help</li>
+                                <li><kbd>Ctrl + N</kbd> - New order</li>
+                                <li><kbd>Ctrl + P</kbd> - Process payment</li>
+                                <li><kbd>Ctrl + T</kbd> - Switch to tables view</li>
+                                <li><kbd>Esc</kbd> - Close modals</li>
+                                <li><kbd>1-9</kbd> - Quick add menu items</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <h3 class="card-title">
+                            <span>🔧</span>
+                            Settings & Configuration
+                        </h3>
+                        <div class="card-content">
+                            <ul>
+                                <li>Business information and branding</li>
+                                <li>Menu management and pricing</li>
+                                <li>Staff roles and permissions</li>
+                                <li>Payment gateway configuration</li>
+                                <li>Receipt and printing settings</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Troubleshooting Section -->
+            <section id="troubleshooting" class="help-section">
+                <h2 class="section-title">
+                    <span class="section-icon">🔧</span>
+                    Troubleshooting & FAQ
+                </h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>I can't log in to my account</span>
+                        <span>+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p><strong>Common solutions:</strong></p>
+                        <ul>
+                            <li>Double-check your Staff ID or Business ID for typos</li>
+                            <li>Ensure you're using the correct login tab (Staff/Company/Super Admin)</li>
+                            <li>Clear your browser cache and cookies</li>
+                            <li>Try using a different browser</li>
+                            <li>Contact your manager for account verification</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Payment processing isn't working</span>
+                        <span>+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p><strong>Check these items:</strong></p>
+                        <ul>
+                            <li>Verify internet connection is stable</li>
+                            <li>Ensure payment terminal is connected and powered on</li>
+                            <li>Check if payment gateway settings are configured</li>
+                            <li>Try processing a smaller test transaction</li>
+                            <li>Contact your payment processor if issues persist</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Printer is not working</span>
+                        <span>+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p><strong>Troubleshooting steps:</strong></p>
+                        <ul>
+                            <li>Check printer power and paper levels</li>
+                            <li>Verify printer is connected (USB/Network)</li>
+                            <li>Test print from printer settings</li>
+                            <li>Restart the printer and POS system</li>
+                            <li>Check for driver updates</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Menu items are missing or incorrect</span>
+                        <span>+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p><strong>Resolution steps:</strong></p>
+                        <ul>
+                            <li>Refresh the browser page</li>
+                            <li>Check if items are marked as "available" in settings</li>
+                            <li>Verify menu synchronization is working</li>
+                            <li>Contact business administrator to update menu</li>
+                            <li>Check for any scheduled menu changes</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How do I process a refund?</span>
+                        <span>+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p><strong>Refund process:</strong></p>
+                        <ul>
+                            <li>Access the original transaction in reports</li>
+                            <li>Click on the refund option</li>
+                            <li>Enter refund amount and reason</li>
+                            <li>Process through the payment terminal</li>
+                            <li>Print refund receipt for customer</li>
+                            <li>Note: Manager approval may be required</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>System is running slowly</span>
+                        <span>+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p><strong>Performance optimization:</strong></p>
+                        <ul>
+                            <li>Close unnecessary browser tabs</li>
+                            <li>Clear browser cache and cookies</li>
+                            <li>Check internet connection speed</li>
+                            <li>Restart the browser or device</li>
+                            <li>Contact IT support if issues persist</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Contact Support Section -->
+            <section id="contact" class="help-section">
+                <h2 class="section-title">
+                    <span class="section-icon">📞</span>
+                    Contact Support
+                </h2>
+                <p style="text-align: center; margin-bottom: 2rem; color: #6b7280; font-size: 1.1rem;">
+                    Need additional help? Our support team is here to assist you.
+                </p>
+                
+                <div class="contact-grid">
+                    <div class="contact-card">
+                        <div class="contact-icon">📧</div>
+                        <h3>Email Support</h3>
+                        <p>support@macrospos.com</p>
+                        <p style="font-size: 0.9rem; color: #6b7280;">Response within 24 hours</p>
+                    </div>
+
+                    <div class="contact-card">
+                        <div class="contact-icon">📞</div>
+                        <h3>Phone Support</h3>
+                        <p>1-800-MACROS-1</p>
+                        <p style="font-size: 0.9rem; color: #6b7280;">Mon-Fri, 8AM-8PM EST</p>
+                    </div>
+
+                    <div class="contact-card">
+                        <div class="contact-icon">💬</div>
+                        <h3>Live Chat</h3>
+                        <p>Available in-app</p>
+                        <p style="font-size: 0.9rem; color: #6b7280;">Real-time assistance</p>
+                    </div>
+
+                    <div class="contact-card">
+                        <div class="contact-icon">🎓</div>
+                        <h3>Training Videos</h3>
+                        <p>Online tutorials</p>
+                        <p style="font-size: 0.9rem; color: #6b7280;">Self-paced learning</p>
+                    </div>
+                </div>
+
+                <div class="quick-links">
+                    <a href="login.html" class="quick-link">
+                        🔐 Back to Login
+                    </a>
+                    <a href="index.html" class="quick-link">
+                        🏠 Home Page
+                    </a>
+                    <a href="account-selection.html" class="quick-link">
+                        👤 Account Registration
+                    </a>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="navigation.js"></script>
+    <script>
+        // FAQ toggle functionality
+        function toggleFAQ(element) {
+            const answer = element.nextElementSibling;
+            const icon = element.querySelector('span:last-child');
+            
+            // Close all other FAQ items
+            document.querySelectorAll('.faq-answer.active').forEach(item => {
+                if (item !== answer) {
+                    item.classList.remove('active');
+                    item.previousElementSibling.querySelector('span:last-child').textContent = '+';
+                }
+            });
+            
+            // Toggle current FAQ item
+            if (answer.classList.contains('active')) {
+                answer.classList.remove('active');
+                icon.textContent = '+';
+            } else {
+                answer.classList.add('active');
+                icon.textContent = '−';
+            }
+        }
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Smart back button functionality
+        function goBack() {
+            // Check if there's a referrer and it's from the same origin
+            if (document.referrer && document.referrer.includes(window.location.origin)) {
+                window.history.back();
+            } else {
+                // Default fallback to login page
+                navigateWithTransition('login.html');
+            }
+        }
+
+        // Initialize page animations
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add entrance animation to main container
+            const container = document.querySelector('.help-container');
+            container.style.opacity = '0';
+            container.style.transform = 'translateY(30px)';
+            
+            setTimeout(() => {
+                container.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+                container.style.opacity = '1';
+                container.style.transform = 'translateY(0)';
+            }, 200);
+
+            // Animate navigation buttons
+            const navButtons = document.querySelectorAll('.help-nav-btn');
+            navButtons.forEach((btn, index) => {
+                btn.style.opacity = '0';
+                btn.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    btn.style.transition = 'all 0.5s ease-out';
+                    btn.style.opacity = '1';
+                    btn.style.transform = 'translateY(0)';
+                }, 400 + (index * 100));
+            });
+        });
+
+        // Add keyboard shortcut for closing
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                goBack();
+            }
+        });
+    </script>
+</body>
+</html>

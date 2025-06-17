@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Macros POS LOL - Point of Sale</title>
+    <style>
+        /* Complete CSS Reset for Full Viewport */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* POS Interface Container - Full Viewport */
+        .pos-container {
+            border: 3px solid #000;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: #ffffff;
+        }
+
+        /* Header Styles */
+        .pos-header {
+            background: #2d3748;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #000;
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .system-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .account-info {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .hotel-name {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-top: 0.1rem;
+        }
+
+        .header-tabs {
+            display: flex;
+            gap: 0.5rem;
+        }        .tab-button {
+            background: #4a5568;
+            border: 2px solid #000;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .tab-button:hover {
+            background: #2d3748;
+        }
+
+        .tab-button.active {
+            background: #1a202c;
+            border-color: #fff;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .header-btn {
+            background: #4a5568;
+            border: 2px solid #000;
+            color: white;
+            padding: 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-btn:hover {
+            background: #2d3748;
+        }
+
+        /* Main Content Layout - Full Remaining Space */
+        .pos-main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            min-height: 0;
+        }        /* Left Panel - Menu Grid */
+        .menu-panel {
+            flex: 2;
+            padding: 1.5rem;
+            overflow-y: auto;
+            background: #ffffff;
+            border-right: 3px solid #000;
+            position: relative;
+        }
+
+        .menu-panel::before {
+            content: "Menu Section";
+            position: absolute;
+            top: 0.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #2d3748;
+        }
+
+        /* Kitchen Panel */
+        .kitchen-panel {
+            flex: 2;
+            padding: 1.5rem;
+            overflow-y: auto;
+            background: #ffffff;
+            border-right: 3px solid #000;
+            position: relative;
+        }
+
+        .kitchen-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border: 2px solid #000;
+            border-radius: 8px;
+        }
+
+        .kitchen-header h2 {
+            font-size: 1.3rem;
+            color: #2d3748;
+            margin: 0;
+        }
+
+        .kitchen-orders {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .kitchen-order {
+            background: white;
+            border: 3px solid #000;
+            border-radius: 8px;
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        .kitchen-order.preparing {
+            border-color: #f59e0b;
+            background: #fef3c7;
+        }
+
+        .kitchen-order.ready {
+            border-color: #059669;
+            background: #f0fdf4;
+        }        .kitchen-order.served {
+            border-color: #6b7280;
+            background: #f9fafb;
+        }
+
+        /* Tables Panel */
+        .tables-panel {
+            flex: 2;
+            padding: 1.5rem;
+            overflow-y: auto;
+            background: #ffffff;
+            border-right: 3px solid #000;
+            position: relative;
+        }
+
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .table-item {
+            background: white;
+            border: 3px solid #000;
+            border-radius: 8px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            height: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .table-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .table-item.occupied {
+            background: #fef2f2;
+            border-color: #dc2626;
+        }
+
+        .table-item.reserved {
+            background: #fef3c7;
+            border-color: #f59e0b;
+        }
+
+        .table-item.available {
+            background: #f0fdf4;
+            border-color: #059669;
+        }
+
+        .table-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #1a202c;
+        }
+
+        .table-capacity {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: #2d3748;
+            color: white;
+            border-radius: 50%;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .table-status {
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .table-info {
+            font-size: 0.8rem;
+            text-align: center;
+            opacity: 0.8;
+        }
+
+        .table-item.occupied .table-status {
+            color: #dc2626;
+        }
+
+        .table-item.reserved .table-status {
+            color: #f59e0b;
+        }
+
+        .table-item.available .table-status {
+            color: #059669;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .order-number {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #1f2937;
+        }
+
+        .order-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .order-status.preparing {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .order-status.ready {
+            background: #059669;
+            color: white;
+        }
+
+        .order-status.served {
+            background: #6b7280;
+            color: white;
+        }
+
+        .order-items-list {
+            margin-bottom: 1rem;
+        }
+
+        .kitchen-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .kitchen-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-name-qty {
+            font-weight: 500;
+        }
+
+        .order-time {
+            font-size: 0.8rem;
+            color: #6b7280;
+            text-align: center;
+        }
+
+        .status-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .status-btn {
+            flex: 1;
+            padding: 0.5rem;
+            border: 2px solid #000;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .status-btn.prepare {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .status-btn.ready {
+            background: #059669;
+            color: white;
+        }        .status-btn.served {
+            background: #6b7280;
+            color: white;
+        }
+
+        /* Tables Panel */
+        .tables-panel {
+            flex: 2;
+            padding: 1.5rem;
+            overflow-y: auto;
+            background: #ffffff;
+            border-right: 3px solid #000;
+            position: relative;
+        }
+
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .table-item {
+            background: white;
+            border: 3px solid #000;
+            border-radius: 8px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            height: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .table-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .table-item.occupied {
+            background: #fef2f2;
+            border-color: #dc2626;
+        }
+
+        .table-item.reserved {
+            background: #fef3c7;
+            border-color: #f59e0b;
+        }
+
+        .table-item.available {
+            background: #f0fdf4;
+            border-color: #059669;
+        }
+
+        .table-item.selected {
+            background: #dbeafe;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+
+        .table-capacity {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .table-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #1a202c;
+        }
+
+        .table-status {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .table-item.occupied .table-status {
+            color: #dc2626;
+        }
+
+        .table-item.reserved .table-status {
+            color: #f59e0b;
+        }
+
+        .table-item.available .table-status {
+            color: #059669;
+        }
+
+        .table-info {
+            font-size: 0.7rem;
+            color: #6b7280;
+            text-align: center;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .menu-item {
+            background: white;
+            border: 3px solid #000;
+            border-radius: 4px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            height: 160px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .menu-item:hover {
+            background: #f7fafc;
+            transform: translateY(-2px);
+        }
+
+        .item-image {
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .item-name {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: #1a202c;
+            text-align: center;
+        }
+
+        .item-price {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #059669;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 0.25rem;
+            margin-top: auto;
+        }
+
+        .item-btn {
+            flex: 1;
+            padding: 0.4rem;
+            border: 1px solid #000;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .customize-btn {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 1px solid #e2e8f0;
+        }
+
+        .customize-btn:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+
+        .details-btn {
+            background: #667eea;
+            color: white;
+        }
+
+        .details-btn:hover {
+            background: #5a67d8;
+        }
+
+        /* Right Panel - Order Cart */
+        .order-panel {
+            flex: 1;
+            min-width: 350px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .order-header {
+            background: #f8fafc;
+            padding: 1rem 1.5rem;
+            border-bottom: 3px solid #000;
+            position: relative;
+            flex-shrink: 0;
+        }        .order-header::before {
+            content: "Order Cart";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #2d3748;
+            border: 2px solid #000;
+            background: white;
+            padding: 0.5rem 1rem;
+        }
+
+        /* Table Indicator */
+        .table-indicator {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: #10b981;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 2px solid #000;
+            display: none;
+        }
+
+        .table-indicator.active {
+            display: block;
+        }
+
+        .table-indicator.available {
+            background: #10b981;
+            border-color: #059669;
+        }
+
+        .table-indicator.occupied {
+            background: #dc2626;
+            border-color: #b91c1c;
+        }
+
+        .table-indicator.reserved {
+            background: #f59e0b;
+            border-color: #d97706;
+        }
+
+        .order-items {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            overflow-y: auto;
+            min-height: 0;
+        }        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .order-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-details {
+            flex: 1;
+        }
+
+        .item-details h4 {
+            margin: 0 0 0.25rem 0;
+            font-size: 0.95rem;
+            color: #1a202c;
+        }
+
+        .item-quantity {
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .qty-btn {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .qty-btn:hover {
+            background: #e2e8f0;
+            border-color: #cbd5e0;
+        }
+
+        .qty-display {
+            min-width: 30px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .remove-item {
+            background: #fef2f2;
+            color: #dc2626;
+            border-color: #fecaca;
+        }
+
+        .remove-item:hover {
+            background: #fee2e2;
+            border-color: #fca5a5;
+        }
+
+        .item-total {
+            font-weight: 600;
+            color: #059669;
+        }
+
+        .empty-cart {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #9ca3af;
+        }
+
+        .empty-cart-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Order Summary */
+        .order-summary {
+            padding: 1rem 1.5rem;
+            border-top: 2px solid #000;
+            background: #f8fafc;
+            flex-shrink: 0;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-row.total {
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding-top: 0.5rem;
+            border-top: 2px solid #e2e8f0;
+            margin-top: 0.5rem;
+        }
+
+        /* Action Buttons */
+        .order-actions {
+            padding: 1.5rem;
+            background: white;
+            flex-shrink: 0;
+        }
+
+        .pay-button {
+            width: 100%;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 1rem;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .pay-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .pay-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .secondary-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .secondary-btn {
+            background: #f1f5f9;
+            color: #4a5568;
+            border: 1px solid #e2e8f0;
+            padding: 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .secondary-btn:hover {
+            background: #e2e8f0;
+            border-color: #cbd5e0;
+        }
+
+        .clear-btn {
+            grid-column: 1 / -1;
+            background: #fef2f2;
+            color: #dc2626;
+            border-color: #fecaca;
+        }
+
+        .clear-btn:hover {
+            background: #fee2e2;
+            border-color: #fca5a5;
+        }
+
+        /* Notification Animations */
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .pos-main {
+                flex-direction: column;
+            }
+            
+            .order-panel {
+                min-width: auto;
+                border-right: none;
+                border-top: 3px solid #000;
+            }
+            
+            .menu-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+            
+            .header-tabs {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="pos-container">
+        <!-- Header -->
+        <header class="pos-header">
+            <div class="header-left">
+                <div class="system-name">Macros POS LOL</div>
+                <div class="account-info">John Smith (Manager)</div>
+                <div class="hotel-name">Grand Hotel & Restaurant</div>
+            </div>            <div class="header-tabs">
+                <button class="tab-button" onclick="switchTab('tables')">Tables</button>
+                <button class="tab-button active" onclick="switchTab('menu')">Menu</button>
+                <button class="tab-button" onclick="switchTab('kitchen')">Kitchen</button>
+            </div>
+            
+            <div class="header-actions">
+                <button class="header-btn" title="Settings">⚙️</button>
+                <button class="header-btn" title="Logout" onclick="logout()">🚪</button>
+            </div>
+        </header>        <!-- Main Content -->
+        <main class="pos-main">
+            <!-- Menu View -->
+            <section class="menu-panel" id="menuView">
+                <div class="menu-panel::before-content">Menu Section</div>
+                <div class="menu-grid" id="menuGrid">
+                    <!-- Sample Menu Items -->
+                    <div class="menu-item" onclick="addToCart('burger', 'Classic Burger', 12.99)">
+                        <div class="item-image">🍔</div>
+                        <div class="item-name">Classic Burger</div>
+                        <div class="item-price">$12.99</div>
+                        <div class="item-actions">
+                            <button class="item-btn customize-btn" onclick="event.stopPropagation(); customizeItem('burger')">Customize</button>
+                            <button class="item-btn details-btn" onclick="event.stopPropagation(); showDetails('burger')">Details</button>
+                        </div>
+                    </div>
+
+                    <div class="menu-item" onclick="addToCart('pizza', 'Margherita Pizza', 16.99)">
+                        <div class="item-image">🍕</div>
+                        <div class="item-name">Margherita Pizza</div>
+                        <div class="item-price">$16.99</div>
+                        <div class="item-actions">
+                            <button class="item-btn customize-btn" onclick="event.stopPropagation(); customizeItem('pizza')">Customize</button>
+                            <button class="item-btn details-btn" onclick="event.stopPropagation(); showDetails('pizza')">Details</button>
+                        </div>
+                    </div>
+
+                    <div class="menu-item" onclick="addToCart('salad', 'Caesar Salad', 9.99)">
+                        <div class="item-image">🥗</div>
+                        <div class="item-name">Caesar Salad</div>
+                        <div class="item-price">$9.99</div>
+                        <div class="item-actions">
+                            <button class="item-btn customize-btn" onclick="event.stopPropagation(); customizeItem('salad')">Customize</button>
+                            <button class="item-btn details-btn" onclick="event.stopPropagation(); showDetails('salad')">Details</button>
+                        </div>
+                    </div>
+
+                    <div class="menu-item" onclick="addToCart('pasta', 'Spaghetti Carbonara', 14.99)">
+                        <div class="item-image">🍝</div>
+                        <div class="item-name">Spaghetti Carbonara</div>
+                        <div class="item-price">$14.99</div>
+                        <div class="item-actions">
+                            <button class="item-btn customize-btn" onclick="event.stopPropagation(); customizeItem('pasta')">Customize</button>
+                            <button class="item-btn details-btn" onclick="event.stopPropagation(); showDetails('pasta')">Details</button>
+                        </div>
+                    </div>
+
+                    <div class="menu-item" onclick="addToCart('steak', 'Grilled Steak', 24.99)">
+                        <div class="item-image">🥩</div>
+                        <div class="item-name">Grilled Steak</div>
+                        <div class="item-price">$24.99</div>
+                        <div class="item-actions">
+                            <button class="item-btn customize-btn" onclick="event.stopPropagation(); customizeItem('steak')">Customize</button>
+                            <button class="item-btn details-btn" onclick="event.stopPropagation(); showDetails('steak')">Details</button>
+                        </div>
+                    </div>
+
+                    <div class="menu-item" onclick="addToCart('coffee', 'Coffee Latte', 4.99)">
+                        <div class="item-image">☕</div>
+                        <div class="item-name">Coffee Latte</div>
+                        <div class="item-price">$4.99</div>
+                        <div class="item-actions">
+                            <button class="item-btn customize-btn" onclick="event.stopPropagation(); customizeItem('coffee')">Customize</button>
+                            <button class="item-btn details-btn" onclick="event.stopPropagation(); showDetails('coffee')">Details</button>
+                        </div>
+                    </div>
+
+                    <div class="menu-item" onclick="addToCart('dessert', 'Chocolate Cake', 7.99)">
+                        <div class="item-image">🍰</div>
+                        <div class="item-name">Chocolate Cake</div>
+                        <div class="item-price">$7.99</div>
+                        <div class="item-actions">
+                            <button class="item-btn customize-btn" onclick="event.stopPropagation(); customizeItem('dessert')">Customize</button>
+                            <button class="item-btn details-btn" onclick="event.stopPropagation(); showDetails('dessert')">Details</button>
+                        </div>
+                    </div>
+
+                    <div class="menu-item" onclick="addToCart('wine', 'House Wine', 8.99)">
+                        <div class="item-image">🍷</div>
+                        <div class="item-name">House Wine</div>
+                        <div class="item-price">$8.99</div>
+                        <div class="item-actions">
+                            <button class="item-btn customize-btn" onclick="event.stopPropagation(); customizeItem('wine')">Customize</button>
+                            <button class="item-btn details-btn" onclick="event.stopPropagation(); showDetails('wine')">Details</button>
+                        </div>
+                    </div>
+                </div>
+            </section>            <!-- Kitchen View -->
+            <section class="kitchen-panel" id="kitchenView" style="display: none;">
+                <div class="kitchen-header">
+                    <h2>Kitchen - Orders in Progress</h2>
+                </div>
+                <div class="kitchen-orders" id="kitchenOrders">
+                    <!-- Kitchen orders will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Tables View -->
+            <section class="tables-panel" id="tablesView" style="display: none;">
+                <div class="kitchen-header">
+                    <h2>Restaurant Floor Plan</h2>
+                </div>
+                <div class="tables-grid" id="tablesGrid">
+                    <!-- Tables will be populated by JavaScript -->
+                </div>
+            </section>            <!-- Right Panel - Order Cart -->
+            <section class="order-panel">
+                <div class="order-header">
+                    <!-- Order Cart title handled by CSS ::before -->
+                    <div class="table-indicator" id="tableIndicator">
+                        <!-- Table info will be shown here -->
+                    </div>
+                </div>
+
+                <div class="order-items" id="orderItems">
+                    <div class="empty-cart">
+                        <div class="empty-cart-icon">🛒</div>
+                        <p>Your cart is empty</p>
+                        <p style="font-size: 0.8rem;">Add items from the menu to get started</p>
+                    </div>
+                </div>
+
+                <div class="order-summary" id="orderSummary" style="display: none;">
+                    <div class="summary-row">
+                        <span>Subtotal:</span>
+                        <span id="subtotal">$0.00</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Tax (8.5%):</span>
+                        <span id="tax">$0.00</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>Total:</span>
+                        <span id="total">$0.00</span>
+                    </div>
+                </div>
+
+                <div class="order-actions">
+                    <button class="pay-button" id="payButton" disabled onclick="processPayment()">
+                        💳 Pay Now
+                    </button>
+                      <div class="secondary-actions">
+                        <button class="secondary-btn" onclick="printCheck()">🖨️ Print Check</button>
+                        <button class="secondary-btn" onclick="editCheck()">✏️ Edit Check</button>
+                        <button class="secondary-btn" onclick="voidCheck()">❌ Void Check</button>
+                        <button class="secondary-btn" onclick="clearTableSelection()" id="clearTableBtn" style="display: none;">🏪 Clear Table</button>
+                        <button class="secondary-btn clear-btn" onclick="clearCart()">🗑️ Clear Cart</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>    <script>        // POS System JavaScript
+        let cart = [];
+        let orderTotal = 0;
+        let currentView = 'menu';
+        let selectedTable = null;
+        let menuItems = []; // Will be loaded from localStorage
+        let kitchenOrders = [
+            {
+                id: '#001',
+                table: 'T5',
+                items: [
+                    { name: 'Classic Burger', quantity: 2, price: 12.99 },
+                    { name: 'Coffee Latte', quantity: 1, price: 4.99 }
+                ],
+                status: 'preparing',
+                time: '12:30 PM',
+                totalTime: '15 min'
+            },
+            {
+                id: '#002',
+                table: 'T2',
+                items: [
+                    { name: 'Caesar Salad', quantity: 1, price: 9.99 },
+                    { name: 'House Wine', quantity: 2, price: 8.99 }
+                ],
+                status: 'ready',
+                time: '12:45 PM',
+                totalTime: '8 min'
+            },
+            {
+                id: '#003',
+                table: 'T7',
+                items: [
+                    { name: 'Grilled Steak', quantity: 1, price: 24.99 },
+                    { name: 'Spaghetti Carbonara', quantity: 1, price: 14.99 }
+                ],
+                status: 'served',
+                time: '1:00 PM',
+                totalTime: '25 min'
+            }
+        ];
+
+        // === 86 FUNCTIONALITY ===
+        
+        // Get today's day name
+        function getTodayName() {
+            const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            return days[new Date().getDay()];
+        }
+
+        // Check if item is available today (considering 86 status)
+        function isItemAvailableToday(item) {
+            if (!item.available) return false;
+            if (!item.dayAvailability) return true;
+            
+            const today = getTodayName();
+            return item.dayAvailability[today] !== false;
+        }
+
+        // Load menu items from localStorage
+        function loadMenuItems() {
+            // Clear any existing demo data first
+            if (!localStorage.getItem('menuCleared')) {
+                localStorage.removeItem('menuItems');
+                localStorage.setItem('menuCleared', 'true');
+            }
+            
+            const savedMenu = localStorage.getItem('menuItems');
+            if (savedMenu) {
+                menuItems = JSON.parse(savedMenu);
+            }
+            renderMenuGrid();
+        }
+
+        // Render menu grid
+        function renderMenuGrid() {
+            const menuGrid = document.getElementById('menuGrid');
+            
+            if (menuItems.length === 0) {
+                menuGrid.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: #9ca3af;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">🍽️</div>
+                        <p>No menu items available</p>
+                        <p style="font-size: 0.8rem; margin-bottom: 1rem;">Add items using the menu editor</p>
+                        <button onclick="window.location.href='menu-editor.html'" style="background: #3b82f6; color: white; border: 2px solid #000; padding: 0.75rem 1.5rem; font-family: 'Courier New', monospace; cursor: pointer; border-radius: 4px;">
+                            Open Menu Editor
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Filter only items available today
+            const availableItems = menuItems.filter(item => isItemAvailableToday(item));
+            
+            if (availableItems.length === 0) {
+                menuGrid.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: #9ca3af;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">😴</div>
+                        <p>No items available for ordering</p>
+                        <p style="font-size: 0.8rem;">All menu items are currently unavailable or 86'd for today</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            menuGrid.innerHTML = availableItems.map(item => `
+                <div class="menu-item" onclick="addToCart('${item.id}', '${item.name}', ${item.price})" title="${item.description || ''}">
+                    <div class="item-image">${item.emoji}</div>
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-price">$${item.price.toFixed(2)}</div>
+                    <div class="item-actions">
+                        <button class="item-btn customize-btn" onclick="event.stopPropagation(); customizeItem('${item.id}')">Customize</button>
+                        <button class="item-btn details-btn" onclick="event.stopPropagation(); showDetails('${item.id}')">Details</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Switch between tabs
+        function switchTab(view) {
+            currentView = view;
+            const menuView = document.getElementById('menuView');
+            const kitchenView = document.getElementById('kitchenView');
+            const tablesView = document.getElementById('tablesView');
+            const orderPanel = document.querySelector('.order-panel');
+            const tabButtons = document.querySelectorAll('.tab-button');
+            
+            // Update active tab
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Hide all views first
+            menuView.style.display = 'none';
+            kitchenView.style.display = 'none';
+            tablesView.style.display = 'none';
+            
+            // Show the selected view and manage order cart visibility
+            if (view === 'menu') {
+                menuView.style.display = 'block';
+                orderPanel.style.display = 'block'; // Show order cart for menu
+            } else if (view === 'kitchen') {
+                kitchenView.style.display = 'block';
+                orderPanel.style.display = 'none'; // Hide order cart for kitchen
+                updateKitchenDisplay();
+            } else if (view === 'tables') {
+                tablesView.style.display = 'block';
+                orderPanel.style.display = 'none'; // Hide order cart for tables
+                initializeTables();
+            }
+        }
+
+        // Update kitchen display
+        function updateKitchenDisplay() {
+            const kitchenOrdersContainer = document.getElementById('kitchenOrders');
+            
+            if (kitchenOrders.length === 0) {
+                kitchenOrdersContainer.innerHTML = `
+                    <div style="text-align: center; padding: 3rem; color: #9ca3af; grid-column: 1/-1;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">👨‍🍳</div>
+                        <p>No orders in kitchen</p>
+                        <p style="font-size: 0.8rem;">Orders will appear here when sent to kitchen</p>
+                    </div>
+                `;
+                return;
+            }
+
+            kitchenOrdersContainer.innerHTML = kitchenOrders.map(order => `
+                <div class="kitchen-order ${order.status}">
+                    <div class="order-header">
+                        <span class="order-number">Order ${order.id}</span>
+                        <span class="order-status ${order.status}">${order.status}</span>
+                    </div>
+                    <div class="order-meta" style="margin-bottom: 1rem; font-size: 0.9rem; color: #6b7280;">
+                        <div>Table: ${order.table}</div>
+                        <div>Time: ${order.time} (${order.totalTime})</div>
+                    </div>
+                    <div class="order-items-list">
+                        ${order.items.map(item => `
+                            <div class="kitchen-item">
+                                <span class="item-name-qty">${item.quantity}x ${item.name}</span>
+                                <span>$${(item.quantity * item.price).toFixed(2)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="status-buttons">
+                        ${order.status === 'preparing' ? `
+                            <button class="status-btn ready" onclick="updateOrderStatus('${order.id}', 'ready')">Mark Ready</button>
+                        ` : ''}
+                        ${order.status === 'ready' ? `
+                            <button class="status-btn served" onclick="updateOrderStatus('${order.id}', 'served')">Mark Served</button>
+                        ` : ''}
+                        ${order.status === 'served' ? `
+                            <button class="status-btn" onclick="removeOrder('${order.id}')" style="background: #dc2626;">Remove</button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update order status in kitchen
+        function updateOrderStatus(orderId, newStatus) {
+            const order = kitchenOrders.find(o => o.id === orderId);
+            if (order) {
+                order.status = newStatus;
+                updateKitchenDisplay();
+                showNotification(`Order ${orderId} marked as ${newStatus}!`, 'success');
+            }
+        }
+
+        // Remove order from kitchen
+        function removeOrder(orderId) {
+            kitchenOrders = kitchenOrders.filter(o => o.id !== orderId);
+            updateKitchenDisplay();
+            showNotification(`Order ${orderId} removed from kitchen!`, 'info');
+        }
+
+        // Add item to cart
+        function addToCart(id, name, price) {
+            const existingItem = cart.find(item => item.id === id);
+            
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({
+                    id: id,
+                    name: name,
+                    price: price,
+                    quantity: 1
+                });
+            }
+            
+            updateCartDisplay();
+            showNotification(`${name} added to cart!`);
+        }
+
+        // Update item quantity
+        function updateQuantity(id, change) {
+            const item = cart.find(item => item.id === id);
+            if (item) {
+                item.quantity += change;
+                if (item.quantity <= 0) {
+                    removeFromCart(id);
+                } else {
+                    updateCartDisplay();
+                }
+            }
+        }
+
+        // Remove item from cart
+        function removeFromCart(id) {
+            cart = cart.filter(item => item.id !== id);
+            updateCartDisplay();
+            showNotification('Item removed from cart!', 'warning');
+        }
+
+        // Update cart display
+        function updateCartDisplay() {
+            const orderItems = document.getElementById('orderItems');
+            const orderSummary = document.getElementById('orderSummary');
+            const payButton = document.getElementById('payButton');
+
+            if (cart.length === 0) {
+                orderItems.innerHTML = `
+                    <div class="empty-cart">
+                        <div class="empty-cart-icon">🛒</div>
+                        <p>Your cart is empty</p>
+                        <p style="font-size: 0.8rem;">Add items from the menu to get started</p>
+                    </div>
+                `;
+                orderSummary.style.display = 'none';
+                payButton.disabled = true;
+                return;
+            }
+
+            orderItems.innerHTML = cart.map(item => `
+                <div class="order-item">
+                    <div class="item-details">
+                        <h4>${item.name}</h4>
+                        <div class="item-quantity">$${item.price.toFixed(2)} each</div>
+                        <div class="quantity-controls">
+                            <button class="qty-btn" onclick="updateQuantity('${item.id}', -1)">-</button>
+                            <span class="qty-display">${item.quantity}</span>
+                            <button class="qty-btn" onclick="updateQuantity('${item.id}', 1)">+</button>
+                            <button class="qty-btn remove-item" onclick="removeFromCart('${item.id}')" title="Remove item">×</button>
+                        </div>
+                    </div>
+                    <div class="item-total">$${(item.quantity * item.price).toFixed(2)}</div>
+                </div>
+            `).join('');
+
+            // Calculate totals
+            const subtotal = cart.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+            const tax = subtotal * 0.085;
+            const total = subtotal + tax;
+
+            document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
+            document.getElementById('tax').textContent = `$${tax.toFixed(2)}`;
+            document.getElementById('total').textContent = `$${total.toFixed(2)}`;
+
+            orderSummary.style.display = 'block';
+            payButton.disabled = false;
+            orderTotal = total;
+        }
+
+        // Action functions
+        function customizeItem(itemId) {
+            showNotification(`Customize ${itemId} - Feature coming soon!`);
+        }
+
+        function showDetails(itemId) {
+            showNotification(`Details for ${itemId} - Feature coming soon!`);
+        }        function processPayment() {
+            if (cart.length === 0) return;
+            
+            showNotification(`Processing payment of $${orderTotal.toFixed(2)}...`);
+            
+            // Add order to kitchen when payment is processed
+            const newOrder = {
+                id: `#${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
+                table: selectedTable ? `T${selectedTable.id}` : 'Walk-in',
+                items: cart.map(item => ({...item})),
+                status: 'preparing',
+                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                totalTime: '15 min'
+            };
+            
+            setTimeout(() => {
+                kitchenOrders.unshift(newOrder);
+                showNotification('Payment successful! Order sent to kitchen.', 'success');
+                
+                // Update table status to occupied if table was selected
+                if (selectedTable && selectedTable.status === 'available') {
+                    selectedTable.status = 'occupied';
+                    selectedTable.guests = 1; // You could prompt for actual guest count
+                    selectedTable.server = 'Current User';
+                    selectedTable.orderTime = newOrder.time;
+                    renderTables();
+                }
+                
+                clearCart();
+                clearTableSelection();
+                
+                if (currentView === 'kitchen') {
+                    updateKitchenDisplay();
+                }
+            }, 2000);
+        }
+
+        function printCheck() {
+            if (cart.length === 0) {
+                showNotification('No items to print!', 'warning');
+                return;
+            }
+            showNotification('Printing check...', 'info');
+        }
+
+        function editCheck() {
+            if (cart.length === 0) {
+                showNotification('No items to edit!', 'warning');
+                return;
+            }
+            showNotification('Edit check - Feature coming soon!', 'info');
+        }
+
+        function voidCheck() {
+            if (cart.length === 0) {
+                showNotification('No items to void!', 'warning');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to void this check?')) {
+                clearCart();
+                showNotification('Check voided successfully!', 'warning');
+            }
+        }
+
+        function clearCart() {
+            cart = [];
+            orderTotal = 0;
+            updateCartDisplay();
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Notification system
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#10b981' : type === 'warning' ? '#f59e0b' : type === 'error' ? '#ef4444' : '#3b82f6'};
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                font-weight: 500;
+                max-width: 300px;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => document.body.removeChild(notification), 300);
+            }, 3000);        }
+
+        // Tables Management
+        let tables = [];
+
+        // Initialize tables data
+        function initializeTables() {
+            if (tables.length === 0) {
+                tables = [
+                    { id: 1, capacity: 4, status: 'available', guests: 0, server: '', orderTime: null, reservedBy: '' },
+                    { id: 2, capacity: 2, status: 'occupied', guests: 2, server: 'Alice', orderTime: '12:30 PM', reservedBy: '' },
+                    { id: 3, capacity: 6, status: 'available', guests: 0, server: '', orderTime: null, reservedBy: '' },
+                    { id: 4, capacity: 4, status: 'reserved', guests: 0, server: '', orderTime: null, reservedBy: 'Johnson Party' },
+                    { id: 5, capacity: 2, status: 'occupied', guests: 1, server: 'Bob', orderTime: '1:15 PM', reservedBy: '' },
+                    { id: 6, capacity: 8, status: 'available', guests: 0, server: '', orderTime: null, reservedBy: '' },
+                    { id: 7, capacity: 4, status: 'occupied', guests: 4, server: 'Carol', orderTime: '12:45 PM', reservedBy: '' },
+                    { id: 8, capacity: 2, status: 'available', guests: 0, server: '', orderTime: null, reservedBy: '' },
+                    { id: 9, capacity: 6, status: 'reserved', guests: 0, server: '', orderTime: null, reservedBy: 'Smith Wedding' },
+                    { id: 10, capacity: 2, status: 'available', guests: 0, server: '', orderTime: null, reservedBy: '' },
+                    { id: 11, capacity: 4, status: 'occupied', guests: 2, server: 'David', orderTime: '1:00 PM', reservedBy: '' },
+                    { id: 12, capacity: 8, status: 'available', guests: 0, server: '', orderTime: null, reservedBy: '' }
+                ];
+            }
+            renderTables();
+        }
+
+        // Render tables grid
+        function renderTables() {
+            const tablesGrid = document.getElementById('tablesGrid');
+            tablesGrid.innerHTML = tables.map(table => `
+                <div class="table-item ${table.status}" onclick="selectTable(${table.id})">
+                    <div class="table-capacity">${table.capacity}</div>
+                    <div class="table-number">T${table.id}</div>
+                    <div class="table-status">${table.status}</div>
+                    <div class="table-info">
+                        ${table.status === 'occupied' ? `${table.guests} guests` : ''}
+                        ${table.status === 'reserved' ? table.reservedBy : ''}
+                    </div>
+                </div>
+            `).join('');
+        }        // Select table (basic functionality for now)
+        function selectTable(tableId) {
+            const table = tables.find(t => t.id === tableId);
+            
+            // Set selected table
+            selectedTable = table;
+            
+            // Update table visual selection
+            document.querySelectorAll('.table-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+            
+            // Show table indicator in order cart
+            updateTableIndicator();
+            
+            // Switch to menu to take order for this table
+            const menuBtn = document.querySelector('.tab-button[onclick="switchTab(\'menu\')"]');
+            if (menuBtn) {
+                // Simulate click event
+                const clickEvent = new Event('click');
+                Object.defineProperty(clickEvent, 'target', {
+                    writable: false,
+                    value: menuBtn
+                });
+                menuBtn.dispatchEvent(clickEvent);
+            }
+            
+            showNotification(`Selected Table ${tableId} for ordering`, 'success');
+        }        // Update table indicator in order cart
+        function updateTableIndicator() {
+            const indicator = document.getElementById('tableIndicator');
+            const clearTableBtn = document.getElementById('clearTableBtn');
+            
+            if (selectedTable) {
+                indicator.innerHTML = `T${selectedTable.id} (${selectedTable.capacity} seats)`;
+                indicator.className = `table-indicator active ${selectedTable.status}`;
+                if (clearTableBtn) clearTableBtn.style.display = 'block';
+            } else {
+                indicator.classList.remove('active');
+                if (clearTableBtn) clearTableBtn.style.display = 'none';
+            }
+        }
+
+        // Clear table selection
+        function clearTableSelection() {
+            selectedTable = null;
+            document.querySelectorAll('.table-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            updateTableIndicator();
+        }        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadMenuItems(); // Load menu from localStorage
+            updateCartDisplay();
+            updateKitchenDisplay();
+        });
+    </script>
+</body>
+</html>

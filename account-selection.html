@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Macros POS - Account Selection</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Account Selection Specific Styles - Matching Login Design with Better Spacing */
+        .account-selection-content {
+            width: 100%;
+            padding: 1rem 0;
+        }
+        
+        .account-selection-subtitle {
+            text-align: center;
+            margin-bottom: 3rem;
+            color: #666;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 0 1rem;
+        }
+        
+        .account-options {
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
+            margin-bottom: 3rem;
+            padding: 0 0.5rem;
+        }
+        
+        .account-option {
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #000;
+            border-radius: 16px;
+            padding: 2.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .account-option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .account-option:hover::before {
+            left: 100%;
+        }
+        
+        .account-option:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+            border-color: #667eea;
+        }
+        
+        .option-header {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .option-icon {
+            font-size: 3rem;
+            line-height: 1;
+            opacity: 0.9;
+        }
+        
+        .option-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1a202c;
+            margin: 0;
+            line-height: 1.2;
+        }
+        
+        .option-description {
+            color: #4a5568;
+            margin: 0 0 2rem 0;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            padding: 0 0.5rem;
+        }
+        
+        .option-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            padding: 0 0.5rem;
+        }
+        
+        .feature-tag {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.6rem 1rem;
+            border-radius: 25px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1px solid #000;
+            white-space: nowrap;
+        }
+        
+        .option-button {
+            width: 100%;
+            margin-top: auto;
+            pointer-events: none; /* Prevent double-click since parent div handles click */
+            padding: 1rem 1.5rem;
+            font-size: 1rem;
+        }
+        
+        .additional-options {
+            text-align: center;
+            margin-top: 2rem;
+            padding: 2rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .help-text {
+            text-align: center;
+            color: #666;
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .help-button {
+            margin-top: 0.5rem;
+        }
+        
+        /* Responsive Design */
+        @media (min-width: 768px) {
+            .account-options {
+                flex-direction: row;
+                gap: 3rem;
+                padding: 0 1rem;
+            }
+            
+            .account-option {
+                flex: 1;
+                min-height: 320px;
+                padding: 3rem;
+            }
+            
+            .account-selection-subtitle {
+                font-size: 1.2rem;
+                margin-bottom: 4rem;
+            }
+            
+            .option-title {
+                font-size: 2rem;
+            }
+            
+            .option-description {
+                font-size: 1.15rem;
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            .login-container {
+                max-width: 1000px;
+                padding: 3rem;
+            }
+            
+            .account-options {
+                gap: 4rem;
+            }
+            
+            .account-option {
+                padding: 3.5rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .account-option {
+                padding: 2rem;
+                min-height: 250px;
+            }
+            
+            .option-header {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+                margin-bottom: 1.25rem;
+            }
+            
+            .option-icon {
+                font-size: 2.5rem;
+            }
+            
+            .option-title {
+                font-size: 1.5rem;
+            }
+            
+            .option-description {
+                font-size: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            
+            .account-selection-subtitle {
+                font-size: 1rem;
+                margin-bottom: 2.5rem;
+            }
+            
+            .account-options {
+                gap: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="back-button" onclick="navigateWithTransition('login.html')">
+        <span class="back-button-icon">←</span>
+        <span>Back to Login</span>
+    </button>
+
+    <div class="animated-background">
+        <div class="gradient-sphere"></div>
+        <div class="gradient-sphere"></div>
+        <div class="gradient-sphere"></div>
+    </div>
+
+    <div class="login-container">
+        <div class="logo-container">
+            <div class="logo">M</div>
+        </div>
+        <h1 class="login-title">Choose <span class="highlight">Account Type</span></h1>
+        
+        <div class="login-form">
+            <div class="account-selection-content">
+                <p class="account-selection-subtitle">Select the type of account you want to create</p>
+
+                <div class="account-options">
+                    <div class="account-option" onclick="navigateWithTransition('business-registration.html')">
+                        <div class="option-header">
+                            <div class="option-icon">🏢</div>
+                            <h3 class="option-title">Business Account</h3>
+                        </div>
+                        <p class="option-description">Register a new restaurant or business</p>
+                        <div class="option-features">
+                            <span class="feature-tag">Full POS Access</span>
+                            <span class="feature-tag">Staff Management</span>
+                            <span class="feature-tag">Business Settings</span>
+                        </div>
+                        <button class="login-button option-button">
+                            <span class="button-text">Create Business Account</span>
+                            <span class="button-icon">→</span>
+                        </button>
+                    </div>
+
+                    <div class="account-option" onclick="navigateWithTransition('staff-registration.html')">
+                        <div class="option-header">
+                            <div class="option-icon">👤</div>
+                            <h3 class="option-title">Staff Account</h3>
+                        </div>
+                        <p class="option-description">Join an existing business as staff member</p>
+                        <div class="option-features">
+                            <span class="feature-tag">Staff Access</span>
+                            <span class="feature-tag">POS Operations</span>
+                            <span class="feature-tag">Role-Based Permissions</span>
+                        </div>
+                        <button class="login-button option-button">
+                            <span class="button-text">Register as Staff</span>
+                            <span class="button-icon">→</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="additional-options">
+                    <p class="help-text">Need help deciding? Contact your business administrator for guidance.</p>
+                    <button class="help-button" onclick="navigateWithTransition('help.html')">
+                        <span class="button-3d">Get Help</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="navigation.js"></script>
+    <script>
+        // Initialize page animations
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginContainer = document.querySelector('.login-container');
+            loginContainer.style.opacity = '0';
+            loginContainer.style.transform = 'translateY(20px)';
+            loginContainer.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
+            
+            setTimeout(() => {
+                loginContainer.style.opacity = '1';
+                loginContainer.style.transform = 'translateY(0)';
+            }, 200);
+
+            // Animate account options
+            const options = document.querySelectorAll('.account-option');
+            options.forEach((option, index) => {
+                option.style.opacity = '0';
+                option.style.transform = 'translateY(30px)';
+                option.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+                
+                setTimeout(() => {
+                    option.style.opacity = '1';
+                    option.style.transform = 'translateY(0)';
+                }, 400 + (index * 150));
+            });
+        });
+    </script>
+</body>
+</html>

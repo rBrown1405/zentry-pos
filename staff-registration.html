@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Macros POS - Staff Registration</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="back-button" onclick="navigateWithTransition('account-selection.html')">
+        <span class="back-button-icon">←</span>
+        <span>Back</span>
+    </button>
+
+    <div class="animated-background">
+        <div class="gradient-sphere"></div>
+        <div class="gradient-sphere"></div>
+        <div class="gradient-sphere"></div>
+    </div>
+
+    <div class="registration-container">
+        <div class="logo-container">
+            <div class="logo">M</div>
+        </div>
+        <h1 class="registration-title">Staff <span class="highlight">Registration</span></h1>
+        
+        <form class="registration-form" id="staffRegistrationForm">            <div class="form-group">
+                <label for="propertyConnectionCode">Property Connection Code</label>
+                <div class="input-with-info">
+                    <input type="text" id="propertyConnectionCode" required placeholder="Enter the 6-digit code from your employer" maxlength="6" style="text-transform: uppercase;">
+                    <div class="info-tooltip" data-tooltip="Ask your manager for the 6-digit property connection code">ⓘ</div>
+                </div>
+                <small class="field-description">This connects you to your employer's property system</small>
+            </div>
+
+            <div id="businessInfo" class="business-info" style="display: none;">
+                <div class="info-card">
+                    <h4>✅ Business Found</h4>
+                    <p class="business-name"></p>
+                    <p class="business-details"></p>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="fullName">Full Name</label>
+                <input type="text" id="fullName" required placeholder="Enter your full name">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" required placeholder="Enter your email address">
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" required placeholder="Enter your phone number">
+            </div>            <div class="form-group">
+                <label for="requestedRole">Requested Role</label>
+                <select id="requestedRole" required>
+                    <option value="" disabled selected>Select your role</option>
+                    <option value="server">Server</option>
+                    <option value="cashier">Cashier</option>
+                    <option value="kitchen">Kitchen Staff</option>
+                    <option value="chef">Chef</option>
+                    <option value="bartender">Bartender</option>
+                    <option value="host">Host/Hostess</option>
+                    <option value="assistant_manager">Assistant Manager</option>
+                    <option value="manager">Manager</option>
+                    <option value="cleaner">Cleaning Staff</option>
+                    <option value="security">Security</option>
+                </select>
+                <small class="field-description">Your role will determine your access permissions and must be approved by management</small>
+            </div>
+
+            <div class="form-group">
+                <label for="pin">Create PIN (4 digits)</label>
+                <input type="password" id="pin" required pattern="[0-9]{4}" maxlength="4" placeholder="Enter 4-digit PIN">
+                <p class="input-hint">This PIN will be used for quick login</p>
+            </div>
+
+            <button type="submit" class="submit-button">
+                <span class="button-text">Create Staff Account</span>
+                <span class="button-icon">→</span>
+            </button>
+        </form>        <div class="success-message" style="display: none;">
+            <h2>Registration Submitted!</h2>
+            <div class="success-content">
+                <p class="success-icon">⏳</p>
+                <p>Your staff registration has been submitted for approval.</p>
+                <p><strong>Staff ID:</strong> <span class="staff-id"></span></p>
+                <p><strong>Business:</strong> <span class="business-name-success"></span></p>
+                <p class="approval-note">You will be notified once a manager approves your account. You can then use your Staff ID to log in.</p>
+            </div>
+            <button class="done-button" onclick="navigateWithTransition('login.html')">>
+                <span class="button-text">Done</span>
+                <span class="button-icon">✓</span>
+            </button>    </div>
+    
+    <script src="multi-property-manager.js"></script>
+    <script src="id-utils.js"></script>
+    <script src="staff-registration.js"></script>
+    <script src="navigation.js"></script>
+</body>
+</html>
