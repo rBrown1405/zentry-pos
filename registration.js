@@ -139,19 +139,45 @@ async function handleRegistration(event) {
         };
 
         // Create umbrella business account using new multi-property system
-        const result = await MultiPropertyManager.createBusinessAccount(businessData);
+        const result = await MultiPropertyManager.createBusinessAccount(businessData);        if (result.success) {
+            try {
+                // Hide the registration form
+                const registrationForm = document.querySelector('.registration-form');
+                if (registrationForm) {
+                    registrationForm.style.display = 'none';
+                }
 
-        if (result.success) {
-            // Show success message
-            document.querySelector('.registration-form').style.display = 'none';
-            const successMessage = document.querySelector('.success-message');
-            successMessage.style.display = 'block';
-            successMessage.querySelector('.business-id').textContent = result.businessId;
-            successMessage.querySelector('.property-code').textContent = result.connectionCode;
+                // Show and populate the success message
+                const successMessage = document.querySelector('.success-message');
+                if (!successMessage) {
+                    throw new Error('Success message container not found');
+                }
 
-            // Save the codes in localStorage for future reference
-            localStorage.setItem('businessId', result.businessId);
-            localStorage.setItem('connectionCode', result.connectionCode);
+                const businessIdElement = successMessage.querySelector('.business-id');
+                const propertyCodeElement = successMessage.querySelector('.property-code');
+
+                if (!businessIdElement || !propertyCodeElement) {
+                    throw new Error('Success message elements not found');
+                }
+
+                // Show the success message container
+                successMessage.style.display = 'block';
+
+                // Update the display elements
+                businessIdElement.textContent = result.businessId;
+                propertyCodeElement.textContent = result.connectionCode;
+
+                // Save the codes in localStorage for future reference
+                localStorage.setItem('businessId', result.businessId);
+                localStorage.setItem('connectionCode', result.connectionCode);
+
+                // Scroll to the success message
+                successMessage.scrollIntoView({ behavior: 'smooth' });
+            } catch (displayError) {
+                console.error('Error displaying success message:', displayError);
+                alert('Account created successfully! Your Business ID is: ' + result.businessId + 
+                      ' and your Connection Code is: ' + result.connectionCode);
+            }
         } else {
             throw new Error('Failed to create business account');
         }

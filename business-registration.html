@@ -113,23 +113,27 @@
             <button type="submit" class="submit-button">
                 <span class="button-text">Create Business Account</span>
                 <span class="button-icon">→</span>
-            </button>
-        </form>        <div class="success-message" style="display: none;">
-            <h2>Business Account Created Successfully!</h2>
-            <div class="identifier-container">
-                <div class="identifier-section">
-                    <h3>Business ID</h3>
-                    <p class="business-id"></p>
-                    <p class="code-instruction">Use this ID to log in to your business account</p>
-                </div>
-                <div class="identifier-section">
-                    <h3>Connection Code</h3>
-                    <p class="property-code"></p>
-                    <p class="code-instruction">Use this code to connect additional properties or register staff</p>
+            </button>        </form>
+        <!-- Success Message Container -->
+        <div class="success-message" style="display: none;">
+            <div class="success-content">
+                <h2>Business Account Created Successfully! 🎉</h2>
+                <div class="identifier-container">
+                    <div class="identifier-section">
+                        <h3>Business ID</h3>
+                        <div class="code-display business-id"></div>
+                        <p class="code-instruction">Use this ID to log in to your business account</p>
+                    </div>
+                    <div class="identifier-section">
+                        <h3>Connection Code</h3>
+                        <div class="code-display property-code"></div>
+                        <p class="code-instruction">Use this code to connect additional properties or register staff</p>
+                    </div>
                 </div>
                 <div class="button-container">
-                    <button onclick="window.location.href='login.html'" class="continue-button">Continue to Login</button>
+                    <button type="button" onclick="window.location.href='login.html'" class="continue-button">Continue to Login</button>
                 </div>
+            </div>
                 </div>                <div class="identifier-section">
                     <h3>Property Connection Code</h3>
                     <p class="property-connection-code"></p>
