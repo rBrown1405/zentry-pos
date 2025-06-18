@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zentry POS - Super Admin Dashboard</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background-color: #4285f4;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo h2 {
+            margin: 0;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        .user-info span {
+            margin-right: 15px;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #ffffff;
+            color: #4285f4;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button:hover {
+            background-color: #f1f1f1;
+        }
+        .dashboard-content {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 30px;
+        }
+        .sidebar {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            padding: 20px;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar li {
+            margin-bottom: 10px;
+        }
+        .sidebar a {
+            display: block;
+            padding: 10px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .sidebar a:hover, .sidebar a.active {
+            background-color: #f1f1f1;
+            color: #4285f4;
+        }
+        .main-content {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            padding: 30px;
+        }
+        h1 {
+            margin-top: 0;
+            color: #333;
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            padding: 20px;
+            border-top: 4px solid #4285f4;
+        }
+        .card h3 {
+            margin-top: 0;
+        }
+        .business-list {
+            margin-top: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        .action-buttons button {
+            margin-right: 5px;
+            background-color: transparent;
+            color: #4285f4;
+            padding: 5px 10px;
+        }
+        .action-buttons button:hover {
+            background-color: #f1f1f1;
+        }
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #4285f4;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h2>Zentry POS</h2>
+        </div>
+        <div class="user-info">
+            <span id="userDisplay">Loading...</span>
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="dashboard-content">
+            <div class="sidebar">
+                <ul>
+                    <li><a href="dashboard.html" class="active">Dashboard</a></li>
+                    <li><a href="businesses.html">Businesses</a></li>
+                    <li><a href="properties.html">Properties</a></li>
+                    <li><a href="users.html">Users</a></li>
+                    <li><a href="#">Settings</a></li>
+                </ul>
+            </div>
+
+            <div class="main-content">
+                <h1>Super Admin Dashboard</h1>
+                
+                <div class="card-grid">
+                    <div class="card">
+                        <h3>Businesses</h3>
+                        <p>Total: <span id="businessCount">Loading...</span></p>
+                    </div>
+                    <div class="card">
+                        <h3>Properties</h3>
+                        <p>Total: <span id="propertyCount">Loading...</span></p>
+                    </div>
+                </div>
+
+                <div class="business-list">
+                    <h2>Businesses</h2>
+                    <div id="businessesTable" class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import SuperAdminManager from './SuperAdminManager.js';
+        
+        const manager = new SuperAdminManager();
+        
+        // Check if authenticated
+        if (!manager.isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+        
+        const userDisplay = document.getElementById('userDisplay');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const businessCount = document.getElementById('businessCount');
+        const propertyCount = document.getElementById('propertyCount');
+        const businessesTable = document.getElementById('businessesTable');
+        
+        // Handle logout
+        logoutBtn.addEventListener('click', () => {
+            manager.logout();
+            window.location.href = 'login.html';
+        });
+        
+        // We've already updated the sidebar links with direct href attributes
+        
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                // Load user profile
+                const user = await manager.getUserProfile();
+                userDisplay.textContent = `${user.username} (${user.role})`;
+                
+                // Load businesses
+                const businesses = await manager.getBusinesses();
+                businessCount.textContent = businesses.length;
+                
+                // Render businesses table
+                renderBusinessesTable(businesses);
+                
+                // Load properties
+                const properties = await manager.getProperties();
+                propertyCount.textContent = properties.length;
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                
+                // If authentication error, redirect to login
+                if (error.message === 'Not authenticated' || error.message === 'Authentication failed') {
+                    window.location.href = 'login.html';
+                } else {
+                    // Try to use localStorage fallback for demo
+                    try {
+                        // Show user from local storage
+                        const user = JSON.parse(localStorage.getItem('user') || '{}');
+                        userDisplay.textContent = `${user.username || 'Demo User'} (${user.role || 'super_admin'})`;
+                        
+                        // Show localStorage businesses
+                        const businesses = JSON.parse(localStorage.getItem('businesses') || '[]');
+                        businessCount.textContent = businesses.length;
+                        renderBusinessesTable(businesses);
+                        
+                        // Show localStorage properties
+                        const properties = JSON.parse(localStorage.getItem('properties') || '[]');
+                        propertyCount.textContent = properties.length;
+                        
+                        // Show notice about using localStorage
+                        alert('Note: Using localStorage fallback data. Database connection may be unavailable.');
+                    } catch (localError) {
+                        console.error('Local storage fallback error:', localError);
+                    }
+                }
+            }
+        }
+        
+        // Render businesses table
+        function renderBusinessesTable(businesses) {
+            if (businesses.length === 0) {
+                businessesTable.innerHTML = '<p>No businesses found</p>';
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Properties</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            businesses.forEach(business => {
+                html += `
+                    <tr>
+                        <td>${business.name}</td>
+                        <td>${business.email}</td>
+                        <td>${business.phone}</td>
+                        <td>${business.properties ? business.properties.length : 0}</td>
+                        <td class="action-buttons">
+                            <button data-id="${business._id}" class="view-btn">View</button>
+                            <button data-id="${business._id}" class="edit-btn">Edit</button>
+                            <button data-id="${business._id}" class="delete-btn">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            businessesTable.innerHTML = html;
+            
+            // Add event listeners to action buttons
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    alert(`View business: ${btn.dataset.id}`);
+                });
+            });
+            
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    alert(`Edit business: ${btn.dataset.id}`);
+                });
+            });
+            
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (confirm('Are you sure you want to delete this business?')) {
+                        try {
+                            await manager.deleteBusiness(btn.dataset.id);
+                            alert('Business deleted successfully');
+                            loadDashboard(); // Reload dashboard data
+                        } catch (error) {
+                            alert(`Error deleting business: ${error.message}`);
+                        }
+                    }
+                });
+            });
+        }
+        
+        // Load dashboard data on page load
+        loadDashboard();
+    </script>
+</body>
+</html>

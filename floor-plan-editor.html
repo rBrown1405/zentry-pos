@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Floor Plan Editor - Macros POS</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 0;
+            background: #f8fafc;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-header {
+            background: white;
+            border-bottom: 2px solid #000;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .editor-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .back-button {
+            background: #3b82f6;
+            color: white;
+            border: 2px solid #000;
+            padding: 0.6rem 1.2rem;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .back-button:hover {
+            background: #2563eb;
+        }
+
+        .editor-main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .tools-panel {
+            width: 250px;
+            background: #e9ecef;
+            border-right: 2px solid #000;
+            padding: 1rem;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .tools-panel h3 {
+            font-size: 1.2rem;
+            margin-top: 0;
+            margin-bottom: 1rem;
+            color: #343a40;
+            border-bottom: 1px solid #ced4da;
+            padding-bottom: 0.5rem;
+        }
+
+        .shape-item {
+            background: white;
+            border: 2px solid #000;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            cursor: grab;
+            text-align: center;
+            font-weight: 500;
+        }
+        .shape-item:active {
+            cursor: grabbing;
+        }
+
+        .canvas-area {
+            flex: 1;
+            background: white;
+            position: relative;
+            /* overflow: auto; // Keep auto for content larger than canvas */
+            padding: 1rem; 
+            /* border: 5px dashed #ccc; // Original */
+            border: 2px solid #000; /* New solid border */
+            margin: 1rem; 
+            width: 75vw; /* Default width */
+            height: 70vh; /* Default height */
+            min-width: 400px; /* Minimum width */
+            min-height: 300px; /* Minimum height */
+            resize: both; /* Allow user to resize with handle */
+            overflow: auto; /* Ensure scrollbars appear if content overflows */
+            box-sizing: border-box; /* Include padding and border in the element's total width and height */
+        }
+        
+        .draggable-table {
+            position: absolute;
+            cursor: grab;
+            border: 2px solid #333;
+            background-color: #f0f0f0; /* Light grey background */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 5px; 
+            box-sizing: border-box;
+            user-select: none; /* Prevent text selection during drag */
+            transform-origin: center center; 
+        }
+
+        .draggable-table:hover {
+            border-color: #007bff; /* Highlight on hover */
+        }
+        
+        .table-text-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            pointer-events: none; /* Allow clicks to pass through to table for dragging */
+            width: 100%;
+            height: 100%;
+            transform-origin: center center; /* Ensure counter-rotation is centered */
+        }
+
+        .table-name-display { /* Was table-text-display */
+            font-weight: bold;
+            font-size: 0.9em; /* Relative font size */
+            margin-bottom: 2px; /* Space between name and capacity */
+            color: #333;
+        }
+
+        .table-capacity-display {
+            font-size: 0.75em; /* Smaller font for capacity */
+            color: #555;
+        }
+
+        .rotation-handle {
+            position: absolute;
+            bottom: -25px; /* Position below the table, increased space */
+            left: 50%;
+            transform: translateX(-50%); /* Center the handle */
+            width: 20px;
+            height: 20px;
+            background-color: #007bff; /* Blue handle */
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grabbing; /* Changed cursor to suggest active rotation */
+            font-size: 16px; /* Slightly larger icon */
+            visibility: hidden; /* Hidden by default */
+            z-index: 1001; /* Above table, below context menu if active */
+            box-shadow: 0px 2px 4px rgba(0,0,0,0.2); /* Add some depth */
+        }
+
+        .draggable-table:hover .rotation-handle {
+            visibility: visible;
+        }
+
+        .canvas-area {
+            flex: 1;
+            background: white;
+            position: relative;
+            /* overflow: auto; // Keep auto for content larger than canvas */
+            padding: 1rem; 
+            /* border: 5px dashed #ccc; // Original */
+            border: 2px solid #000; /* New solid border */
+            margin: 1rem; 
+            width: 75vw; /* Default width */
+            height: 70vh; /* Default height */
+            min-width: 400px; /* Minimum width */
+            min-height: 300px; /* Minimum height */
+            resize: both; /* Allow user to resize with handle */
+            overflow: auto; /* Ensure scrollbars appear if content overflows */
+            box-sizing: border-box; /* Include padding and border in the element's total width and height */
+        }
+        
+        .draggable-table {
+            position: absolute; /* Ensure this is set for top/left positioning */
+            cursor: grab;
+            border: 2px solid #333;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 5px; /* Reduced padding to make more space for text */
+            box-sizing: border-box;
+            transform-origin: center center; /* Ensure rotation is around the center */
+        }
+
+        .rotation-handle {
+            position: absolute;
+            bottom: -20px; /* Position below the table */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 20px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: alias; /* Indicates rotation */
+            font-size: 14px;
+            visibility: hidden; /* Hidden by default */
+            z-index: 10; /* Ensure it's above other elements if needed */
+        }
+
+        .draggable-table:hover .rotation-handle,
+        .draggable-table.selected .rotation-handle { /* Show on hover or if table is 'selected' */
+            visibility: visible;
+        }
+
+        .table-text-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            /* transform-origin: center center; */ /* Ensure counter-rotation is also centered if needed */
+        }
+
+        .table-square {
+            width: 80px;
+            height: 80px;
+        }
+
+        .table-rectangle {
+            width: 120px;
+            height: 70px;
+        }
+
+        .table-circle {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+        }
+
+        .table-curved { /* Style for the new curved table */
+            width: 150px; /* Example width */
+            height: 70px;  /* Example height */
+            border-radius: 75px / 35px; /* Creates an oval shape */
+            /* Alternative: more complex curve using clip-path or SVG background */
+        }
+
+        .table-booth { /* Style for Booth Table */
+            width: 180px; /* Wider than standard rectangle */
+            height: 70px;
+            background-color: #c8e6c9; /* Light green for distinction */
+        }
+
+        .table-bar-seat { /* Style for Bar Seat */
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #ffcc80; /* Light orange for distinction */
+        }
+        
+        .table-actions {
+            margin-top: 1.5rem;
+            border-top: 1px solid #ced4da;
+            padding-top: 1rem;
+        }
+
+        .action-btn {
+            display: block;
+            width: 100%;
+            background: #495057;
+            color: white;
+            border: 2px solid #000;
+            padding: 0.75rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .action-btn:hover {
+            background: #343a40;
+        }
+        .action-btn.primary {
+            background: #28a745;
+        }
+        .action-btn.primary:hover {
+            background: #1e7e34;
+        }
+         .action-btn.danger {
+            background: #dc3545;
+        }
+        .action-btn.danger:hover {
+            background: #b02a37;
+        }
+
+        /* Styles for table text and capacity */
+        .table-text-display {
+            font-size: 0.95em; /* Relative to .draggable-table font-size */
+            margin-bottom: 1px;
+            line-height: 1.1;
+            display: block; /* Ensure it takes up space */
+            width: 100%; /* Take full width of parent */
+        }
+        .table-capacity-display {
+            font-size: 0.8em; /* Relative to .draggable-table font-size */
+            color: #333;
+            line-height: 1.1;
+            display: block; /* Ensure it takes up space */
+            width: 100%; /* Take full width of parent */
+        }
+
+        /* Specific adjustment for very small tables like bar seats */
+        .table-bar-seat .table-text-display {
+            font-size: 0.85em; 
+        }
+        .table-bar-seat .table-capacity-display {
+            font-size: 0.7em;
+        }
+
+        .draggable-table.selected { /* New style for selected tables */
+            border: 2px solid #007bff; /* Blue border */
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.7); /* Glow effect */
+        }
+
+        /* Context Menu Styles */
+        .context-menu {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ccc;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.15);
+            z-index: 10000; /* Ensure it's on top */
+            display: none; /* Hidden by default */
+            width: 150px;
+        }
+        .context-menu ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .context-menu ul li {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .context-menu ul li:hover {
+            background-color: #f0f0f0;
+        }
+        .context-menu ul li.delete:hover {
+            background-color: #ffdddd;
+            color: #c00;
+        }
+
+        /* Properties Modal Styles */
+        .properties-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            z-index: 9998; /* Below context menu but above other content */
+        }
+        .properties-modal {
+            background-color: white;
+            padding: 20px;
+            border: 2px solid #000;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 300px;
+        }
+        .properties-modal h4 {
+            margin-top: 0;
+            font-size: 1.2em;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .properties-modal label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .properties-modal input[type="text"],
+        .properties-modal input[type="number"] {
+            width: calc(100% - 12px);
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            font-family: 'Courier New', monospace;
+        }
+        .properties-modal-actions {
+            text-align: right;
+        }
+        .properties-modal-actions button {
+            padding: 8px 15px;
+            margin-left: 10px;
+            border: 2px solid #000;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+        .properties-modal-actions button.save {
+            background-color: #28a745;
+            color: white;
+        }
+         .properties-modal-actions button.cancel {
+            background-color: #6c757d;
+            color: white;
+        }
+
+
+    </style>
+</head>
+<body>
+    <header class="editor-header">
+        <h1 class="editor-title">Floor Plan Editor</h1>
+        <a href="settings.html" class="back-button">&larr; Back to Settings</a>
+    </header>
+    <main class="editor-main">
+        <aside class="tools-panel">
+            <h3>Table Shapes</h3>
+            <div class="shape-item" draggable="true" id="square-table" data-shape="square" data-default-text="Square">Square Table</div>
+            <div class="shape-item" draggable="true" id="rectangle-table" data-shape="rectangle" data-default-text="Rect">Rectangle Table</div>
+            <div class="shape-item" draggable="true" id="circle-table" data-shape="circle" data-default-text="Circle">Circle Table</div>
+            <div class="shape-item" draggable="true" id="curved-table" data-shape="curved" data-default-text="Curved">Curved Table</div>
+            <div class="shape-item" draggable="true" id="booth-table" data-shape="booth" data-default-text="Booth">Booth Table</div>
+            <div class="shape-item" draggable="true" id="bar-seat" data-shape="bar-seat" data-default-text="Bar Seat">Bar Seat</div>
+            
+            <div class="table-actions">
+                 <h3>Actions</h3>
+                <button class="action-btn primary" onclick="saveFloorPlan()">Save Plan</button>
+                <button class="action-btn" onclick="loadFloorPlan()">Load Plan</button>
+                <button class="action-btn" id="editCanvasSizeButton">Edit Canvas Size</button> 
+                <button class="action-btn danger" onclick="clearFloorPlan()">Clear Plan</button>
+                <div id="canvasDimensionsDisplay" style="margin-top: 10px; font-size: 0.85em; color: #343a40;"></div> <!-- New Display Area -->
+            </div>
+        </aside>
+        <section class="canvas-area" id="floorPlanCanvas">
+            <!-- Tables will be dropped here -->
+            <p style="color: #6c757d; text-align: center; margin-top: 20%; pointer-events: none;">Drag table shapes from the left panel and drop them here to build your floor plan.</p>
+            <div id="selectionMarquee" style="position: absolute; border: 1px dashed #007bff; background-color: rgba(0, 123, 255, 0.1); display: none; z-index: 9990; pointer-events: none;"></div>
+        </section>
+    </main>
+
+    <!-- Context Menu HTML -->
+    <div id="contextMenu" class="context-menu">
+        <ul>
+            <li id="editProperties">Edit Properties</li>
+            <li id="duplicateTable">Duplicate</li>
+            <li id="rotateTable">Rotate Table</li>
+            <li id="groupTablesOption" style="display:none;">Group Tables</li> <!-- New -->
+            <li id="deleteTable" class="delete">Delete Table</li>
+        </ul>
+    </div>
+
+    <!-- Properties Modal HTML -->
+    <div id="propertiesModalOverlay" class="properties-modal-overlay">
+        <div class="properties-modal">
+            <h4>Edit Table Properties</h4>
+            <label for="tableName">Name/Number:</label>
+            <input type="text" id="tableNameInput" name="tableName">
+            
+            <label for="tableCapacity">Capacity:</label>
+            <input type="number" id="tableCapacityInput" name="tableCapacity" min="1">
+            
+            <div class="properties-modal-actions">
+                <button id="cancelPropsButton" class="cancel">Cancel</button>
+                <button id="savePropsButton" class="save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // const canvas = document.getElementById('floorPlanCanvas'); // This can remain commented if not directly used here
+        // const contextMenu = document.getElementById('contextMenu'); // This can remain commented if not directly used here
+        // let offsetX, offsetY; // This is re-declared later, can be removed or ensure one definition
+          // Define base dimensions and scale factors with consistent property names
+        const baseDimensions = {
+            square: { width: 80, height: 80 },
+            rectangle: { width: 120, height: 70 },
+            circle: { width: 80, height: 80 },
+            curved: { width: 150, height: 70 },
+            booth: { width: 180, height: 70 },
+            'bar-seat': { width: 50, height: 50 }
+        };
+        const rotatableShapes = ['rectangle', 'booth', 'curved', 'square']; // Added square as it's often rotatable
+
+        // Scale factors with property names matching what's used in calculateDimensions
+        const scaleFactors = {
+            square: { width: 5, height: 5 },
+            rectangle: { width: 10, height: 0 },
+            circle: { width: 5, height: 5 }, // Use width/height instead of radius for consistency
+            curved: { width: 12, height: 0 },
+            booth: { width: 15, height: 0 },
+            'bar-seat': { width: 0, height: 0 } // Fixed size
+        };
+
+        const canvas = document.getElementById('floorPlanCanvas');
+        const shapes = document.querySelectorAll('.shape-item'); // Tool items from the panel
+        let draggedItem = null; // Stores the tool item being dragged
+        let offsetX, offsetY; // For dragging tables on the canvas
+        const contextMenu = document.getElementById('contextMenu');
+        const editPropertiesOption = document.getElementById('editProperties');
+        const duplicateTableOption = document.getElementById('duplicateTable');
+        const deleteTableOption = document.getElementById('deleteTable');
+        const rotateTableOption = document.getElementById('rotateTable');
+        let currentContextMenuTable = null;
+
+        const propertiesModalOverlay = document.getElementById('propertiesModalOverlay');
+        const tableNameInput = document.getElementById('tableNameInput');
+        const tableCapacityInput = document.getElementById('tableCapacityInput');
+        const savePropsButton = document.getElementById('savePropsButton');
+        const cancelPropsButton = document.getElementById('cancelPropsButton');
+        let currentTableCounter = 0;
+        let currentEditingTable = null; // Ensure this is declared for the properties modal
+
+        // For context menu closing
+        let activeContextMenuCloseHandler = null;
+
+        const PIXELS_PER_FOOT = 30; // Ensure this is defined, as per summary
+
+        function showNotification(message, duration = 3000) { // Assuming this exists from summary
+            const notificationDiv = document.getElementById('notificationArea'); // Or however it's implemented
+            if (notificationDiv) {
+                notificationDiv.textContent = message;
+                notificationDiv.style.display = 'block';
+                setTimeout(() => {
+                    notificationDiv.style.display = 'none';
+                }, duration);
+            } else {
+                console.log('Notification:', message);
+            }
+        }
+
+        function saveFloorPlan() {
+            const tables = [];
+            const tableElements = canvas.querySelectorAll('.draggable-table');
+            tableElements.forEach(tableEl => {
+                const nameDisplay = tableEl.querySelector('.table-name-display');
+                tables.push({
+                    id: tableEl.id,
+                    shapeType: tableEl.dataset.shapeType,
+                    name: nameDisplay ? nameDisplay.textContent : '',
+                    capacity: tableEl.dataset.capacity,
+                    left: tableEl.style.left,
+                    top: tableEl.style.top,
+                    rotationAngle: tableEl.dataset.rotationAngle || '0',
+                    width: tableEl.style.width,
+                    height: tableEl.style.height,
+                    isRotated: (parseFloat(tableEl.dataset.rotationAngle || '0') % 180 === 90 || parseFloat(tableEl.dataset.rotationAngle || '0') % 180 === -90) && rotatableShapes.includes(tableEl.dataset.shapeType)
+                });
+            });
+            localStorage.setItem('floorPlan', JSON.stringify(tables));
+            // console.log('Floor plan saved.');
+            showNotification('Floor plan saved!', 2000);
+        }
+
+        // Modified saveCanvasDimensions to store feet and pixel values
+        function saveCanvasDimensions(widthFt, heightFt, widthPx, heightPx) {
+            localStorage.setItem('canvasDimensions', JSON.stringify({ 
+                widthFt: widthFt, 
+                heightFt: heightFt,
+                widthPx: widthPx,
+                heightPx: heightPx 
+            }));
+        }
+
+        // Modified loadCanvasDimensions to apply pixel dimensions and update display
+        function loadCanvasDimensions() {
+            const savedDimsJSON = localStorage.getItem('canvasDimensions');
+            if (savedDimsJSON) {
+                const savedDims = JSON.parse(savedDimsJSON);
+                if (savedDims && typeof savedDims.widthPx !== 'undefined' && typeof savedDims.heightPx !== 'undefined') {
+                    canvas.style.width = savedDims.widthPx + 'px';
+                    canvas.style.height = savedDims.heightPx + 'px';
+                }
+            }
+            // Always call updateCanvasDimensionsDisplay to reflect current state
+            updateCanvasDimensionsDisplay(); 
+        }
+
+        // New or refined updateCanvasDimensionsDisplay function
+        function updateCanvasDimensionsDisplay() {
+            const displayEl = document.getElementById('canvasDimensionsDisplay');
+            if (!displayEl) return;
+
+            const savedDimsJSON = localStorage.getItem('canvasDimensions');
+            let widthFt, heightFt;
+
+            if (savedDimsJSON) {
+                const savedDims = JSON.parse(savedDimsJSON);
+                if (savedDims && typeof savedDims.widthFt !== 'undefined' && typeof savedDims.heightFt !== 'undefined') {
+                    widthFt = parseFloat(savedDims.widthFt);
+                    heightFt = parseFloat(savedDims.heightFt);
+                }
+            }
+
+            if (typeof widthFt === 'undefined' || typeof heightFt === 'undefined') {
+                // Fallback: Derive from current pixel dimensions if not explicitly set in feet
+                if (PIXELS_PER_FOOT && PIXELS_PER_FOOT > 0) {
+                    const currentWidthPx = canvas.clientWidth;
+                    const currentHeightPx = canvas.clientHeight;
+                    widthFt = currentWidthPx / PIXELS_PER_FOOT;
+                    heightFt = currentHeightPx / PIXELS_PER_FOOT;
+                    if (!isNaN(widthFt) && !isNaN(heightFt)) {
+                        const areaSqFt = widthFt * heightFt;
+                        displayEl.textContent = `Canvas: ${widthFt.toFixed(1)} ft (W) x ${heightFt.toFixed(1)} ft (H) = ${areaSqFt.toFixed(1)} sq ft (derived)`;
+                        return;
+                    }
+                }
+                displayEl.textContent = 'Canvas dimensions not set. Use "Edit Canvas Size".';
+                return;
+            }
+
+            if (!isNaN(widthFt) && !isNaN(heightFt)) {
+                const areaSqFt = widthFt * heightFt;
+                displayEl.textContent = `Canvas: ${widthFt.toFixed(1)} ft (W) x ${heightFt.toFixed(1)} ft (H) = ${areaSqFt.toFixed(1)} sq ft`;
+            } else {
+                displayEl.textContent = 'Error displaying canvas dimensions.';
+            }
+        }
+
+        function loadFloorPlan() {
+            // Clear existing tables first
+            const existingTables = canvas.querySelectorAll('.draggable-table');
+            existingTables.forEach(t => t.remove());
+            selectedTables = []; // Clear selection
+
+            const savedPlan = localStorage.getItem('floorPlan');
+            const placeholder = canvas.querySelector('p');
+            let maxIdCounter = 0;
+
+            if (savedPlan) {
+                const tablesData = JSON.parse(savedPlan);
+                if (tablesData.length > 0) {
+                    tablesData.forEach(tableData => {
+                        const newTable = createTableElement(
+                            tableData.shapeType,
+                            tableData.name,
+                            tableData.capacity,
+                            tableData.isRotated, // Pass the isRotated state
+                            tableData.id
+                        );
+                        newTable.style.left = tableData.left;
+                        newTable.style.top = tableData.top;
+                        newTable.style.width = tableData.width;
+                        newTable.style.height = tableData.height;
+                        
+                        const rotation = parseFloat(tableData.rotationAngle) || 0;
+                        newTable.dataset.rotationAngle = rotation;
+                        newTable.style.transform = `rotate(${rotation}deg)`;
+                        const textContainer = newTable.querySelector('.table-text-container');
+                        if (textContainer) {
+                            textContainer.style.transform = `rotate(${-rotation}deg)`;
+                        }
+                        
+                        // If the shape was saved as rotated and is a rotatable shape that swaps dimensions,
+                        // ensure dimensions are correctly applied considering its rotated state.
+                        // createTableElement already handles initial dimension setting based on isRotated,
+                        // but we override with saved width/height.
+                        // The createTableElement's isRotated logic might need to be simpler if we always restore exact w/h.
+
+                        canvas.appendChild(newTable);
+                        makeDraggable(newTable);
+
+                        // Update currentTableCounter based on loaded table IDs
+                        if (tableData.id && tableData.id.startsWith('table-')) {
+                            const idNum = parseInt(tableData.id.split('-')[1]);
+                            if (!isNaN(idNum) && idNum > maxIdCounter) {
+                                maxIdCounter = idNum;
+                            }
+                        }
+                    });
+                    currentTableCounter = maxIdCounter;
+                    if (placeholder) placeholder.style.display = 'none';
+                    // console.log('Floor plan loaded.');
+                    showNotification('Floor plan loaded.', 2000);
+                } else {
+                    if (placeholder) placeholder.style.display = 'block';
+                }
+            } else {
+                if (placeholder) placeholder.style.display = 'block';
+                // console.log('No saved floor plan found.');
+            }
+            updateContextMenuBasedOnSelection(); 
+            loadCanvasDimensions(); // Ensure this is called
+        }
+
+        // Modified clearFloorPlan to remove canvasDimensions from localStorage
+        function clearFloorPlan() {
+            if (confirm('Are you sure you want to clear the entire floor plan? This cannot be undone.')) {
+                localStorage.removeItem('floorPlan');
+                localStorage.removeItem('canvasDimensions'); // Ensure this is cleared
+
+                // Reset canvas to CSS default dimensions by removing inline styles
+                canvas.style.width = ''; 
+                canvas.style.height = '';
+                
+                const placeholder = canvas.querySelector('p');
+                if (placeholder) placeholder.style.display = 'block';
+                
+                const tableElements = canvas.querySelectorAll('.draggable-table');
+                tableElements.forEach(t => t.remove());
+                selectedTables = [];
+                currentTableCounter = 0; 
+                updateContextMenuBasedOnSelection();
+                
+                loadCanvasDimensions(); // Reload/update display for canvas dimensions (will use fallback)
+                showNotification('Floor plan cleared.', 2000);
+            }
+        }
+        
+        function openDebugClearStorage() {
+            if (confirm("Debug: Clear 'floorPlan' from localStorage?")) {
+                localStorage.removeItem('floorPlan');
+                showNotification("'floorPlan' cleared from localStorage.", 3000);
+                // Optionally, also clear the canvas and reload or refresh
+                loadFloorPlan(); // Reload to reflect cleared state
+            }
+        }
+
+        // Event handler for the "Edit Canvas Size" button
+        function handleEditCanvasSize() {
+            const savedDimsJSON = localStorage.getItem('canvasDimensions');
+            let currentWidthFt = canvas.clientWidth / PIXELS_PER_FOOT; // Default to current derived
+            let currentHeightFt = canvas.clientHeight / PIXELS_PER_FOOT; // Default to current derived
+
+            if (savedDimsJSON) {
+                const savedDims = JSON.parse(savedDimsJSON);
+                if (savedDims && typeof savedDims.widthFt !== 'undefined') {
+                    currentWidthFt = parseFloat(savedDims.widthFt);
+                }
+                if (savedDims && typeof savedDims.heightFt !== 'undefined') {
+                    currentHeightFt = parseFloat(savedDims.heightFt);
+                }
+            }
+            
+            const newWidthFtStr = prompt('Enter canvas width in feet:', currentWidthFt.toFixed(1));
+            if (newWidthFtStr === null) return; // User cancelled
+
+            const newHeightFtStr = prompt('Enter canvas height in feet:', currentHeightFt.toFixed(1));
+            if (newHeightFtStr === null) return; // User cancelled
+
+            const newWidthFt = parseFloat(newWidthFtStr);
+            const newHeightFt = parseFloat(newHeightFtStr);
+
+            if (!isNaN(newWidthFt) && newWidthFt > 0 && !isNaN(newHeightFt) && newHeightFt > 0) {
+                if (!PIXELS_PER_FOOT || PIXELS_PER_FOOT <= 0) {
+                    alert('Error: PIXELS_PER_FOOT constant is not configured correctly.');
+                    return;
+                }
+                const newWidthPx = newWidthFt * PIXELS_PER_FOOT;
+                const newHeightPx = newHeightFt * PIXELS_PER_FOOT;
+
+                canvas.style.width = newWidthPx + 'px';
+                canvas.style.height = newHeightPx + 'px';
+
+                saveCanvasDimensions(newWidthFt, newHeightFt, newWidthPx, newHeightPx);
+                updateCanvasDimensionsDisplay();
+                // Consider if saveFloorPlan() is needed here if table constraints depend on it.
+                // For now, assume collision detection handles it dynamically or saveFloorPlan is called elsewhere.
+                showNotification('Canvas size updated.', 2000);
+            } else {
+                alert('Invalid input. Please enter positive numbers for dimensions.');
+            }
+        }
+
+        function updateContextMenuBasedOnSelection() {
+            const groupTablesOpt = document.getElementById('groupTablesOption');
+            const editPropsOpt = document.getElementById('editProperties');
+            const duplicateOpt = document.getElementById('duplicateTable');
+            const rotateOpt = document.getElementById('rotateTable');
+            const deleteOpt = document.getElementById('deleteTable');
+
+            if (!contextMenu || !editPropsOpt || !duplicateOpt || !rotateOpt || !groupTablesOpt || !deleteOpt) {
+                console.error("Context menu elements not found!");
+                return; 
+            }
+
+            let showEdit = false;
+            let showDuplicate = false;
+            let showRotate = false;
+            let showGroup = false;
+            let deleteText = "Delete Table";
+            let showDelete = false;
+
+            if (selectedTables.length > 1) {
+                showGroup = true;
+                deleteText = "Delete Selected Tables";
+                showDelete = true;
+            } else if (selectedTables.length === 1) {
+                const singleSelectedTable = selectedTables[0];
+                showEdit = true;
+                showDuplicate = true;
+                if (singleSelectedTable) { 
+                    showRotate = rotatableShapes.includes(singleSelectedTable.dataset.shapeType);
+                }
+                deleteText = "Delete Table";
+                showDelete = true;
+            } else if (currentContextMenuTable) { // Context menu on a single table not part of a marquee selection
+                showEdit = true;
+                showDuplicate = true;
+                showRotate = rotatableShapes.includes(currentContextMenuTable.dataset.shapeType);
+                deleteText = "Delete Table";
+                showDelete = true;
+            }
+
+            editPropsOpt.style.display = showEdit ? 'block' : 'none';
+            duplicateOpt.style.display = showDuplicate ? 'block' : 'none';
+            rotateOpt.style.display = showRotate ? 'block' : 'none';
+            groupTablesOpt.style.display = showGroup ? 'block' : 'none';
+            deleteOpt.textContent = deleteText;
+            deleteOpt.style.display = showDelete ? 'block' : 'none';
+        }
+
+        function clearTableSelections() {
+            selectedTables.forEach(table => table.classList.remove('selected'));
+            selectedTables = [];
+            updateContextMenuBasedOnSelection();
+        }
+
+        function addTableToSelection(tableElement) {
+            if (!selectedTables.includes(tableElement)) {
+                tableElement.classList.add('selected');
+                selectedTables.push(tableElement);
+            }
+            updateContextMenuBasedOnSelection();
+        }
+
+        function removeTableFromSelection(tableElement) {
+            tableElement.classList.remove('selected');
+            selectedTables = selectedTables.filter(t => t !== tableElement);
+            updateContextMenuBasedOnSelection();
+        }
+
+        function isOverlapping(rect1, rect2) { // rect1, rect2 are {left, top, right, bottom}
+            return !(rect1.right < rect2.left || 
+                     rect1.left > rect2.right || 
+                     rect1.bottom < rect2.top || 
+                     rect1.top > rect2.bottom);
+        }
+        
+        function initializeMarqueeSelectionEvents() {
+            canvas.addEventListener('mousedown', (event) => {
+                // Only start marquee if mousedown is DIRECTLY on canvas itself
+                // And not on a scrollbar if the canvas itself is scrollable due to 'resize: both'
+                if (event.target === canvas && event.offsetX < canvas.clientWidth && event.offsetY < canvas.clientHeight) { 
+                    isMarqueeSelecting = true;
+                    // If not holding a modifier key (e.g. shift for future use), clear existing selection
+                    if (!event.shiftKey) { 
+                        clearTableSelections();
+                    }
+
+                    const canvasRect = canvas.getBoundingClientRect();
+                    marqueeStartX = event.clientX - canvasRect.left + canvas.scrollLeft;
+                    marqueeStartY = event.clientY - canvasRect.top + canvas.scrollTop;
+
+                    selectionMarquee.style.left = marqueeStartX + 'px';
+                    selectionMarquee.style.top = marqueeStartY + 'px';
+                    selectionMarquee.style.width = '0px';
+                    selectionMarquee.style.height = '0px';
+                    selectionMarquee.style.display = 'block';
+                    
+                    event.preventDefault();
+
+                    document.addEventListener('mousemove', onMarqueeDrag);
+                    document.addEventListener('mouseup', onMarqueeEnd);
+                }
+            });
+        }
+
+        function onMarqueeDrag(event) {
+            if (!isMarqueeSelecting) return;
+            event.preventDefault();
+            const canvasRect = canvas.getBoundingClientRect();
+            let currentX = event.clientX - canvasRect.left + canvas.scrollLeft;
+            let currentY = event.clientY - canvasRect.top + canvas.scrollTop;
+
+            let newX = Math.min(currentX, marqueeStartX);
+            let newY = Math.min(currentY, marqueeStartY);
+            let width = Math.abs(currentX - marqueeStartX);
+            let height = Math.abs(currentY - marqueeStartY);
+
+            selectionMarquee.style.left = newX + 'px';
+            selectionMarquee.style.top = newY + 'px';
+            selectionMarquee.style.width = width + 'px';
+            selectionMarquee.style.height = height + 'px';
+        }
+
+        function onMarqueeEnd(event) {
+            if (!isMarqueeSelecting) return;
+            isMarqueeSelecting = false;
+            selectionMarquee.style.display = 'none';
+            document.removeEventListener('mousemove', onMarqueeDrag);
+            document.removeEventListener('mouseup', onMarqueeEnd);
+
+            const marqueeRect = {
+                left: parseFloat(selectionMarquee.style.left),
+                top: parseFloat(selectionMarquee.style.top),
+                width: parseFloat(selectionMarquee.style.width),
+                height: parseFloat(selectionMarquee.style.height)
+            };
+            marqueeRect.right = marqueeRect.left + marqueeRect.width;
+            marqueeRect.bottom = marqueeRect.top + marqueeRect.height;
+
+            const tablesOnCanvas = canvas.querySelectorAll('.draggable-table');
+            tablesOnCanvas.forEach(table => {
+                const tableRect = {
+                    left: table.offsetLeft,
+                    top: table.offsetTop,
+                    width: table.offsetWidth,
+                    height: table.offsetHeight
+                };
+                tableRect.right = tableRect.left + tableRect.width;
+                tableRect.bottom = tableRect.top + tableRect.height;
+
+                if (isOverlapping(marqueeRect, tableRect)) {
+                    addTableToSelection(table);
+                }
+            });
+            updateContextMenuBasedOnSelection(); // Final update after selection
+        }
+
+
+        function calculateDimensions(shapeType, capacity) {
+            const base = baseDimensions[shapeType];
+            // If shapeType is unknown or no baseDimensions defined for it
+            if (!base) {
+                // console.warn(`calculateDimensions: Unknown shapeType or no baseDimensions for '${shapeType}'. Returning default.`);
+                return { width: 80, height: 80 }; // Return a default fallback
+            }
+
+            const scale = scaleFactors[shapeType];
+            // If no scaling factors are defined for this shape, return its base dimensions
+            if (!scale) {
+                // console.warn(`calculateDimensions: No scaleFactors for '${shapeType}'. Returning base dimensions.`);
+                return { width: base.width, height: base.height };
+            }
+
+            // Calculate additional size based on seats above minimum (2)
+            const additionalSeats = Math.max(0, capacity - 2);
+            return {
+                width: base.width + (scale.width * additionalSeats),
+                height: base.height + (scale.height * additionalSeats)
+            };
+        }
+
+        // Function to initialize drag-and-drop from tools panel to canvas
+        function initializeTools() {
+            shapes.forEach(toolShape => {
+                toolShape.setAttribute('draggable', 'true');
+                toolShape.addEventListener('dragstart', (event) => {
+                    draggedItem = event.target; // Correct: event.target is the element being dragged
+                    event.dataTransfer.setData('text/plain', draggedItem.dataset.shape);
+                });
+            });
+
+            canvas.addEventListener('dragover', (event) => {
+                event.preventDefault(); 
+            });
+
+            canvas.addEventListener('drop', (event) => {
+                event.preventDefault();
+                if (draggedItem && draggedItem.classList.contains('shape-item')) { // Ensure draggedItem is a tool
+                    const shapeType = draggedItem.dataset.shape;
+                    const defaultText = draggedItem.dataset.defaultText || shapeType.charAt(0).toUpperCase() + shapeType.slice(1);
+                    currentTableCounter++;
+                    const tableId = `table-${currentTableCounter}`;
+                    const tableNameOnCreation = `${defaultText} ${currentTableCounter}`;
+
+                    const newTable = createTableElement(shapeType, tableNameOnCreation, 2, false, tableId);
+
+                    const canvasRect = canvas.getBoundingClientRect();
+                    let x = event.clientX - canvasRect.left + canvas.scrollLeft;
+                    let y = event.clientY - canvasRect.top + canvas.scrollTop;
+
+                    const tableWidth = parseFloat(newTable.style.width) || (baseDimensions[shapeType] ? baseDimensions[shapeType].width : 80);
+                    const tableHeight = parseFloat(newTable.style.height) || (baseDimensions[shapeType] ? baseDimensions[shapeType].height : 80);
+
+                    newTable.style.left = `${x - tableWidth / 2}px`;
+                    newTable.style.top = `${y - tableHeight / 2}px`;
+
+                    canvas.appendChild(newTable);
+                    makeDraggable(newTable);
+
+                    const placeholder = canvas.querySelector('p');
+                    if (placeholder) placeholder.style.display = 'none';
+                    
+                    draggedItem = null; 
+                    saveFloorPlan();
+                }
+            });
+        }
+
+        function createTableElement(shapeType, customName = '', capacity = 0, isRotated = false, id = null) {
+            const table = document.createElement('div');
+            table.id = id || `table-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            table.classList.add('draggable-table');
+            table.dataset.shapeType = shapeType;
+            table.dataset.rotationAngle = '0';
+            
+            // Ensure minimum capacity of 2 and store it
+            const actualCapacity = Math.max(2, parseInt(capacity) || 2);
+            table.dataset.capacity = String(actualCapacity);
+
+            const textContainer = document.createElement('div');
+            textContainer.classList.add('table-text-container');
+
+            const nameDisplay = document.createElement('div');
+            nameDisplay.classList.add('table-name-display');
+            nameDisplay.textContent = customName || (shapeType.charAt(0).toUpperCase() + shapeType.slice(1));
+            
+            const capacityDisplay = document.createElement('div');
+            capacityDisplay.classList.add('table-capacity-display');
+            capacityDisplay.textContent = `Cap: ${actualCapacity}`;
+
+            textContainer.appendChild(nameDisplay);
+            textContainer.appendChild(capacityDisplay);
+            table.appendChild(textContainer);
+
+            // Calculate dimensions based on capacity
+            const dims = calculateDimensions(shapeType, actualCapacity);
+            table.style.width = `${dims.width}px`;
+            table.style.height = `${dims.height}px`;
+
+            // Apply shape-specific styles
+            if (shapeType === 'circle') {
+                table.style.borderRadius = '50%';
+            } else if (shapeType === 'curved') {
+                table.style.borderRadius = '0 0 50px 50px';
+            } else {
+                table.style.borderRadius = '';
+            }
+
+            const rotationHandle = document.createElement('div');
+            rotationHandle.classList.add('rotation-handle');
+            rotationHandle.innerHTML = '&#x21bb;'; // Unicode for clockwise circular arrow ↷
+            table.appendChild(rotationHandle);
+
+            // Handle initial rotation if needed
+            if (isRotated) {
+                table.dataset.rotationAngle = '90';
+                table.style.transform = 'rotate(90deg)';
+                textContainer.style.transform = 'rotate(-90deg)';
+                if (rotatableShapes.includes(shapeType)) {
+                    // Swap the calculated dimensions for rotation
+                    table.style.width = `${dims.height}px`;
+                    table.style.height = `${dims.width}px`;
+                    if (shapeType === 'curved') {
+                        table.style.borderRadius = '50px 50px 0 0';
+                    }
+                }
+            }
+
+            return table;
+        }
+
+        function makeDraggable(element) {
+            element.onmousedown = function(event) {
+                // Allow dragging only with left mouse button and not on the rotation handle
+                if (event.button !== 0 || event.target.classList.contains('rotation-handle')) {
+                    return;
+                }
+                event.preventDefault(); // Prevent text selection, etc.
+                
+                // Selection logic
+                if (!event.ctrlKey && !event.metaKey && !event.shiftKey) { // Standard click
+                    if (!selectedTables.includes(element)) {
+                        clearTableSelections();
+                        addTableToSelection(element);
+                    }
+                    // If it is already selected and part of a group, dragging it will move the group.
+                } else { // Modifier key pressed (e.g., for future shift+click to add to selection)
+                    if (selectedTables.includes(element)) {
+                        removeTableFromSelection(element);
+                    } else {
+                        addTableToSelection(element);
+                    }
+                }
+
+                let tablesToDrag = [];
+                if (selectedTables.includes(element)) { 
+                    tablesToDrag = [...selectedTables];
+                } else {
+                    // This case should ideally not be hit if the logic above correctly selects the element.
+                    // However, as a fallback, drag the clicked element if it wasn't part of a prior selection.
+                    tablesToDrag = [element]; 
+                }
+                
+                const initialPositions = tablesToDrag.map(tbl => ({
+                    table: tbl,
+                    startX: tbl.offsetLeft,
+                    startY: tbl.offsetTop,
+                    initialZIndex: tbl.style.zIndex || ''
+                }));
+
+                const dragStartX = event.clientX;
+                const dragStartY = event.clientY;
+
+                tablesToDrag.forEach(tbl => tbl.style.zIndex = 1000); 
+
+                document.onmousemove = function(moveEvent) {
+                    moveEvent.preventDefault();
+                    const dx = moveEvent.clientX - dragStartX;
+                    const dy = moveEvent.clientY - dragStartY;
+
+                    initialPositions.forEach(pos => {
+                        let newX = pos.startX + dx;
+                        let newY = pos.startY + dy;
+
+                        // Constrain X within canvas boundaries
+                        const minX = 0;
+                        const maxX = canvas.clientWidth - pos.table.offsetWidth;
+                        newX = Math.max(minX, Math.min(newX, maxX));
+
+                        // Constrain Y within canvas boundaries
+                        const minY = 0;
+                        const maxY = canvas.clientHeight - pos.table.offsetHeight;
+                        newY = Math.max(minY, Math.min(newY, maxY));
+
+                        pos.table.style.left = newX + 'px';
+                        pos.table.style.top = newY + 'px';
+                    });
+                };
+
+                document.onmouseup = function() {
+                    document.onmousemove = null;
+                    document.onmouseup = null;
+                    initialPositions.forEach(pos => pos.table.style.zIndex = pos.initialZIndex);
+                    if (tablesToDrag.length > 0) saveFloorPlan();
+                };
+            };
+            element.ondragstart = function() { return false; }; // Prevent default HTML5 drag behavior
+            
+            addContextMenuListener(element);
+            addRotationHandleListener(element); // Add listener for the rotation handle
+        }
+
+        function addRotationHandleListener(tableElement) {
+            const rotationHandle = tableElement.querySelector('.rotation-handle');
+            const textContainer = tableElement.querySelector('.table-text-container');
+
+            rotationHandle.onmousedown = function(event) {
+                event.preventDefault();
+                event.stopPropagation(); // Prevent table drag
+
+                const tableRect = tableElement.getBoundingClientRect();
+                const tableCenterX = tableRect.left + tableRect.width / 2;
+                const tableCenterY = tableRect.top + tableRect.height / 2;
+                
+                let startAngle = parseFloat(tableElement.dataset.rotationAngle) || 0;
+                const initialMouseAngle = Math.atan2(event.clientY - tableCenterY, event.clientX - tableCenterX) * (180 / Math.PI);
+
+                document.onmousemove = function(moveEvent) {
+                    const currentMouseAngle = Math.atan2(moveEvent.clientY - tableCenterY, moveEvent.clientX - tableCenterX) * (180 / Math.PI);
+                    let newAngle = startAngle + (currentMouseAngle - initialMouseAngle);
+
+                    // Normalize angle to be between 0 and 360 if desired, or allow negative/large angles
+                    // newAngle = (newAngle % 360 + 360) % 360; 
+
+                    tableElement.style.transform = `rotate(${newAngle}deg)`;
+                    if (textContainer) {
+                        textContainer.style.transform = `rotate(${-newAngle}deg)`;
+                    }
+                    tableElement.dataset.rotationAngle = newAngle;
+                };
+
+                document.onmouseup = function() {
+                    document.onmousemove = null;
+                    document.onmouseup = null;
+                    // Optional: Snap to nearest 90/45 degree angle or save final state
+                    saveFloorPlan(); // Save after rotation adjustment
+                };
+            };
+        }
+
+        function addContextMenuListener(element) {
+            element.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                currentContextMenuTable = element; // The table that was right-clicked
+
+                // If the right-clicked table is not part of the current selection,
+                // clear other selections and select only this one.
+                if (!selectedTables.includes(element)) {
+                    clearTableSelections();
+                    addTableToSelection(element);
+                }
+                // updateContextMenuBasedOnSelection() will be called by showContextMenu
+                showContextMenu(event.pageX, event.pageY);
+            });
+        }
+        
+        function showContextMenu(x, y) {
+            updateContextMenuBasedOnSelection();
+
+            contextMenu.style.left = x + 'px';
+            contextMenu.style.top = y + 'px';
+            contextMenu.style.display = 'block';
+
+            // Remove any existing listener before adding a new one to prevent duplicates
+            if (activeContextMenuCloseHandler) {
+                document.removeEventListener('click', activeContextMenuCloseHandler, true);
+                document.removeEventListener('contextmenu', activeContextMenuCloseHandler, true);
+            }
+
+            // Define the handler for closing the context menu
+            activeContextMenuCloseHandler = function handleClickOutsideContextMenu(event) {
+                if (!contextMenu.contains(event.target)) {
+                    hideContextMenu(); // This will also clear activeContextMenuCloseHandler and remove listeners
+                }
+            };
+
+            // Use setTimeout to ensure these are added after the current event cycle
+            setTimeout(() => {
+                document.addEventListener('click', activeContextMenuCloseHandler, true);
+                document.addEventListener('contextmenu', activeContextMenuCloseHandler, true);
+            }, 0);
+        }
+
+        function hideContextMenu() {
+            if (contextMenu) {
+                contextMenu.style.display = 'none';
+            }
+            // Remove the active listeners if they exist
+            if (activeContextMenuCloseHandler) {
+                document.removeEventListener('click', activeContextMenuCloseHandler, true);
+                document.removeEventListener('contextmenu', activeContextMenuCloseHandler, true);
+                activeContextMenuCloseHandler = null; // Clear the stored handler reference
+            }
+        }
+
+        // Event Listeners for Context Menu Options
+        editPropertiesOption.addEventListener('click', () => {
+            if (selectedTables.length === 1) {
+                currentEditingTable = selectedTables[0];
+            } else if (currentContextMenuTable && !selectedTables.includes(currentContextMenuTable)){
+                // This case handles if a table was right-clicked, not part of a multi-selection,
+                // and somehow didn't become the single selectedTable (though it should have)
+                currentEditingTable = currentContextMenuTable;
+            } else {
+                // Fallback or if logic implies currentContextMenuTable is the target for single edit
+                currentEditingTable = currentContextMenuTable; 
+            }
+
+            if (currentEditingTable) {
+                const nameDisplay = currentEditingTable.querySelector('.table-name-display');
+                tableNameInput.value = nameDisplay ? nameDisplay.textContent : '';
+                tableCapacityInput.value = currentEditingTable.dataset.capacity || '2';
+                propertiesModalOverlay.style.display = 'flex';
+            }
+            hideContextMenu();
+        });
+
+        duplicateTableOption.addEventListener('click', () => {
+            if (selectedTables.length === 1) {
+                const tableToDuplicate = selectedTables[0];
+                const shapeType = tableToDuplicate.dataset.shapeType;
+                const defaultText = tableToDuplicate.dataset.defaultText || shapeType.charAt(0).toUpperCase() + shapeType.slice(1);
+                currentTableCounter++;
+                const tableId = `table-${currentTableCounter}`;
+                const tableNameOnCreation = `${defaultText} ${currentTableCounter}`;
+
+                const newTable = createTableElement(shapeType, tableNameOnCreation, 2, false, tableId);
+
+                // Position the new table slightly offset from the original
+                newTable.style.left = `${tableToDuplicate.offsetLeft + 10}px`;
+                newTable.style.top = `${tableToDuplicate.offsetTop + 10}px`;
+
+                canvas.appendChild(newTable);
+                makeDraggable(newTable);
+
+                // Optionally, select the new table
+                clearTableSelections();
+                addTableToSelection(newTable);
+
+                saveFloorPlan();
+            }
+            hideContextMenu();
+        });
+
+        rotateTableOption.addEventListener('click', () => {
+            if (currentContextMenuTable) {
+                const rotationHandle = currentContextMenuTable.querySelector('.rotation-handle');
+                if (rotationHandle) {
+                    rotationHandle.onmousedown({ 
+                        preventDefault: () => {}, 
+                        stopPropagation: () => {}, 
+                        clientX: currentContextMenuTable.getBoundingClientRect().left + currentContextMenuTable.offsetWidth / 2, 
+                        clientY: currentContextMenuTable.getBoundingClientRect().top + currentContextMenuTable.offsetHeight / 2 
+                    });
+                }
+            }
+            hideContextMenu();
+        });
+
+        const groupTablesOption = document.getElementById('groupTablesOption');
+        groupTablesOption.addEventListener('click', () => {
+            // Placeholder for grouping logic
+            if (selectedTables.length > 1) {
+                alert(`Grouping ${selectedTables.length} tables. Feature to be fully implemented.`);
+                // Future: implement actual grouping:
+                // 1. Calculate properties for the new grouped table (position, size, capacity, etc.)
+                // 2. Create the new grouped table element.
+                // 3. Remove selected individual tables.
+                // 4. Add new grouped table to canvas and make it draggable/selectable.
+                // 5. Save changes.
+            }
+            hideContextMenu();
+        });
+
+
+        // Properties Modal Logic
+        savePropsButton.addEventListener('click', () => {
+            if (currentEditingTable) {
+                const nameDisplay = currentEditingTable.querySelector('.table-name-display');
+                if (nameDisplay) nameDisplay.textContent = tableNameInput.value;
+                
+                const capacityValue = Math.max(2, parseInt(tableCapacityInput.value) || 2);
+                currentEditingTable.dataset.capacity = capacityValue;
+                
+                // Update dimensions based on new capacity
+                const shapeType = currentEditingTable.dataset.shapeType;
+                const dims = calculateDimensions(shapeType, capacityValue);
+                const currentRotation = parseFloat(currentEditingTable.dataset.rotationAngle) || 0;
+                const isCurrently90DegEquivalent = (currentRotation % 180 === 90 || currentRotation % 180 === -90);
+
+                if (isCurrently90DegEquivalent && rotatableShapes.includes(shapeType)) {
+                    currentEditingTable.style.width = `${dims.height}px`;
+                    currentEditingTable.style.height = `${dims.width}px`;
+                } else {
+                    currentEditingTable.style.width = `${dims.width}px`;
+                    currentEditingTable.style.height = `${dims.height}px`;
+                }
+                
+                const capacityDisplay = currentEditingTable.querySelector('.table-capacity-display');
+                if (capacityDisplay) capacityDisplay.textContent = `Cap: ${capacityValue}`;
+                
+                closePropertiesModal(); // Handles nullifying currentEditingTable
+                // currentContextMenuTable = null; // Removed this line
+                
+                saveFloorPlan();
+            }
+        });
+
+        cancelPropsButton.addEventListener('click', () => {
+            closePropertiesModal(); // Handles nullifying currentEditingTable
+            // currentContextMenuTable = null; // Removed this line
+        });
+
+        function closePropertiesModal() {
+            if (propertiesModalOverlay) {
+                propertiesModalOverlay.style.display = 'none';
+            }
+            currentEditingTable = null;
+            // currentContextMenuTable = null; // Decide if context menu table should also be cleared here
+        }
+
+        function setupEventListeners() {
+            // Buttons in the tools panel - assuming they have IDs or use onclick directly in HTML
+            // If using onclick in HTML, this function might be for other listeners.
+            // Example: document.getElementById('savePlanButton').addEventListener('click', saveFloorPlan);
+            // The current HTML uses onclick attributes, so this function might be minimal for now.
+
+            // Modal close buttons are handled in their respective sections or globally
+            /* const closeButton = propertiesModalOverlay.querySelector('.properties-modal-actions button.cancel'); // More specific selector
+            if (closeButton) { // This is cancelPropsButton
+                closeButton.onclick = function() { // This was redundant with addEventListener
+                    closePropertiesModal();
+                }
+            } */
+            
+            // Clicking outside modal to close
+            propertiesModalOverlay.onclick = function(event) {
+                if (event.target == propertiesModalOverlay) {
+                    closePropertiesModal();
+                }
+            }
+            // Properties form submission
+            // const propertiesForm = document.getElementById('propertiesForm'); // No form tag in current HTML for modal
+            // if(propertiesForm) propertiesForm.addEventListener('submit', savePropsButton.click()); // Not ideal, direct click better
+        }
+
+        // DOMContentLoaded to initialize everything
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTools(); 
+            loadFloorPlan();   // This now also calls loadCanvasDimensions
+            setupEventListeners(); 
+            initializeMarqueeSelectionEvents(); 
+
+            const editCanvasSizeBtn = document.getElementById('editCanvasSizeButton');
+            if (editCanvasSizeBtn) {
+                editCanvasSizeBtn.addEventListener('click', handleEditCanvasSize);
+            } else {
+                console.error('Edit Canvas Size button not found!');
+            }
+
+            document.addEventListener('keydown', function(event) {
+                if (event.ctrlKey && event.key === '2') {
+                    event.preventDefault();
+                    openDebugClearStorage();
+                }
+            });
+            
+            // Add a notification div to the body if it doesn't exist, for showNotification
+            if (!document.getElementById('notification')) {
+                const notificationDiv = document.createElement('div');
+                notificationDiv.id = 'notification';
+                notificationDiv.style.position = 'fixed';
+                notificationDiv.style.top = '20px';
+                notificationDiv.style.right = '20px';
+                notificationDiv.style.background = '#10b981'; // Or some other style
+                notificationDiv.style.color = 'white';
+                notificationDiv.style.padding = '1rem 1.5rem';
+                notificationDiv.style.border = '2px solid #000'; // Consistent styling
+                notificationDiv.style.zIndex = '10001'; // Above context menu
+                notificationDiv.style.fontWeight = 'bold';
+                notificationDiv.style.display = 'none'; // Hidden by default
+                document.body.appendChild(notificationDiv);
+            }
+        });
+    </script>
+</body>
+</html>

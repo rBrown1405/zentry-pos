@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zentry POS - Property Management</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background-color: #4285f4;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo h2 {
+            margin: 0;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        .user-info span {
+            margin-right: 15px;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #ffffff;
+            color: #4285f4;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button:hover {
+            background-color: #f1f1f1;
+        }
+        button.primary {
+            background-color: #4285f4;
+            color: white;
+        }
+        button.primary:hover {
+            background-color: #3367d6;
+        }
+        .dashboard-content {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 30px;
+        }
+        .sidebar {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            padding: 20px;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar li {
+            margin-bottom: 10px;
+        }
+        .sidebar a {
+            display: block;
+            padding: 10px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .sidebar a:hover, .sidebar a.active {
+            background-color: #f1f1f1;
+            color: #4285f4;
+        }
+        .main-content {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            padding: 30px;
+        }
+        h1 {
+            margin-top: 0;
+            color: #333;
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .property-list {
+            margin-top: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        .action-buttons button {
+            margin-right: 5px;
+            background-color: transparent;
+            color: #4285f4;
+            padding: 5px 10px;
+        }
+        .action-buttons button:hover {
+            background-color: #f1f1f1;
+        }
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #4285f4;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            overflow: auto;
+        }
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .close {
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .form-group textarea {
+            height: 100px;
+        }
+        .form-actions {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .form-actions button {
+            margin-left: 10px;
+        }
+        .error-message {
+            color: #d93025;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h2>Zentry POS</h2>
+        </div>
+        <div class="user-info">
+            <span id="userDisplay">Loading...</span>
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="dashboard-content">
+            <div class="sidebar">
+                <ul>
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="#">Businesses</a></li>
+                    <li><a href="#" class="active">Properties</a></li>
+                    <li><a href="#">Users</a></li>
+                    <li><a href="#">Settings</a></li>
+                </ul>
+            </div>
+
+            <div class="main-content">
+                <div class="page-header">
+                    <h1>Property Management</h1>
+                    <button id="addPropertyBtn" class="primary">Add Property</button>
+                </div>
+                
+                <div class="property-filters">
+                    <div class="form-group">
+                        <label for="businessFilter">Filter by Business:</label>
+                        <select id="businessFilter">
+                            <option value="">All Businesses</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="property-list">
+                    <div id="propertiesTable" class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Property Form Modal -->
+    <div id="propertyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Property</h2>
+                <span class="close">&times;</span>
+            </div>
+            
+            <form id="propertyForm">
+                <input type="hidden" id="propertyId">
+                
+                <div class="form-group">
+                    <label for="propertyName">Property Name *</label>
+                    <input type="text" id="propertyName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="propertyAddress">Address</label>
+                    <textarea id="propertyAddress"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="propertyEmail">Email</label>
+                    <input type="email" id="propertyEmail">
+                </div>
+                
+                <div class="form-group">
+                    <label for="propertyPhone">Phone</label>
+                    <input type="tel" id="propertyPhone">
+                </div>
+                
+                <div class="form-group">
+                    <label for="propertyBusiness">Business</label>
+                    <select id="propertyBusiness">
+                        <option value="">None (Unassigned)</option>
+                    </select>
+                </div>
+                
+                <p class="error-message" id="formErrorMessage"></p>
+                
+                <div class="form-actions">
+                    <button type="button" class="close-btn">Cancel</button>
+                    <button type="submit" class="primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import SuperAdminManager from './SuperAdminManager.js';
+        
+        const manager = new SuperAdminManager();
+        
+        // Check if authenticated
+        if (!manager.isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+        
+        // DOM Elements
+        const userDisplay = document.getElementById('userDisplay');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const propertiesTable = document.getElementById('propertiesTable');
+        const addPropertyBtn = document.getElementById('addPropertyBtn');
+        const businessFilter = document.getElementById('businessFilter');
+        const propertyModal = document.getElementById('propertyModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const propertyForm = document.getElementById('propertyForm');
+        const propertyIdInput = document.getElementById('propertyId');
+        const propertyNameInput = document.getElementById('propertyName');
+        const propertyAddressInput = document.getElementById('propertyAddress');
+        const propertyEmailInput = document.getElementById('propertyEmail');
+        const propertyPhoneInput = document.getElementById('propertyPhone');
+        const propertyBusinessInput = document.getElementById('propertyBusiness');
+        const formErrorMessage = document.getElementById('formErrorMessage');
+        const closeModal = document.querySelector('.close');
+        const closeBtn = document.querySelector('.close-btn');
+        
+        // State
+        let properties = [];
+        let businesses = [];
+        
+        // Handle logout
+        logoutBtn.addEventListener('click', () => {
+            manager.logout();
+            window.location.href = 'login.html';
+        });
+        
+        // Event Listeners
+        closeModal.addEventListener('click', () => propertyModal.style.display = 'none');
+        closeBtn.addEventListener('click', () => propertyModal.style.display = 'none');
+        window.addEventListener('click', (e) => {
+            if (e.target === propertyModal) {
+                propertyModal.style.display = 'none';
+            }
+        });
+        
+        addPropertyBtn.addEventListener('click', () => {
+            modalTitle.textContent = 'Add Property';
+            propertyForm.reset();
+            propertyIdInput.value = '';
+            formErrorMessage.style.display = 'none';
+            propertyModal.style.display = 'block';
+        });
+        
+        propertyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            formErrorMessage.style.display = 'none';
+            
+            const propertyData = {
+                name: propertyNameInput.value,
+                address: propertyAddressInput.value,
+                email: propertyEmailInput.value,
+                phone: propertyPhoneInput.value,
+                business: propertyBusinessInput.value || null
+            };
+            
+            try {
+                if (propertyIdInput.value) {
+                    // Update existing property
+                    await manager.updateProperty(propertyIdInput.value, propertyData);
+                } else {
+                    // Create new property
+                    await manager.createProperty(propertyData);
+                }
+                
+                propertyModal.style.display = 'none';
+                loadProperties();
+            } catch (error) {
+                formErrorMessage.textContent = error.message || 'Error saving property';
+                formErrorMessage.style.display = 'block';
+            }
+        });
+        
+        businessFilter.addEventListener('change', () => {
+            loadProperties(businessFilter.value);
+        });
+        
+        // Load user profile, businesses and properties
+        async function loadData() {
+            try {
+                // Load user profile
+                const user = await manager.getUserProfile();
+                userDisplay.textContent = `${user.username} (${user.role})`;
+                
+                // Load businesses for filter
+                businesses = await manager.getBusinesses();
+                populateBusinessDropdowns(businesses);
+                
+                // Load properties
+                await loadProperties();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                
+                // If authentication error, redirect to login
+                if (error.message === 'Not authenticated' || error.message === 'Authentication failed') {
+                    window.location.href = 'login.html';
+                }
+            }
+        }
+        
+        // Load properties with optional business filter
+        async function loadProperties(businessId = '') {
+            try {
+                propertiesTable.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+                
+                properties = await manager.getProperties(businessId);
+                renderPropertiesTable(properties);
+            } catch (error) {
+                console.error('Error loading properties:', error);
+                propertiesTable.innerHTML = '<p>Error loading properties. Please try again.</p>';
+            }
+        }
+        
+        // Populate business dropdowns
+        function populateBusinessDropdowns(businesses) {
+            // Filter dropdown
+            let filterOptions = '<option value="">All Businesses</option>';
+            
+            // Form dropdown
+            let formOptions = '<option value="">None (Unassigned)</option>';
+            
+            businesses.forEach(business => {
+                const option = `<option value="${business._id}">${business.name}</option>`;
+                filterOptions += option;
+                formOptions += option;
+            });
+            
+            businessFilter.innerHTML = filterOptions;
+            propertyBusinessInput.innerHTML = formOptions;
+        }
+        
+        // Render properties table
+        function renderPropertiesTable(properties) {
+            if (properties.length === 0) {
+                propertiesTable.innerHTML = '<p>No properties found</p>';
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Address</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Business</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            properties.forEach(property => {
+                const businessName = property.business ? 
+                    (typeof property.business === 'object' ? property.business.name : 
+                        businesses.find(b => b._id === property.business)?.name || 'Unknown') : 
+                    'Unassigned';
+                
+                html += `
+                    <tr>
+                        <td>${property.name}</td>
+                        <td>${property.address || '-'}</td>
+                        <td>${property.email || '-'}</td>
+                        <td>${property.phone || '-'}</td>
+                        <td>${businessName}</td>
+                        <td class="action-buttons">
+                            <button data-id="${property._id}" class="edit-btn">Edit</button>
+                            <button data-id="${property._id}" class="delete-btn">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            propertiesTable.innerHTML = html;
+            
+            // Add event listeners to action buttons
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    editProperty(btn.dataset.id);
+                });
+            });
+            
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    deleteProperty(btn.dataset.id);
+                });
+            });
+        }
+        
+        // Edit property
+        function editProperty(id) {
+            const property = properties.find(p => p._id === id);
+            if (!property) return;
+            
+            modalTitle.textContent = 'Edit Property';
+            propertyIdInput.value = property._id;
+            propertyNameInput.value = property.name;
+            propertyAddressInput.value = property.address || '';
+            propertyEmailInput.value = property.email || '';
+            propertyPhoneInput.value = property.phone || '';
+            propertyBusinessInput.value = property.business ? 
+                (typeof property.business === 'object' ? property.business._id : property.business) : '';
+            
+            formErrorMessage.style.display = 'none';
+            propertyModal.style.display = 'block';
+        }
+        
+        // Delete property
+        async function deleteProperty(id) {
+            if (confirm('Are you sure you want to delete this property?')) {
+                try {
+                    await manager.deleteProperty(id);
+                    await loadProperties(businessFilter.value);
+                } catch (error) {
+                    alert(`Error deleting property: ${error.message}`);
+                }
+            }
+        }
+        
+        // Load initial data
+        loadData();
+    </script>
+</body>
+</html>

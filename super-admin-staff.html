@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin - All Staff Management</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .super-admin-header {
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 1rem 2rem;
+            border-bottom: 3px solid #ffd700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .crown-icon {
+            color: #ffd700;
+            font-size: 2rem;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .btn {
+            background: #4a5568;
+            border: 2px solid #000;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            background: #2d3748;
+        }
+        
+        .btn.primary {
+            background: #3b82f6;
+        }
+        
+        .main-container {
+            max-width: 1600px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 3px solid #000;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1a202c;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+        
+        .staff-container {
+            background: rgba(255, 255, 255, 0.95);
+            border: 3px solid #000;
+            border-radius: 8px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        .container-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .container-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1a202c;
+        }
+        
+        .search-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid #d1d5db;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        
+        .filter-select {
+            padding: 0.75rem;
+            border: 2px solid #d1d5db;
+            border-radius: 4px;
+            font-family: inherit;
+            min-width: 150px;
+        }
+        
+        .staff-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        .staff-table th,
+        .staff-table td {
+            text-align: left;
+            padding: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .staff-table th {
+            background: #f8fafc;
+            font-weight: bold;
+            color: #374151;
+            position: sticky;
+            top: 0;
+        }
+        
+        .staff-table tbody tr:hover {
+            background: #f9fafb;
+        }
+        
+        .role-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .role-badge.owner { background: #fef3c7; color: #92400e; }
+        .role-badge.manager { background: #dbeafe; color: #1e40af; }
+        .role-badge.server { background: #d1fae5; color: #065f46; }
+        .role-badge.cashier { background: #fde2e8; color: #be185d; }
+        .role-badge.kitchen { background: #e0e7ff; color: #3730a3; }
+        .role-badge.staff { background: #f3f4f6; color: #374151; }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .status-badge.active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-badge.inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .business-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: #e0e7ff;
+            color: #3730a3;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .action-btn {
+            padding: 0.5rem;
+            border: 2px solid #000;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            background: white;
+            transition: all 0.2s;
+        }
+        
+        .action-btn.access {
+            color: #10b981;
+            border-color: #10b981;
+        }
+        
+        .action-btn.access:hover {
+            background: #10b981;
+            color: white;
+        }
+        
+        .action-btn.edit {
+            color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        
+        .action-btn.edit:hover {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #6b7280;
+        }
+        
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <header class="super-admin-header">
+        <div class="header-title">
+            <span class="crown-icon">👑</span>
+            Super Admin - All Staff
+        </div>
+        <div class="header-actions">
+            <a href="super-admin-dashboard.html" class="btn">← Back to Dashboard</a>
+        </div>
+    </header>
+    
+    <div class="main-container">
+        <!-- Statistics Overview -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalStaff">0</div>
+                <div class="stat-label">Total Staff</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="activeStaff">0</div>
+                <div class="stat-label">Active Staff</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalManagers">0</div>
+                <div class="stat-label">Managers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalServers">0</div>
+                <div class="stat-label">Servers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalBusinesses">0</div>
+                <div class="stat-label">Businesses</div>
+            </div>
+        </div>
+        
+        <!-- Staff List -->
+        <div class="staff-container">
+            <div class="container-header">
+                <h2 class="container-title">All Staff Members Across All Businesses</h2>
+            </div>
+            
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="Search staff by name, email, business, or role..." id="searchInput">
+                <select class="filter-select" id="roleFilter">
+                    <option value="">All Roles</option>
+                    <option value="owner">Owner</option>
+                    <option value="manager">Manager</option>
+                    <option value="server">Server</option>
+                    <option value="cashier">Cashier</option>
+                    <option value="kitchen">Kitchen Staff</option>
+                    <option value="staff">Staff</option>
+                </select>
+                <select class="filter-select" id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+                <select class="filter-select" id="businessFilter">
+                    <option value="">All Businesses</option>
+                </select>
+            </div>
+            
+            <div class="table-container">
+                <div id="staffTableContainer">
+                    <!-- Staff table will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="super-admin.js"></script>
+    <script src="navigation.js"></script>
+    <script>
+        let allStaff = [];
+        let allBusinesses = [];
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is super admin
+            if (!SuperAdminManager.isSuperAdmin()) {
+                alert('Access denied. Super admin privileges required.');
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            loadAllData();
+            renderStaffTable();
+            updateStats();
+            
+            // Add event listeners
+            document.getElementById('searchInput').addEventListener('input', filterStaff);
+            document.getElementById('roleFilter').addEventListener('change', filterStaff);
+            document.getElementById('statusFilter').addEventListener('change', filterStaff);
+            document.getElementById('businessFilter').addEventListener('change', filterStaff);
+        });
+        
+        function loadAllData() {
+            allStaff = SuperAdminManager.getAllStaff();
+            allBusinesses = SuperAdminManager.getAllBusinesses();
+            
+            // Populate business filter
+            const businessFilter = document.getElementById('businessFilter');
+            businessFilter.innerHTML = '<option value="">All Businesses</option>';
+            
+            allBusinesses.forEach(business => {
+                const option = document.createElement('option');
+                option.value = business.businessCode || business.businessID;
+                option.textContent = business.companyName || business.businessID;
+                businessFilter.appendChild(option);
+            });
+        }
+        
+        function getBusinessName(businessCode) {
+            const business = allBusinesses.find(b => 
+                b.businessCode === businessCode || b.businessID === businessCode
+            );
+            return business ? (business.companyName || business.businessID) : businessCode;
+        }
+        
+        function renderStaffTable() {
+            const container = document.getElementById('staffTableContainer');
+            const filteredStaff = getFilteredStaff();
+            
+            if (filteredStaff.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👥</div>
+                        <h3>No staff members found</h3>
+                        <p>No staff members match your current filters.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const table = `
+                <table class="staff-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Business</th>
+                            <th>Staff ID</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredStaff.map(staff => `
+                            <tr>
+                                <td>${staff.fullName || `${staff.firstName || ''} ${staff.lastName || ''}`.trim() || 'N/A'}</td>
+                                <td>${staff.email || 'N/A'}</td>
+                                <td>${staff.phone || 'N/A'}</td>
+                                <td><span class="role-badge ${staff.role || 'staff'}">${staff.role || 'staff'}</span></td>
+                                <td><span class="status-badge ${staff.status || 'active'}">${staff.status || 'active'}</span></td>
+                                <td><span class="business-badge" title="${getBusinessName(staff.businessCode)}">${getBusinessName(staff.businessCode)}</span></td>
+                                <td><code>${staff.staffId}</code></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="action-btn access" onclick="accessBusinessForStaff('${staff.businessCode}')">
+                                            🏢 Access Business
+                                        </button>
+                                        <button class="action-btn edit" onclick="viewStaffDetails('${staff.staffId}')">
+                                            👤 View Details
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = table;
+        }
+        
+        function getFilteredStaff() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const roleFilter = document.getElementById('roleFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const businessFilter = document.getElementById('businessFilter').value;
+            
+            return allStaff.filter(staff => {
+                const fullName = staff.fullName || `${staff.firstName || ''} ${staff.lastName || ''}`.trim();
+                const businessName = getBusinessName(staff.businessCode).toLowerCase();
+                
+                const matchesSearch = !search || 
+                    fullName.toLowerCase().includes(search) ||
+                    (staff.email || '').toLowerCase().includes(search) ||
+                    (staff.role || '').toLowerCase().includes(search) ||
+                    businessName.includes(search) ||
+                    (staff.staffId || '').toLowerCase().includes(search);
+                
+                const matchesRole = !roleFilter || (staff.role || 'staff') === roleFilter;
+                const matchesStatus = !statusFilter || (staff.status || 'active') === statusFilter;
+                const matchesBusiness = !businessFilter || staff.businessCode === businessFilter;
+                
+                return matchesSearch && matchesRole && matchesStatus && matchesBusiness;
+            });
+        }
+        
+        function filterStaff() {
+            renderStaffTable();
+            updateStats();
+        }
+        
+        function updateStats() {
+            const filteredStaff = getFilteredStaff();
+            
+            document.getElementById('totalStaff').textContent = allStaff.length;
+            document.getElementById('activeStaff').textContent = allStaff.filter(s => (s.status || 'active') === 'active').length;
+            document.getElementById('totalManagers').textContent = allStaff.filter(s => 
+                (s.role || 'staff') === 'manager' || (s.role || 'staff') === 'owner'
+            ).length;
+            document.getElementById('totalServers').textContent = allStaff.filter(s => (s.role || 'staff') === 'server').length;
+            document.getElementById('totalBusinesses').textContent = allBusinesses.length;
+        }
+        
+        function accessBusinessForStaff(businessCode) {
+            // Find business by code
+            const business = allBusinesses.find(b => 
+                b.businessCode === businessCode || b.businessID === businessCode
+            );
+            
+            if (business && SuperAdminManager.switchToBusiness(business.businessID)) {
+                // Navigate to POS interface with business context
+                navigateWithTransition('pos-interface-fixed.html');
+            } else {
+                alert('Unable to access business. Business may not exist.');
+            }
+        }
+        
+        function viewStaffDetails(staffId) {
+            const staff = allStaff.find(s => s.staffId === staffId);
+            if (!staff) {
+                alert('Staff member not found.');
+                return;
+            }
+            
+            const businessName = getBusinessName(staff.businessCode);
+            const fullName = staff.fullName || `${staff.firstName || ''} ${staff.lastName || ''}`.trim();
+            
+            const details = `
+Staff Details:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👤 Name: ${fullName}
+📧 Email: ${staff.email || 'N/A'}
+📱 Phone: ${staff.phone || 'N/A'}
+🏷️ Role: ${staff.role || 'staff'}
+📊 Status: ${staff.status || 'active'}
+🏢 Business: ${businessName}
+🆔 Staff ID: ${staffId}
+🗓️ Created: ${staff.createdAt ? new Date(staff.createdAt).toLocaleDateString() : 'N/A'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            `.trim();
+            
+            alert(details);
+        }
+        
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#10b981' : type === 'warning' ? '#f59e0b' : type === 'error' ? '#ef4444' : '#3b82f6'};
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                font-weight: 500;
+                max-width: 300px;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

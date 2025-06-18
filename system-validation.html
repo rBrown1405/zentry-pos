@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Property System Validation</title>
+    <script src="multi-property-manager.js"></script>
+    <script src="property-switcher.js"></script>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .status {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .status h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .cleanup-btn {
+            background: #dc3545;
+        }
+        .cleanup-btn:hover {
+            background: #c82333;
+        }
+        #console {
+            background: #212529;
+            color: #ffffff;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin: 20px 0;
+        }
+        .property-switcher {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(45, 55, 72, 0.95);
+            border-radius: 6px;
+            color: white;
+        }
+        .property-select {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(45, 55, 72, 0.3);
+            border-radius: 4px;
+            padding: 8px 12px;
+            color: #2d3748;
+            font-size: 14px;
+            min-width: 200px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Multi-Property System Validation</h1>
+        
+        <div class="status">
+            <h3>System Status</h3>
+            <p>This page validates the complete multi-property management system integration.</p>
+            <p><strong>Components:</strong> MultiPropertyManager, PropertySwitcher, POS Integration</p>
+        </div>
+
+        <div class="status">
+            <h3>Property Switcher Demo</h3>
+            <div id="propertySwitcher" class="property-switcher" style="display: none;">
+                <label for="propertySelect">Current Property:</label>
+                <select id="propertySelect" class="property-select">
+                    <option value="">Select Property...</option>
+                </select>
+            </div>
+            <small>The property switcher will appear here after running the validation script.</small>
+        </div>
+
+        <div>
+            <button onclick="runValidation()">Run Full System Validation</button>
+            <button onclick="initializePropertySwitcher()">Initialize Property Switcher</button>
+            <button onclick="clearConsole()">Clear Console</button>
+            <button onclick="cleanupData()" class="cleanup-btn">Cleanup Test Data</button>
+        </div>
+
+        <div id="console"></div>
+    </div>
+
+    <script>
+        // Console output capture
+        const originalConsoleLog = console.log;
+        const consoleDiv = document.getElementById('console');
+        
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            consoleDiv.textContent += message + '\n';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+
+        function clearConsole() {
+            consoleDiv.textContent = '';
+        }
+
+        function runValidation() {
+            clearConsole();
+            console.log('Starting Multi-Property System Validation...\n');
+            
+            try {
+                // Load and execute the validation script
+                fetch('validation-script.js')
+                    .then(response => response.text())
+                    .then(scriptContent => {
+                        eval(scriptContent);
+                        
+                        // Initialize property switcher after validation
+                        setTimeout(() => {
+                            initializePropertySwitcher();
+                        }, 1000);
+                    })
+                    .catch(error => {
+                        console.log('Error loading validation script:', error.message);
+                        
+                        // Run inline validation if fetch fails
+                        runInlineValidation();
+                    });
+            } catch (error) {
+                console.log('Validation error:', error.message);
+            }
+        }
+
+        function runInlineValidation() {
+            console.log('Running inline validation...\n');
+            
+            // Check if classes are available
+            if (typeof MultiPropertyManager === 'undefined') {
+                console.log('✗ MultiPropertyManager not available');
+                return;
+            }
+            
+            if (typeof PropertySwitcher === 'undefined') {
+                console.log('✗ PropertySwitcher not available');
+                return;
+            }
+            
+            console.log('✓ All required classes are available');
+            console.log('✓ Multi-property system is properly integrated');
+            
+            // Quick validation of key functionality
+            console.log('\nTesting core functionality...');
+            
+            try {
+                const testBusiness = MultiPropertyManager.createBusinessAccount({
+                    businessName: 'Quick Test Business',
+                    businessType: 'restaurant',
+                    ownerName: 'Test Owner',
+                    email: 'test@test.com',
+                    phone: '555-0000',
+                    address: 'Test Address'
+                });
+                
+                if (testBusiness.success) {
+                    console.log('✓ Business account creation works');
+                    
+                    const testProperty = MultiPropertyManager.addProperty(testBusiness.businessId, {
+                        name: 'Test Property',
+                        type: 'restaurant',
+                        address: 'Test Address',
+                        city: 'Test City',
+                        state: 'TS',
+                        zip: '00000'
+                    });
+                    
+                    if (testProperty.success) {
+                        console.log('✓ Property creation works');
+                        
+                        const testStaff = MultiPropertyManager.registerStaff({
+                            firstName: 'Test',
+                            lastName: 'Staff',
+                            email: 'staff@test.com',
+                            phone: '555-0001',
+                            role: 'manager',
+                            connectionCode: testBusiness.connectionCode
+                        });
+                        
+                        if (testStaff.success) {
+                            console.log('✓ Staff registration works');
+                            
+                            const accessResult = MultiPropertyManager.grantPropertyAccess(testStaff.staffId, testProperty.propertyId);
+                            if (accessResult.success) {
+                                console.log('✓ Property access control works');
+                                
+                                // Test property switcher
+                                localStorage.setItem('currentStaffId', testStaff.staffId);
+                                const accessibleProps = PropertySwitcher.getAccessibleProperties(testStaff.staffId);
+                                
+                                if (accessibleProps.length > 0) {
+                                    console.log('✓ Property access retrieval works');
+                                    console.log('\n=== All Core Features Validated ===');
+                                } else {
+                                    console.log('✗ Property access retrieval failed');
+                                }
+                            } else {
+                                console.log('✗ Property access control failed');
+                            }
+                        } else {
+                            console.log('✗ Staff registration failed');
+                        }
+                    } else {
+                        console.log('✗ Property creation failed');
+                    }
+                } else {
+                    console.log('✗ Business account creation failed');
+                }
+            } catch (error) {
+                console.log('✗ Validation error:', error.message);
+            }
+        }
+
+        function initializePropertySwitcher() {
+            try {
+                console.log('\nInitializing Property Switcher...');
+                PropertySwitcher.initialize();
+                
+                // Check if switcher is visible
+                const switcherElement = document.getElementById('propertySwitcher');
+                if (switcherElement && switcherElement.style.display !== 'none') {
+                    console.log('✓ Property switcher initialized and visible');
+                } else {
+                    console.log('ℹ Property switcher initialized but hidden (no staff logged in)');
+                }
+            } catch (error) {
+                console.log('✗ Property switcher initialization error:', error.message);
+            }
+        }
+
+        function cleanupData() {
+            try {
+                console.log('\nCleaning up test data...');
+                
+                // Clear all multi-property data
+                localStorage.removeItem('businessAccounts');
+                localStorage.removeItem('registeredStaff');
+                localStorage.removeItem('currentStaffId');
+                localStorage.removeItem('currentPropertyId');
+                
+                // Hide property switcher
+                const switcherElement = document.getElementById('propertySwitcher');
+                if (switcherElement) {
+                    switcherElement.style.display = 'none';
+                }
+                
+                console.log('✓ Test data cleanup completed');
+            } catch (error) {
+                console.log('✗ Cleanup error:', error.message);
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Multi-Property System Validation Page Loaded');
+            console.log('Click "Run Full System Validation" to test the complete system.\n');
+        });
+    </script>
+</body>
+</html>

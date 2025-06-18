@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Property System Debugger</title>
+    <script src="multi-property-manager.js"></script>
+    <script src="property-switcher.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .debugger-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .debugger-header {
+            background: linear-gradient(135deg, #2d3748, #4a5568);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .debugger-header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .debugger-header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .debugger-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 80vh;
+        }
+
+        .debug-panel {
+            padding: 20px;
+            border-right: 1px solid #e2e8f0;
+        }
+
+        .debug-panel:last-child {
+            border-right: none;
+        }
+
+        .panel-title {
+            font-size: 1.3rem;
+            color: #2d3748;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .test-section {
+            margin-bottom: 25px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .test-section h3 {
+            background: #f7fafc;
+            color: #2d3748;
+            padding: 15px;
+            margin: 0;
+            font-size: 1.1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .test-content {
+            padding: 15px;
+        }
+
+        .test-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .test-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .test-input:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        .test-button {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .test-button:hover {
+            background: #3182ce;
+            transform: translateY(-1px);
+        }
+
+        .test-button.success {
+            background: #48bb78;
+        }
+
+        .test-button.success:hover {
+            background: #38a169;
+        }
+
+        .test-button.danger {
+            background: #f56565;
+        }
+
+        .test-button.danger:hover {
+            background: #e53e3e;
+        }
+
+        .test-button.secondary {
+            background: #a0aec0;
+        }
+
+        .test-button.secondary:hover {
+            background: #718096;
+        }
+
+        .console-output {
+            background: #1a202c;
+            color: #e2e8f0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            padding: 15px;
+            border-radius: 6px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 15px;
+        }
+
+        .property-switcher-demo {
+            background: rgba(45, 55, 72, 0.95);
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .property-switcher-demo label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .property-select-demo {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(45, 55, 72, 0.3);
+            border-radius: 4px;
+            padding: 8px 12px;
+            color: #2d3748;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background: #48bb78;
+        }
+
+        .status-offline {
+            background: #f56565;
+        }
+
+        .status-warning {
+            background: #ed8936;
+        }
+
+        .data-display {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+        }
+
+        .log-success {
+            color: #48bb78;
+        }
+
+        .log-error {
+            color: #f56565;
+        }
+
+        .log-warning {
+            color: #ed8936;
+        }
+
+        .log-info {
+            color: #4299e1;
+        }
+
+        .log-timestamp {
+            color: #a0aec0;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="debugger-container">
+        <div class="debugger-header">
+            <h1>🛠️ Multi-Property System Debugger</h1>
+            <p>Comprehensive testing and debugging tool for the multi-property POS system</p>
+        </div>
+
+        <div class="debugger-content">
+            <!-- Left Panel: Testing & Controls -->
+            <div class="debug-panel">
+                <h2 class="panel-title">🧪 Testing & Controls</h2>
+
+                <!-- System Status -->
+                <div class="test-section">
+                    <h3>System Status</h3>
+                    <div class="test-content">
+                        <div class="test-row">
+                            <span class="status-indicator" id="managerStatus"></span>
+                            <span>MultiPropertyManager</span>
+                            <span id="managerStatusText">Checking...</span>
+                        </div>
+                        <div class="test-row">
+                            <span class="status-indicator" id="switcherStatus"></span>
+                            <span>PropertySwitcher</span>
+                            <span id="switcherStatusText">Checking...</span>
+                        </div>
+                        <div class="test-row">
+                            <span class="status-indicator" id="storageStatus"></span>
+                            <span>LocalStorage</span>
+                            <span id="storageStatusText">Checking...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="test-section">
+                    <h3>Quick Actions</h3>
+                    <div class="test-content">
+                        <div class="quick-actions">
+                            <button class="test-button" onclick="initializeSystem()">Initialize System</button>
+                            <button class="test-button success" onclick="createSampleData()">Create Sample Data</button>
+                            <button class="test-button danger" onclick="clearAllData()">Clear All Data</button>
+                        </div>
+                        <div class="quick-actions">
+                            <button class="test-button secondary" onclick="exportData()">Export Data</button>
+                            <button class="test-button secondary" onclick="refreshStatus()">Refresh Status</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Business Account Testing -->
+                <div class="test-section">
+                    <h3>Business Account Testing</h3>
+                    <div class="test-content">
+                        <div class="test-row">
+                            <input type="text" class="test-input" id="businessName" placeholder="Business Name" value="Debug Restaurant Group">
+                        </div>
+                        <div class="test-row">
+                            <select class="test-input" id="businessType">
+                                <option value="restaurant">Restaurant</option>
+                                <option value="hotel">Hotel</option>
+                                <option value="cafe">Café</option>
+                                <option value="retail">Retail</option>
+                                <option value="bar">Bar</option>
+                            </select>
+                        </div>
+                        <div class="test-row">
+                            <input type="text" class="test-input" id="ownerName" placeholder="Owner Name" value="Debug Owner">
+                        </div>
+                        <div class="test-row">
+                            <input type="email" class="test-input" id="ownerEmail" placeholder="Email" value="debug@test.com">
+                        </div>
+                        <div class="test-row">
+                            <button class="test-button" onclick="createBusinessAccount()">Create Business Account</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Property Testing -->
+                <div class="test-section">
+                    <h3>Property Testing</h3>
+                    <div class="test-content">
+                        <div class="test-row">
+                            <select class="test-input" id="targetBusiness">
+                                <option value="">Select Business</option>
+                            </select>
+                        </div>
+                        <div class="test-row">
+                            <input type="text" class="test-input" id="propertyName" placeholder="Property Name" value="Debug Location">
+                        </div>
+                        <div class="test-row">
+                            <input type="text" class="test-input" id="propertyAddress" placeholder="Address" value="123 Debug St">
+                        </div>
+                        <div class="test-row">
+                            <button class="test-button" onclick="addProperty()">Add Property</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Staff Testing -->
+                <div class="test-section">
+                    <h3>Staff Testing</h3>
+                    <div class="test-content">
+                        <div class="test-row">
+                            <input type="text" class="test-input" id="staffFirstName" placeholder="First Name" value="Debug">
+                        </div>
+                        <div class="test-row">
+                            <input type="text" class="test-input" id="staffLastName" placeholder="Last Name" value="Staff">
+                        </div>
+                        <div class="test-row">
+                            <input type="text" class="test-input" id="connectionCode" placeholder="Connection Code">
+                        </div>
+                        <div class="test-row">
+                            <select class="test-input" id="staffRole">
+                                <option value="manager">Manager</option>
+                                <option value="server">Server</option>
+                                <option value="cashier">Cashier</option>
+                                <option value="kitchen">Kitchen</option>
+                            </select>
+                        </div>
+                        <div class="test-row">
+                            <button class="test-button" onclick="registerStaff()">Register Staff</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Property Switcher Demo -->
+                <div class="test-section">
+                    <h3>Property Switcher Demo</h3>
+                    <div class="test-content">
+                        <div class="test-row">
+                            <select class="test-input" id="loginStaff">
+                                <option value="">Select Staff to Login</option>
+                            </select>
+                            <button class="test-button" onclick="simulateStaffLogin()">Login</button>
+                        </div>
+                        
+                        <div class="property-switcher-demo" id="propertySwitcherDemo">
+                            <label for="propertySelectDemo">Switch Property:</label>
+                            <select id="propertySelectDemo" class="property-select-demo">
+                                <option value="">Select Property...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="test-row">
+                            <button class="test-button secondary" onclick="testPropertySwitcher()">Test Property Switcher</button>
+                            <button class="test-button secondary" onclick="simulateLogout()">Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Output & Data -->
+            <div class="debug-panel">
+                <h2 class="panel-title">📊 Output & Data</h2>
+
+                <!-- Console Output -->
+                <div class="test-section">
+                    <h3>Console Output</h3>
+                    <div class="test-content">
+                        <div class="test-row">
+                            <button class="test-button secondary" onclick="clearConsole()">Clear Console</button>
+                        </div>
+                        <div class="console-output" id="consoleOutput"></div>
+                    </div>
+                </div>
+
+                <!-- Data Display -->
+                <div class="test-section">
+                    <h3>System Data</h3>
+                    <div class="test-content">
+                        <div class="test-row">
+                            <button class="test-button secondary" onclick="showBusinessAccounts()">Show Businesses</button>
+                            <button class="test-button secondary" onclick="showStaff()">Show Staff</button>
+                            <button class="test-button secondary" onclick="showCurrentContext()">Show Context</button>
+                        </div>
+                        <div class="data-display" id="dataDisplay"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables for debugging
+        let debugLog = [];
+        let currentBusinessId = null;
+        let currentStaffId = null;
+
+        // Console logging override
+        const originalConsoleLog = console.log;
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, arguments);
+            logToDebugConsole('info', args.join(' '));
+        };
+
+        const originalConsoleError = console.error;
+        console.error = function(...args) {
+            originalConsoleError.apply(console, arguments);
+            logToDebugConsole('error', args.join(' '));
+        };
+
+        const originalConsoleWarn = console.warn;
+        console.warn = function(...args) {
+            originalConsoleWarn.apply(console, arguments);
+            logToDebugConsole('warning', args.join(' '));
+        };
+
+        // Debug logging function
+        function logToDebugConsole(type, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = {
+                timestamp,
+                type,
+                message
+            };
+            
+            debugLog.push(logEntry);
+            
+            const consoleOutput = document.getElementById('consoleOutput');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log-entry log-${type}`;
+            logDiv.innerHTML = `<span class="log-timestamp">[${timestamp}]</span> ${message}`;
+            
+            consoleOutput.appendChild(logDiv);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        // System status checking
+        function checkSystemStatus() {
+            // Check MultiPropertyManager
+            if (typeof MultiPropertyManager !== 'undefined') {
+                setStatus('manager', 'online', 'Available');
+            } else {
+                setStatus('manager', 'offline', 'Not Available');
+            }
+
+            // Check PropertySwitcher
+            if (typeof PropertySwitcher !== 'undefined') {
+                setStatus('switcher', 'online', 'Available');
+            } else {
+                setStatus('switcher', 'offline', 'Not Available');
+            }
+
+            // Check LocalStorage
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                setStatus('storage', 'online', 'Working');
+            } catch (error) {
+                setStatus('storage', 'offline', 'Error: ' + error.message);
+            }
+        }
+
+        function setStatus(component, status, text) {
+            const indicator = document.getElementById(component + 'Status');
+            const textElement = document.getElementById(component + 'StatusText');
+            
+            indicator.className = `status-indicator status-${status}`;
+            textElement.textContent = text;
+        }
+
+        // Initialize system
+        function initializeSystem() {
+            logToDebugConsole('info', '🚀 Initializing Multi-Property System...');
+            
+            try {
+                checkSystemStatus();
+                refreshBusinessList();
+                refreshStaffList();
+                
+                if (typeof PropertySwitcher !== 'undefined') {
+                    PropertySwitcher.initialize();
+                    logToDebugConsole('success', '✅ PropertySwitcher initialized');
+                }
+                
+                logToDebugConsole('success', '✅ System initialization complete');
+            } catch (error) {
+                logToDebugConsole('error', '❌ System initialization failed: ' + error.message);
+            }
+        }
+
+        // Create sample data
+        function createSampleData() {
+            logToDebugConsole('info', '📝 Creating sample data...');
+            
+            try {
+                // Create sample business
+                const businessResult = MultiPropertyManager.createBusinessAccount({
+                    businessName: 'Sample Restaurant Group',
+                    businessType: 'restaurant',
+                    ownerName: 'Sample Owner',
+                    email: 'sample@restaurant.com',
+                    phone: '555-0100',
+                    address: '100 Sample Street, Sample City, SC 10001'
+                });
+
+                if (businessResult.success) {
+                    currentBusinessId = businessResult.businessId;
+                    logToDebugConsole('success', `✅ Sample business created: ${businessResult.businessId}`);
+                    logToDebugConsole('info', `🔑 Connection code: ${businessResult.connectionCode}`);
+                    
+                    // Set connection code in form
+                    document.getElementById('connectionCode').value = businessResult.connectionCode;
+
+                    // Create sample properties
+                    const properties = [
+                        { name: 'Main Restaurant', type: 'restaurant', address: '100 Sample St', city: 'Sample City', state: 'SC', zip: '10001' },
+                        { name: 'Downtown Café', type: 'cafe', address: '200 Downtown Ave', city: 'Sample City', state: 'SC', zip: '10002' },
+                        { name: 'Airport Location', type: 'restaurant', address: '300 Airport Blvd', city: 'Sample City', state: 'SC', zip: '10003' }
+                    ];
+
+                    properties.forEach((property, index) => {
+                        const propertyResult = MultiPropertyManager.addProperty(currentBusinessId, property);
+                        if (propertyResult.success) {
+                            logToDebugConsole('success', `✅ Sample property ${index + 1} created: ${property.name}`);
+                        }
+                    });
+
+                    // Create sample staff
+                    const staffMembers = [
+                        { firstName: 'Alice', lastName: 'Manager', email: 'alice@sample.com', role: 'manager' },
+                        { firstName: 'Bob', lastName: 'Server', email: 'bob@sample.com', role: 'server' },
+                        { firstName: 'Carol', lastName: 'Cashier', email: 'carol@sample.com', role: 'cashier' }
+                    ];
+
+                    staffMembers.forEach((staff, index) => {
+                        const staffResult = MultiPropertyManager.registerStaff({
+                            ...staff,
+                            phone: `555-010${index + 1}`,
+                            connectionCode: businessResult.connectionCode
+                        });
+
+                        if (staffResult.success) {
+                            logToDebugConsole('success', `✅ Sample staff ${index + 1} created: ${staff.firstName} ${staff.lastName}`);
+                            
+                            // Grant access to all properties
+                            const business = MultiPropertyManager.getBusinessAccount(currentBusinessId);
+                            if (business && business.properties) {
+                                business.properties.forEach(property => {
+                                    MultiPropertyManager.grantPropertyAccess(staffResult.staffId, property.id);
+                                });
+                            }
+                        }
+                    });
+
+                    refreshBusinessList();
+                    refreshStaffList();
+                    logToDebugConsole('success', '✅ Sample data creation complete');
+                } else {
+                    logToDebugConsole('error', '❌ Failed to create sample business: ' + businessResult.message);
+                }
+            } catch (error) {
+                logToDebugConsole('error', '❌ Sample data creation failed: ' + error.message);
+            }
+        }
+
+        // Clear all data
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+                logToDebugConsole('warning', '🗑️ Clearing all data...');
+                
+                try {
+                    localStorage.removeItem('businessAccounts');
+                    localStorage.removeItem('registeredStaff');
+                    localStorage.removeItem('currentStaffId');
+                    localStorage.removeItem('currentPropertyId');
+                    
+                    currentBusinessId = null;
+                    currentStaffId = null;
+                    
+                    refreshBusinessList();
+                    refreshStaffList();
+                    
+                    const propertyDemo = document.getElementById('propertySwitcherDemo');
+                    propertyDemo.style.display = 'none';
+                    
+                    logToDebugConsole('success', '✅ All data cleared');
+                } catch (error) {
+                    logToDebugConsole('error', '❌ Data clearing failed: ' + error.message);
+                }
+            }
+        }
+
+        // Refresh status
+        function refreshStatus() {
+            logToDebugConsole('info', '🔄 Refreshing system status...');
+            checkSystemStatus();
+            refreshBusinessList();
+            refreshStaffList();
+            showCurrentContext();
+            logToDebugConsole('success', '✅ Status refreshed');
+        }
+
+        // Business account creation
+        function createBusinessAccount() {
+            const businessName = document.getElementById('businessName').value;
+            const businessType = document.getElementById('businessType').value;
+            const ownerName = document.getElementById('ownerName').value;
+            const ownerEmail = document.getElementById('ownerEmail').value;
+
+            if (!businessName || !ownerName || !ownerEmail) {
+                logToDebugConsole('error', '❌ Please fill in all business account fields');
+                return;
+            }
+
+            logToDebugConsole('info', `📝 Creating business account: ${businessName}`);
+
+            try {
+                const result = MultiPropertyManager.createBusinessAccount({
+                    businessName,
+                    businessType,
+                    ownerName,
+                    email: ownerEmail,
+                    phone: '555-0123',
+                    address: '123 Test Street, Test City, TC 12345'
+                });
+
+                if (result.success) {
+                    currentBusinessId = result.businessId;
+                    logToDebugConsole('success', `✅ Business account created: ${result.businessId}`);
+                    logToDebugConsole('info', `🔑 Connection code: ${result.connectionCode}`);
+                    
+                    document.getElementById('connectionCode').value = result.connectionCode;
+                    refreshBusinessList();
+                } else {
+                    logToDebugConsole('error', '❌ Business creation failed: ' + result.message);
+                }
+            } catch (error) {
+                logToDebugConsole('error', '❌ Business creation error: ' + error.message);
+            }
+        }
+
+        // Add property
+        function addProperty() {
+            const businessId = document.getElementById('targetBusiness').value;
+            const propertyName = document.getElementById('propertyName').value;
+            const propertyAddress = document.getElementById('propertyAddress').value;
+
+            if (!businessId || !propertyName || !propertyAddress) {
+                logToDebugConsole('error', '❌ Please fill in all property fields and select a business');
+                return;
+            }
+
+            logToDebugConsole('info', `📝 Adding property: ${propertyName}`);
+
+            try {
+                const result = MultiPropertyManager.addProperty(businessId, {
+                    name: propertyName,
+                    type: 'restaurant',
+                    address: propertyAddress,
+                    city: 'Debug City',
+                    state: 'DC',
+                    zip: '12345'
+                });
+
+                if (result.success) {
+                    logToDebugConsole('success', `✅ Property added: ${result.propertyId}`);
+                    refreshBusinessList();
+                } else {
+                    logToDebugConsole('error', '❌ Property creation failed: ' + result.message);
+                }
+            } catch (error) {
+                logToDebugConsole('error', '❌ Property creation error: ' + error.message);
+            }
+        }
+
+        // Register staff
+        function registerStaff() {
+            const firstName = document.getElementById('staffFirstName').value;
+            const lastName = document.getElementById('staffLastName').value;
+            const connectionCode = document.getElementById('connectionCode').value;
+            const role = document.getElementById('staffRole').value;
+
+            if (!firstName || !lastName || !connectionCode) {
+                logToDebugConsole('error', '❌ Please fill in all staff fields');
+                return;
+            }
+
+            logToDebugConsole('info', `📝 Registering staff: ${firstName} ${lastName}`);
+
+            try {
+                const result = MultiPropertyManager.registerStaff({
+                    firstName,
+                    lastName,
+                    email: `${firstName.toLowerCase()}@debug.com`,
+                    phone: '555-0199',
+                    role,
+                    connectionCode
+                });
+
+                if (result.success) {
+                    logToDebugConsole('success', `✅ Staff registered: ${result.staffId}`);
+                    refreshStaffList();
+                } else {
+                    logToDebugConsole('error', '❌ Staff registration failed: ' + result.message);
+                }
+            } catch (error) {
+                logToDebugConsole('error', '❌ Staff registration error: ' + error.message);
+            }
+        }
+
+        // Simulate staff login
+        function simulateStaffLogin() {
+            const staffId = document.getElementById('loginStaff').value;
+            
+            if (!staffId) {
+                logToDebugConsole('error', '❌ Please select a staff member to login');
+                return;
+            }
+
+            logToDebugConsole('info', `🔐 Simulating staff login: ${staffId}`);
+
+            try {
+                localStorage.setItem('currentStaffId', staffId);
+                currentStaffId = staffId;
+                
+                // Initialize property switcher
+                if (typeof PropertySwitcher !== 'undefined') {
+                    const accessibleProperties = PropertySwitcher.getAccessibleProperties(staffId);
+                    
+                    if (accessibleProperties.length > 0) {
+                        // Show property switcher demo
+                        const propertyDemo = document.getElementById('propertySwitcherDemo');
+                        propertyDemo.style.display = 'block';
+                        
+                        // Populate dropdown
+                        const select = document.getElementById('propertySelectDemo');
+                        select.innerHTML = '<option value="">Select Property...</option>';
+                        
+                        accessibleProperties.forEach(property => {
+                            const option = document.createElement('option');
+                            option.value = property.id;
+                            option.textContent = property.name;
+                            select.appendChild(option);
+                        });
+                        
+                        // Add change listener
+                        select.onchange = function() {
+                            if (this.value) {
+                                const switchResult = PropertySwitcher.switchProperty(this.value);
+                                if (switchResult.success) {
+                                    logToDebugConsole('success', `✅ Switched to property: ${switchResult.property.name}`);
+                                } else {
+                                    logToDebugConsole('error', '❌ Property switch failed: ' + switchResult.message);
+                                }
+                            }
+                        };
+                        
+                        logToDebugConsole('success', `✅ Staff logged in with access to ${accessibleProperties.length} properties`);
+                    } else {
+                        logToDebugConsole('warning', '⚠️ Staff has no property access');
+                    }
+                } else {
+                    logToDebugConsole('error', '❌ PropertySwitcher not available');
+                }
+            } catch (error) {
+                logToDebugConsole('error', '❌ Staff login error: ' + error.message);
+            }
+        }
+
+        // Simulate logout
+        function simulateLogout() {
+            logToDebugConsole('info', '🔐 Simulating staff logout');
+            
+            localStorage.removeItem('currentStaffId');
+            localStorage.removeItem('currentPropertyId');
+            currentStaffId = null;
+            
+            const propertyDemo = document.getElementById('propertySwitcherDemo');
+            propertyDemo.style.display = 'none';
+            
+            logToDebugConsole('success', '✅ Staff logged out');
+        }
+
+        // Test property switcher
+        function testPropertySwitcher() {
+            logToDebugConsole('info', '🧪 Testing PropertySwitcher functionality...');
+            
+            try {
+                if (typeof PropertySwitcher === 'undefined') {
+                    logToDebugConsole('error', '❌ PropertySwitcher not available');
+                    return;
+                }
+                
+                const currentStaff = localStorage.getItem('currentStaffId');
+                if (!currentStaff) {
+                    logToDebugConsole('error', '❌ No staff logged in');
+                    return;
+                }
+                
+                const accessibleProperties = PropertySwitcher.getAccessibleProperties(currentStaff);
+                logToDebugConsole('info', `🏢 Found ${accessibleProperties.length} accessible properties`);
+                
+                accessibleProperties.forEach((property, index) => {
+                    logToDebugConsole('info', `  ${index + 1}. ${property.name} (${property.id})`);
+                });
+                
+                if (accessibleProperties.length > 0) {
+                    const testProperty = accessibleProperties[0];
+                    const switchResult = PropertySwitcher.switchProperty(testProperty.id);
+                    
+                    if (switchResult.success) {
+                        logToDebugConsole('success', `✅ Test switch successful: ${testProperty.name}`);
+                    } else {
+                        logToDebugConsole('error', '❌ Test switch failed: ' + switchResult.message);
+                    }
+                } else {
+                    logToDebugConsole('warning', '⚠️ No properties available for testing');
+                }
+            } catch (error) {
+                logToDebugConsole('error', '❌ PropertySwitcher test error: ' + error.message);
+            }
+        }
+
+        // Data display functions
+        function showBusinessAccounts() {
+            try {
+                const businesses = MultiPropertyManager.getAllBusinessAccounts();
+                const dataDisplay = document.getElementById('dataDisplay');
+                dataDisplay.innerHTML = JSON.stringify(businesses, null, 2);
+                logToDebugConsole('info', `📊 Displaying ${businesses.length} business accounts`);
+            } catch (error) {
+                logToDebugConsole('error', '❌ Error displaying business accounts: ' + error.message);
+            }
+        }
+
+        function showStaff() {
+            try {
+                const staff = MultiPropertyManager.getAllStaff();
+                const dataDisplay = document.getElementById('dataDisplay');
+                dataDisplay.innerHTML = JSON.stringify(staff, null, 2);
+                logToDebugConsole('info', `📊 Displaying ${staff.length} staff members`);
+            } catch (error) {
+                logToDebugConsole('error', '❌ Error displaying staff: ' + error.message);
+            }
+        }
+
+        function showCurrentContext() {
+            try {
+                const context = {
+                    currentStaffId: localStorage.getItem('currentStaffId'),
+                    currentPropertyId: localStorage.getItem('currentPropertyId'),
+                    currentProperty: PropertySwitcher.currentProperty,
+                    accessibleProperties: currentStaffId ? PropertySwitcher.getAccessibleProperties(currentStaffId) : []
+                };
+                
+                const dataDisplay = document.getElementById('dataDisplay');
+                dataDisplay.innerHTML = JSON.stringify(context, null, 2);
+                logToDebugConsole('info', '📊 Displaying current context');
+            } catch (error) {
+                logToDebugConsole('error', '❌ Error displaying context: ' + error.message);
+            }
+        }
+
+        // Export data
+        function exportData() {
+            try {
+                const data = {
+                    businesses: MultiPropertyManager.getAllBusinessAccounts(),
+                    staff: MultiPropertyManager.getAllStaff(),
+                    context: {
+                        currentStaffId: localStorage.getItem('currentStaffId'),
+                        currentPropertyId: localStorage.getItem('currentPropertyId')
+                    },
+                    timestamp: new Date().toISOString()
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `multi-property-debug-${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                logToDebugConsole('success', '✅ Data exported successfully');
+            } catch (error) {
+                logToDebugConsole('error', '❌ Data export error: ' + error.message);
+            }
+        }
+
+        // Utility functions
+        function refreshBusinessList() {
+            try {
+                const businesses = MultiPropertyManager.getAllBusinessAccounts();
+                const select = document.getElementById('targetBusiness');
+                
+                select.innerHTML = '<option value="">Select Business</option>';
+                businesses.forEach(business => {
+                    const option = document.createElement('option');
+                    option.value = business.id;
+                    option.textContent = `${business.businessName} (${business.properties?.length || 0} properties)`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                logToDebugConsole('error', '❌ Error refreshing business list: ' + error.message);
+            }
+        }
+
+        function refreshStaffList() {
+            try {
+                const staff = MultiPropertyManager.getAllStaff();
+                const select = document.getElementById('loginStaff');
+                
+                select.innerHTML = '<option value="">Select Staff to Login</option>';
+                staff.forEach(member => {
+                    const option = document.createElement('option');
+                    option.value = member.id;
+                    option.textContent = `${member.firstName} ${member.lastName} (${member.role})`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                logToDebugConsole('error', '❌ Error refreshing staff list: ' + error.message);
+            }
+        }
+
+        function clearConsole() {
+            document.getElementById('consoleOutput').innerHTML = '';
+            debugLog = [];
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            logToDebugConsole('info', '🚀 Multi-Property System Debugger Loaded');
+            logToDebugConsole('info', '📋 Use the controls on the left to test the system');
+            checkSystemStatus();
+            refreshBusinessList();
+            refreshStaffList();
+        });
+    </script>
+</body>
+</html>

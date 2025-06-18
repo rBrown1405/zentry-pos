@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Mode Integration Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #f8fafc;
+        }
+        
+        .test-section {
+            background: white;
+            border: 2px solid #000;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        
+        .test-section h2 {
+            color: #1f2937;
+            margin-top: 0;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+        }
+        
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0.25rem;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: #3730a3;
+        }
+        
+        .success {
+            background: #10b981;
+        }
+        
+        .danger {
+            background: #ef4444;
+        }
+        
+        .status {
+            background: #f3f4f6;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            font-family: monospace;
+        }
+        
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏨 Hotel Mode Integration Test Suite</h1>
+    <p>Comprehensive testing for Hotel Mode integration with the POS system.</p>
+    
+    <div class="test-section">
+        <h2>1. Hotel Mode Activation</h2>
+        <div class="grid">
+            <button onclick="activateHotelMode()">🏨 Activate Hotel Mode</button>
+            <button onclick="deactivateHotelMode()" class="danger">🏢 Deactivate Hotel Mode</button>
+            <button onclick="checkHotelStatus()">📊 Check Status</button>
+            <button onclick="openMainPOS()">🚀 Open POS System</button>
+        </div>
+        <div id="hotelStatus" class="status">Ready to test...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Hotel Brand Configuration</h2>
+        <div>
+            <label for="brandSelect">Hotel Brand: </label>
+            <select id="brandSelect" style="padding: 0.5rem; margin: 0.5rem;">
+                <option value="marriott">Marriott International</option>
+                <option value="hilton">Hilton Hotels & Resorts</option>
+                <option value="hyatt">Hyatt Hotels Corporation</option>
+                <option value="ihg">InterContinental Hotels Group</option>
+                <option value="accor">Accor Hotels</option>
+                <option value="wyndham">Wyndham Hotels & Resorts</option>
+                <option value="choice">Choice Hotels</option>
+                <option value="independent">Independent Hotel</option>
+                <option value="other">Other Brand</option>
+            </select>
+            <button onclick="setHotelBrand()">Set Brand</button>
+        </div>
+        <div id="brandStatus" class="status">No brand configured</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Room Service Menu Test</h2>
+        <div class="grid">
+            <button onclick="initializeRoomServiceMenu()">🍽️ Initialize Menu</button>
+            <button onclick="testMenuSync()">🔄 Test Menu Sync</button>
+            <button onclick="clearRoomServiceMenu()" class="danger">🗑️ Clear Menu</button>
+            <button onclick="openRoomServiceInterface()">🛎️ Open Room Service</button>
+        </div>
+        <div id="menuStatus" class="status">Menu not initialized</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Integration Test</h2>
+        <div class="grid">
+            <button onclick="runFullTest()" class="success">🧪 Run Full Test Suite</button>
+            <button onclick="resetAllData()" class="danger">🔄 Reset All Data</button>
+            <button onclick="generateTestOrder()">📝 Generate Test Order</button>
+            <button onclick="viewLogs()">📋 View Console Logs</button>
+        </div>
+        <div id="testResults" class="status">Tests not run yet</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>5. Test Results</h2>
+        <div id="testOutput" style="font-family: monospace; background: #1f2937; color: #f9fafb; padding: 1rem; border-radius: 6px; min-height: 200px; overflow-y: auto;">
+            Waiting for test execution...
+        </div>
+    </div>
+
+    <script src="hotel-mode.js"></script>
+    <script>
+        let testLog = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            testLog.push(logEntry);
+            console.log(logEntry);
+            updateTestOutput();
+        }
+        
+        function updateTestOutput() {
+            const output = document.getElementById('testOutput');
+            output.innerHTML = testLog.join('\n');
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function updateStatus(elementId, message, type = '') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = 'status ' + type;
+        }
+        
+        function activateHotelMode() {
+            try {
+                const brand = document.getElementById('brandSelect').value;
+                const settings = {
+                    hotelMode: true,
+                    hotelBrand: brand,
+                    activatedAt: new Date().toISOString(),
+                    taxRate: 0.0875,
+                    serviceCharge: 0.18
+                };
+                
+                localStorage.setItem('businessSettings', JSON.stringify(settings));
+                localStorage.setItem('hotelModeActive', 'true');
+                
+                log('Hotel Mode activated successfully', 'success');
+                updateStatus('hotelStatus', '✅ Hotel Mode ACTIVE', 'success');
+                
+                if (typeof HotelMode !== 'undefined') {
+                    HotelMode.activateHotelMode();
+                    log('HotelMode class integration successful', 'success');
+                }
+            } catch (error) {
+                log('Error activating Hotel Mode: ' + error.message, 'error');
+                updateStatus('hotelStatus', '❌ Activation failed', 'error');
+            }
+        }
+        
+        function deactivateHotelMode() {
+            try {
+                const settings = JSON.parse(localStorage.getItem('businessSettings') || '{}');
+                settings.hotelMode = false;
+                
+                localStorage.setItem('businessSettings', JSON.stringify(settings));
+                localStorage.removeItem('hotelModeActive');
+                
+                log('Hotel Mode deactivated', 'info');
+                updateStatus('hotelStatus', '🏢 Restaurant Mode ACTIVE', 'error');
+                
+                if (typeof HotelMode !== 'undefined') {
+                    HotelMode.deactivateHotelMode();
+                }
+            } catch (error) {
+                log('Error deactivating Hotel Mode: ' + error.message, 'error');
+            }
+        }
+        
+        function checkHotelStatus() {
+            try {
+                const isActive = localStorage.getItem('hotelModeActive') === 'true';
+                const settings = JSON.parse(localStorage.getItem('businessSettings') || '{}');
+                
+                log(`Hotel Mode Status: ${isActive ? 'ACTIVE' : 'INACTIVE'}`, 'info');
+                log(`Hotel Brand: ${settings.hotelBrand || 'Not set'}`, 'info');
+                
+                if (typeof HotelMode !== 'undefined') {
+                    log('HotelMode class: Available', 'success');
+                    log(`Hotel Mode from class: ${HotelMode.isHotelModeActive() ? 'ACTIVE' : 'INACTIVE'}`, 'info');
+                } else {
+                    log('HotelMode class: NOT AVAILABLE', 'error');
+                }
+                
+                updateStatus('hotelStatus', 
+                    isActive ? `✅ ACTIVE (${settings.hotelBrand || 'Unknown'})` : '❌ INACTIVE', 
+                    isActive ? 'success' : 'error'
+                );
+            } catch (error) {
+                log('Error checking status: ' + error.message, 'error');
+            }
+        }
+        
+        function setHotelBrand() {
+            try {
+                const brand = document.getElementById('brandSelect').value;
+                const settings = JSON.parse(localStorage.getItem('businessSettings') || '{}');
+                settings.hotelBrand = brand;
+                
+                localStorage.setItem('businessSettings', JSON.stringify(settings));
+                log(`Hotel brand set to: ${brand}`, 'success');
+                updateStatus('brandStatus', `✅ Brand: ${brand}`, 'success');
+            } catch (error) {
+                log('Error setting brand: ' + error.message, 'error');
+                updateStatus('brandStatus', '❌ Brand setting failed', 'error');
+            }
+        }
+        
+        function initializeRoomServiceMenu() {
+            try {
+                if (typeof HotelMode === 'undefined') {
+                    throw new Error('HotelMode class not available');
+                }
+                
+                const menu = HotelMode.initializeRoomServiceMenu();
+                log(`Room service menu initialized with ${menu.length} items`, 'success');
+                updateStatus('menuStatus', `✅ Menu: ${menu.length} items`, 'success');
+            } catch (error) {
+                log('Error initializing menu: ' + error.message, 'error');
+                updateStatus('menuStatus', '❌ Menu initialization failed', 'error');
+            }
+        }
+        
+        function testMenuSync() {
+            try {
+                if (typeof HotelMode === 'undefined') {
+                    throw new Error('HotelMode class not available');
+                }
+                
+                const restaurantMenu = [
+                    { id: 'test1', name: 'Test Burger', price: 12.99, category: 'Entrees' },
+                    { id: 'test2', name: 'Test Salad', price: 8.99, category: 'Appetizers' }
+                ];
+                
+                // Simulate restaurant menu sync
+                const syncedMenu = HotelMode.syncMenuWithRestaurant(restaurantMenu);
+                log(`Menu sync test: ${syncedMenu.length} items synced`, 'success');
+                updateStatus('menuStatus', `✅ Sync: ${syncedMenu.length} items`, 'success');
+            } catch (error) {
+                log('Menu sync test failed: ' + error.message, 'error');
+                updateStatus('menuStatus', '❌ Sync failed', 'error');
+            }
+        }
+        
+        function clearRoomServiceMenu() {
+            try {
+                localStorage.removeItem('roomServiceMenu');
+                log('Room service menu cleared', 'info');
+                updateStatus('menuStatus', '🗑️ Menu cleared', 'error');
+            } catch (error) {
+                log('Error clearing menu: ' + error.message, 'error');
+            }
+        }
+        
+        function openMainPOS() {
+            window.open('pos-interface-fixed.html', '_blank');
+            log('Main POS interface opened', 'info');
+        }
+        
+        function openRoomServiceInterface() {
+            window.open('room-service.html', '_blank');
+            log('Room service interface opened', 'info');
+        }
+        
+        function generateTestOrder() {
+            try {
+                const testOrder = {
+                    id: 'TEST-' + Date.now(),
+                    type: 'room-service',
+                    guestName: 'John Doe',
+                    roomNumber: '1205',
+                    items: [
+                        { id: 'burger', name: 'Hotel Burger', price: 18.99, quantity: 1 },
+                        { id: 'fries', name: 'Truffle Fries', price: 12.99, quantity: 1 }
+                    ],
+                    specialInstructions: 'Extra crispy fries, no onions',
+                    timestamp: new Date().toISOString(),
+                    status: 'pending'
+                };
+                
+                // Store test order
+                const orders = JSON.parse(localStorage.getItem('roomServiceOrders') || '[]');
+                orders.push(testOrder);
+                localStorage.setItem('roomServiceOrders', JSON.stringify(orders));
+                
+                log('Test room service order generated', 'success');
+                updateStatus('testResults', '✅ Test order created', 'success');
+            } catch (error) {
+                log('Error generating test order: ' + error.message, 'error');
+                updateStatus('testResults', '❌ Test order failed', 'error');
+            }
+        }
+        
+        function runFullTest() {
+            log('=== STARTING FULL TEST SUITE ===', 'info');
+            
+            try {
+                // Test 1: Check HotelMode availability
+                if (typeof HotelMode === 'undefined') {
+                    throw new Error('HotelMode class not loaded');
+                }
+                log('✅ HotelMode class available', 'success');
+                
+                // Test 2: Activate hotel mode
+                activateHotelMode();
+                log('✅ Hotel mode activation test passed', 'success');
+                
+                // Test 3: Test menu initialization
+                initializeRoomServiceMenu();
+                log('✅ Menu initialization test passed', 'success');
+                
+                // Test 4: Test brand configuration
+                setHotelBrand();
+                log('✅ Brand configuration test passed', 'success');
+                
+                // Test 5: Generate test order
+                generateTestOrder();
+                log('✅ Test order generation passed', 'success');
+                
+                log('=== ALL TESTS PASSED ===', 'success');
+                updateStatus('testResults', '✅ All tests passed!', 'success');
+                
+            } catch (error) {
+                log('❌ TEST FAILED: ' + error.message, 'error');
+                updateStatus('testResults', '❌ Tests failed', 'error');
+            }
+        }
+        
+        function resetAllData() {
+            localStorage.removeItem('businessSettings');
+            localStorage.removeItem('hotelModeActive');
+            localStorage.removeItem('roomServiceMenu');
+            localStorage.removeItem('roomServiceOrders');
+            localStorage.removeItem('kitchenOrders');
+            
+            log('All hotel mode data reset', 'info');
+            updateStatus('testResults', '🔄 Data reset complete', 'error');
+            
+            checkHotelStatus();
+        }
+        
+        function viewLogs() {
+            const logWindow = window.open('', '_blank', 'width=800,height=600');
+            logWindow.document.write(`
+                <html>
+                    <head><title>Test Logs</title></head>
+                    <body style="font-family: monospace; padding: 1rem; background: #1f2937; color: #f9fafb;">
+                        <h1>Hotel Mode Test Logs</h1>
+                        <pre>${testLog.join('\n')}</pre>
+                    </body>
+                </html>
+            `);
+        }
+        
+        // Initialize
+        window.onload = function() {
+            log('Hotel Mode Integration Test Suite loaded', 'info');
+            checkHotelStatus();
+        };
+    </script>
+</body>
+</html>

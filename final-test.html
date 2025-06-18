@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Floor Plan Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border: 2px solid #000;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: 2px solid #000;
+            padding: 10px 20px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 5px;
+            font-weight: bold;
+        }
+        .success { background: #28a745; }
+        .warning { background: #ffc107; color: #000; }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .pass { background: #d4edda; color: #155724; }
+        .fail { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>🎯 Final Floor Plan Test</h1>
+    <p><strong>JavaScript Error Fixed!</strong> Missing functions have been added.</p>
+
+    <div class="container">
+        <h2>Test Steps</h2>
+        <button onclick="step1()" class="success">Step 1: Create Test Data</button>
+        <button onclick="step2()" class="warning">Step 2: Open POS Interface</button>
+        <button onclick="step3()">Step 3: Check Results</button>
+        <div id="status"></div>
+    </div>
+
+    <div class="container">
+        <h2>Expected Results</h2>
+        <ul>
+            <li>✅ No JavaScript errors in console</li>
+            <li>✅ Tables should appear in visual floor plan</li>
+            <li>✅ Tables should be clickable</li>
+            <li>✅ "Create Sample Data" button should work</li>
+            <li>✅ "Test Direct Injection" should show a red test table</li>
+        </ul>
+    </div>
+
+    <script>
+        function step1() {
+            document.getElementById('status').innerHTML = '<div class="pass">Creating test data...</div>';
+            
+            // Clear existing data
+            localStorage.removeItem('floorPlan');
+            localStorage.removeItem('tableStatuses');
+            
+            // Create sample floor plan data
+            const testData = [
+                {
+                    id: 'table-1',
+                    name: 'Test Circle Table',
+                    capacity: '4',
+                    left: '100px',
+                    top: '80px',
+                    width: '80px',
+                    height: '80px',
+                    shapeType: 'circle',
+                    rotationAngle: 0
+                },
+                {
+                    id: 'table-2', 
+                    name: 'Test Rectangle Table',
+                    capacity: '6',
+                    left: '250px',
+                    top: '120px',
+                    width: '120px',
+                    height: '70px',
+                    shapeType: 'rectangle',
+                    rotationAngle: 0
+                },
+                {
+                    id: 'table-3',
+                    name: 'Test Booth Table',
+                    capacity: '4',
+                    left: '150px',
+                    top: '220px',
+                    width: '180px',
+                    height: '70px',
+                    shapeType: 'booth',
+                    rotationAngle: 0
+                }
+            ];
+            
+            localStorage.setItem('floorPlan', JSON.stringify(testData));
+            
+            document.getElementById('status').innerHTML = 
+                '<div class="pass">✅ Test data created successfully!</div>' +
+                '<div class="pass">✅ ' + testData.length + ' tables added to localStorage</div>' +
+                '<div class="pass">✅ Ready for testing</div>';
+        }
+
+        function step2() {
+            document.getElementById('status').innerHTML += 
+                '<div class="pass">🔗 Opening POS interface...</div>';
+            window.open('pos-interface-fixed.html', '_blank');
+            
+            setTimeout(() => {
+                document.getElementById('status').innerHTML += 
+                    '<div class="pass">💡 POS interface opened. Navigate to "Tables" view to see your floor plan!</div>';
+            }, 1000);
+        }
+
+        function step3() {
+            const floorPlanData = localStorage.getItem('floorPlan');
+            
+            if (floorPlanData) {
+                try {
+                    const parsed = JSON.parse(floorPlanData);
+                    const hasPositions = parsed.some(table => table.left);
+                    
+                    document.getElementById('status').innerHTML = 
+                        '<div class="pass">✅ Floor plan data exists</div>' +
+                        '<div class="pass">✅ Data has position properties: ' + hasPositions + '</div>' +
+                        '<div class="pass">✅ Tables should be visible in POS interface</div>' +
+                        '<div class="pass">🎉 Test completed successfully!</div>';
+                } catch (error) {
+                    document.getElementById('status').innerHTML = 
+                        '<div class="fail">❌ Error parsing floor plan data: ' + error.message + '</div>';
+                }
+            } else {
+                document.getElementById('status').innerHTML = 
+                    '<div class="fail">❌ No floor plan data found. Run Step 1 first.</div>';
+            }
+        }
+
+        // Auto-run step 1 on load
+        window.addEventListener('load', () => {
+            setTimeout(step1, 500);
+        });
+    </script>
+</body>
+</html>

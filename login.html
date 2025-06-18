@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Macros POS - Login</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="animated-background">
+        <div class="gradient-sphere"></div>
+        <div class="gradient-sphere"></div>
+        <div class="gradient-sphere"></div>
+    </div>
+    
+    <div class="login-container">
+        <div class="logo-container">
+            <div class="logo">M</div>
+        </div>
+        <h1 class="login-title">Sign In to <span class="highlight">Macros</span></h1>        <div class="login-form">            <div class="login-tabs">
+                <button class="tab-button active" onclick="switchLoginTab('staff')">Staff Login</button>
+                <button class="tab-button" onclick="switchLoginTab('company')">Company Login</button>
+                <button class="tab-button" onclick="switchLoginTab('superadmin')">Super Admin</button>
+            </div>
+
+            <!-- Staff Login Form -->
+            <div id="staffLogin" class="login-tab-content active">
+                <div class="input-group">
+                    <label for="staffId" class="input-label">Staff ID</label>
+                    <input type="text" id="staffId" placeholder="Enter your Staff ID" autocomplete="off">
+                    <p class="input-hint">Your unique staff identifier provided by your manager</p>
+                </div>
+                <button class="login-button" onclick="handleStaffLogin()">
+                    <span class="button-text">Staff Sign In</span>
+                    <span class="button-icon">→</span>
+                </button>
+            </div>            <!-- Company Login Form -->
+            <div id="companyLogin" class="login-tab-content">
+                <div class="input-group">
+                    <label for="businessId" class="input-label">Business ID</label>
+                    <input type="text" id="businessId" placeholder="Enter your Business ID" autocomplete="off">
+                    <p class="input-hint">Your unique business identifier</p>
+                </div>
+                <button class="login-button" onclick="handleCompanyLogin()">
+                    <span class="button-text">Company Sign In</span>
+                    <span class="button-icon">→</span>
+                </button>
+            </div>
+
+            <!-- Super Admin Login Form -->
+            <div id="superadminLogin" class="login-tab-content">
+                <div class="input-group">
+                    <label for="adminUsername" class="input-label">Super Admin Username</label>
+                    <input type="text" id="adminUsername" placeholder="Enter super admin username" autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <label for="adminPassword" class="input-label">Super Admin Password</label>
+                    <input type="password" id="adminPassword" placeholder="Enter super admin password" autocomplete="off">
+                </div>
+                <button class="login-button" onclick="handleSuperAdminLogin()">
+                    <span class="button-text">Super Admin Sign In</span>
+                    <span class="button-icon">🔐</span>
+                </button>
+                <p class="input-hint" style="margin-top: 10px; font-size: 12px; color: #666;">
+                    Super Admin has global access to all businesses and properties
+                </p>
+            </div>
+
+            <div class="additional-options">
+                <button class="help-button" onclick="navigateWithTransition('help.html')">
+                    <span class="button-3d">Need Help?</span>
+                </button>
+                <button class="new-user-button" onclick="navigateWithTransition('account-selection.html')">
+                    <span class="button-text">New Business / Staff Registration</span>
+                    <span class="button-icon">+</span>
+                </button>
+                <p class="registration-hint">Create a new business account or register as staff member</p>            </div>
+        </div>
+    </div>    <script src="js/api-manager.js"></script>
+    <script src="multi-property-manager.js"></script>
+    <script src="super-admin.js"></script>
+    <script src="navigation.js"></script>
+    <script src="login.js"></script>
+</body>
+</html>

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Macros POS - Menu Import Help</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 0;
+            background: #f8fafc;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: white;
+            border-bottom: 2px solid #000;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        
+        .content {
+            flex: 1;
+            padding: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+            overflow-y: auto;
+        }
+        
+        .intro {
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .tab-container {
+            margin-bottom: 2rem;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+        }
+        
+        .tab {
+            padding: 0.75rem 1.5rem;
+            background: #f1f5f9;
+            border: 2px solid #000;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover {
+            background: #e2e8f0;
+            transform: translateY(-2px);
+        }
+        
+        .tab.active {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 1.5rem;
+            border: 2px solid #000;
+            background: white;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        pre {
+            background: #f5f5f5;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: monospace;
+            margin: 1rem 0;
+        }
+        
+        .example-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        
+        .example-table th {
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .example-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        
+        .field-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        
+        .field-table th, .field-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .field-table th {
+            background: #f0f0f0;
+            width: 150px;
+        }
+        
+        .required {
+            color: #dc2626;
+            font-weight: bold;
+        }
+        
+        .optional {
+            color: #2563eb;
+        }
+        
+        .tips {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .back-button {
+            background: #3b82f6;
+            color: white;
+            border: 2px solid #000;
+            padding: 0.75rem 1.5rem;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .back-button:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+        
+        .footer {
+            margin-top: 2rem;
+            text-align: center;
+            padding: 1rem;
+            border-top: 1px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="settings.html" class="back-button">← Back to Settings</a>
+        <h1 class="title">Menu Import Format Guide</h1>
+    </div>
+    
+    <div class="content">
+        <div class="intro">
+            <h2>How to Format Your Menu Files</h2>
+            <p>This guide explains how to properly format your menu data for import into Zentry POS. We support multiple file formats to make it easy to bring your existing menu data into the system.</p>
+            <p>Choose the tab below that corresponds to your preferred file format.</p>
+        </div>
+        
+        <div class="tab-container">            <div class="tabs">
+                <div class="tab active" data-tab="json">JSON</div>
+                <div class="tab" data-tab="csv">CSV</div>
+                <div class="tab" data-tab="excel">Excel</div>
+                <div class="tab" data-tab="txt">Text (TXT)</div>
+                <div class="tab" data-tab="word">Word (DOCX)</div>
+                <div class="tab" data-tab="fields">Data Fields</div>
+            </div>
+            
+            <div id="json" class="tab-content active">
+                <h3>JSON Format</h3>
+                <p>JSON is the most flexible format and is recommended for full menu imports with all possible fields. Your file should contain an array of menu item objects.</p>
+                
+                <h4>Example:</h4>
+                <pre>[
+  {
+    "name": "Classic Burger",
+    "price": 12.99,
+    "category": "Burgers",
+    "description": "Beef patty with lettuce, tomato, and special sauce",
+    "modifiers": ["Add cheese", "Extra patty", "Gluten-free bun"]
+  },
+  {
+    "name": "Caesar Salad",
+    "price": 9.99,
+    "category": "Salads",
+    "description": "Romaine lettuce, croutons, parmesan, and Caesar dressing",
+    "modifiers": ["Add chicken", "Add shrimp"]
+  },
+  {
+    "name": "Iced Coffee",
+    "price": 3.50,
+    "category": "Beverages",
+    "description": "Cold-brewed coffee over ice"
+  }
+]</pre>
+
+                <div class="tips">
+                    <strong>Pro Tips:</strong>
+                    <ul>
+                        <li>Use a JSON validator to ensure your file is formatted correctly</li>
+                        <li>At minimum, each item must include "name" and "price"</li>
+                        <li>Price should be a number (not a string), e.g. 12.99 (not "12.99")</li>
+                        <li>Make sure the entire file is wrapped in square brackets [ ]</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div id="csv" class="tab-content">
+                <h3>CSV Format (Comma-Separated Values)</h3>
+                <p>CSV is ideal for users who manage their menu in spreadsheet applications like Microsoft Excel or Google Sheets. The first row must contain column headers.</p>
+                
+                <h4>Required Column Headers:</h4>
+                <ul>
+                    <li><code>name</code>: The name of the menu item</li>
+                    <li><code>price</code>: The price of the menu item</li>
+                </ul>
+                
+                <h4>Optional Column Headers:</h4>
+                <ul>
+                    <li><code>category</code>: The category for grouping menu items</li>
+                    <li><code>description</code>: A description of the menu item</li>
+                    <li><code>image</code>: URL or path to an image</li>
+                </ul>
+                
+                <h4>Example:</h4>
+                <pre>name,price,category,description
+Classic Burger,12.99,Burgers,Beef patty with lettuce tomato and special sauce
+Caesar Salad,9.99,Salads,Romaine lettuce croutons parmesan and Caesar dressing
+Iced Coffee,3.50,Beverages,Cold-brewed coffee over ice</pre>
+
+                <div class="tips">
+                    <strong>Pro Tips:</strong>
+                    <ul>
+                        <li>If any value contains commas, enclose it in double quotes: <code>"Beef patty, lettuce, and tomato"</code></li>
+                        <li>Column headers are case-insensitive (<code>NAME</code>, <code>Name</code>, and <code>name</code> all work)</li>
+                        <li>Save your spreadsheet as CSV before importing</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div id="excel" class="tab-content">
+                <h3>Excel Format (XLSX/XLS)</h3>
+                <p>You can import directly from Excel files (.xlsx or .xls). The first row should contain column headers.</p>
+                
+                <h4>Column Headers:</h4>
+                <p>The system looks for these headers (case-insensitive):</p>
+                
+                <table class="field-table">
+                    <tr>
+                        <th>For Item Name</th>
+                        <td>"Name", "Item", or "Item Name"</td>
+                    </tr>
+                    <tr>
+                        <th>For Price</th>
+                        <td>"Price", "Cost", or "Amount"</td>
+                    </tr>
+                    <tr>
+                        <th>For Category</th>
+                        <td>"Category" or "Type"</td>
+                    </tr>
+                    <tr>
+                        <th>For Description</th>
+                        <td>"Description" or "Details"</td>
+                    </tr>
+                </table>
+                
+                <h4>Example Format:</h4>
+                <table class="example-table">
+                    <tr>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>Classic Burger</td>
+                        <td>12.99</td>
+                        <td>Burgers</td>
+                        <td>Beef patty with lettuce, tomato, and special sauce</td>
+                    </tr>
+                    <tr>
+                        <td>Caesar Salad</td>
+                        <td>9.99</td>
+                        <td>Salads</td>
+                        <td>Romaine lettuce, croutons, parmesan, and Caesar dressing</td>
+                    </tr>
+                    <tr>
+                        <td>Iced Coffee</td>
+                        <td>3.50</td>
+                        <td>Beverages</td>
+                        <td>Cold-brewed coffee over ice</td>
+                    </tr>
+                </table>
+
+                <div class="tips">
+                    <strong>Pro Tips:</strong>
+                    <ul>
+                        <li>The system will import from the first sheet in your workbook</li>
+                        <li>You can include currency symbols in price cells ($12.99)</li>
+                        <li>Make sure there are no merged cells in your data range</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div id="txt" class="tab-content">
+                <h3>TXT Format (Text File)</h3>
+                <p>Text files are simple but effective for basic menu imports. Each line represents one menu item with data separated by semicolons (;).</p>
+                
+                <h4>Format:</h4>
+                <p><code>Item Name;Price;Category;Description</code></p>
+                
+                <h4>Example:</h4>
+                <pre>Classic Burger;12.99;Burgers;Beef patty with lettuce, tomato, and special sauce
+Caesar Salad;9.99;Salads;Romaine lettuce, croutons, parmesan, and Caesar dressing
+Iced Coffee;3.50;Beverages;Cold-brewed coffee over ice</pre>
+
+                <div class="tips">
+                    <strong>Pro Tips:</strong>
+                    <ul>
+                        <li>Only the first two fields (name and price) are required</li>
+                        <li>If you omit the category, the item will be assigned to "Uncategorized"</li>
+                        <li>You can include additional fields as needed, but they'll be ignored if not supported</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div id="word" class="tab-content">
+                <h3>Word Document (DOCX) Format</h3>
+                <p>You can import menu data from a Microsoft Word document. The system will extract the text content from your document and process it.</p>
+                
+                <h4>Format:</h4>
+                <p>Each line in your Word document should follow the same format as the TXT option:</p>
+                <p><code>Item Name;Price;Category;Description</code></p>
+                
+                <h4>Example:</h4>
+                <div class="example-box" style="background: white; border: 1px solid #ddd; padding: 15px; margin: 15px 0;">
+                    <p style="margin: 5px 0;"><strong>Classic Burger;12.99;Burgers;Beef patty with lettuce, tomato, and special sauce</strong></p>
+                    <p style="margin: 5px 0;"><strong>Caesar Salad;9.99;Salads;Romaine lettuce, croutons, parmesan, and Caesar dressing</strong></p>
+                    <p style="margin: 5px 0;"><strong>Iced Coffee;3.50;Beverages;Cold-brewed coffee over ice</strong></p>
+                </div>
+                
+                <h4>Tips for Word Documents:</h4>
+                <ul>
+                    <li>Use a clean, simple document with one menu item per line</li>
+                    <li>Avoid using tables, columns, or special formatting</li>
+                    <li>Make sure each line follows the Item;Price;Category;Description format</li>
+                    <li>Save your document as a .docx file</li>
+                </ul>
+                
+                <div class="tips">
+                    <strong>Important Notes:</strong>
+                    <ul>
+                        <li>The system extracts plain text from Word documents, so any special formatting, images, or complex layouts will be ignored</li>
+                        <li>Only the first two fields (name and price) are required</li>
+                        <li>For more complex menu structures, consider using the Excel or JSON formats</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div id="fields" class="tab-content">
+                <h3>Menu Data Fields</h3>
+                <p>Here's a comprehensive list of all fields that can be included in your menu imports:</p>
+                
+                <table class="field-table">
+                    <tr>
+                        <th>Field Name</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                    </tr>
+                    <tr>
+                        <td>name</td>
+                        <td>The display name of the menu item</td>
+                        <td class="required">Required</td>
+                    </tr>
+                    <tr>
+                        <td>price</td>
+                        <td>The price of the menu item (numeric value)</td>
+                        <td class="required">Required</td>
+                    </tr>
+                    <tr>
+                        <td>category</td>
+                        <td>Category for grouping menu items</td>
+                        <td class="optional">Optional</td>
+                    </tr>
+                    <tr>
+                        <td>description</td>
+                        <td>Detailed description of the menu item</td>
+                        <td class="optional">Optional</td>
+                    </tr>
+                    <tr>
+                        <td>image</td>
+                        <td>URL or file path to an image</td>
+                        <td class="optional">Optional</td>
+                    </tr>
+                    <tr>
+                        <td>modifiers</td>
+                        <td>Options or add-ons (JSON only)</td>
+                        <td class="optional">Optional</td>
+                    </tr>
+                    <tr>
+                        <td>available</td>
+                        <td>Whether the item is available (true/false)</td>
+                        <td class="optional">Optional</td>
+                    </tr>
+                    <tr>
+                        <td>taxRate</td>
+                        <td>Custom tax rate for this item (overrides default)</td>
+                        <td class="optional">Optional</td>
+                    </tr>
+                </table>
+                
+                <div class="tips">
+                    <strong>Important Notes:</strong>
+                    <ul>
+                        <li>All formats support the required fields, but some optional fields may only be available in certain formats</li>
+                        <li>Array fields like "modifiers" are only fully supported in JSON format</li>
+                        <li>Boolean fields should be "true" or "false" (JSON), or "1"/"0" (CSV/TXT)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <button class="back-button" onclick="window.close()">Close Guide</button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab functionality
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Hide all content
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    
+                    // Deactivate all tabs
+                    document.querySelectorAll('.tab').forEach(tab => {
+                        tab.classList.remove('active');
+                    });
+                    
+                    // Activate clicked tab
+                    this.classList.add('active');
+                    
+                    // Show corresponding content
+                    const tabId = this.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

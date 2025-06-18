@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Mode Debug</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 2rem;
+            background: #1f2937;
+            color: #f9fafb;
+        }
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 1rem;
+            margin: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        pre {
+            background: #374151;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Hotel Mode Debug Console</h1>
+    
+    <div>
+        <button onclick="checkMethods()">Check Available Methods</button>
+        <button onclick="testActivation()">Test Activation</button>
+        <button onclick="clearStorage()">Clear Storage</button>
+    </div>
+    
+    <div id="output"></div>
+
+    <script src="hotel-mode.js"></script>
+    <script>
+        function output(message) {
+            const div = document.getElementById('output');
+            div.innerHTML += '<pre>' + message + '</pre>';
+        }
+        
+        function checkMethods() {
+            output('=== HotelMode Class Debug ===');
+            
+            if (typeof HotelMode === 'undefined') {
+                output('❌ HotelMode class is NOT available');
+                return;
+            }
+            
+            output('✅ HotelMode class is available');
+            
+            // Check for required methods
+            const requiredMethods = [
+                'isHotelModeActive',
+                'activateHotelMode', 
+                'deactivateHotelMode',
+                'initializeRoomServiceMenu',
+                'syncMenuWithRestaurant',
+                'getHotelBrand',
+                'getLoyaltyTiers',
+                'getLoyaltyProgramName'
+            ];
+            
+            requiredMethods.forEach(method => {
+                if (typeof HotelMode[method] === 'function') {
+                    output(`✅ ${method}() - Available`);
+                } else {
+                    output(`❌ ${method}() - MISSING`);
+                }
+            });
+            
+            // Check current status
+            try {
+                const isActive = HotelMode.isHotelModeActive();
+                output(`Current Status: ${isActive ? 'ACTIVE' : 'INACTIVE'}`);
+            } catch (error) {
+                output(`Error checking status: ${error.message}`);
+            }
+        }
+        
+        function testActivation() {
+            output('=== Testing Hotel Mode Activation ===');
+            
+            try {
+                // Test activation
+                const result = HotelMode.activateHotelMode('marriott');
+                output(`Activation result: ${result}`);
+                
+                // Check if it's now active
+                const isActive = HotelMode.isHotelModeActive();
+                output(`Status after activation: ${isActive ? 'ACTIVE' : 'INACTIVE'}`);
+                
+                // Check localStorage
+                const settings = localStorage.getItem('businessSettings');
+                output(`Settings stored: ${settings}`);
+                
+            } catch (error) {
+                output(`Activation error: ${error.message}`);
+                output(`Stack trace: ${error.stack}`);
+            }
+        }
+        
+        function clearStorage() {
+            localStorage.clear();
+            output('Storage cleared');
+        }
+        
+        // Auto-run on load
+        window.onload = function() {
+            checkMethods();
+        };
+    </script>
+</body>
+</html>

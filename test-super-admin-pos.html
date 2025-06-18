@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin POS Access Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 2rem;
+            background: #f8fafc;
+        }
+        .test-container {
+            background: white;
+            border: 3px solid #000;
+            border-radius: 15px;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-step {
+            background: #f8fafc;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .success { border-color: #059669; background: #f0fdf4; }
+        .warning { border-color: #f59e0b; background: #fef3c7; }
+        .error { border-color: #dc2626; background: #fef2f2; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: 2px solid #000;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            margin: 0.5rem;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .super-admin-btn {
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #000;
+        }
+        .status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 Super Admin POS Access Test</h1>
+        <p>This tool helps test the super admin POS access functionality.</p>
+        
+        <div class="test-step" id="step1">
+            <h3>Step 1: Check Current User Status</h3>
+            <p>Current user status: <span id="userStatus">Checking...</span></p>
+            <p>Super admin access: <span id="superAdminStatus">Checking...</span></p>
+            <p>Business context: <span id="businessContext">Checking...</span></p>
+        </div>
+        
+        <div class="test-step" id="step2">
+            <h3>Step 2: Login as Super Admin</h3>
+            <p>Click to simulate super admin login:</p>
+            <button class="super-admin-btn" onclick="loginAsSuperAdmin()">👑 Login as Super Admin</button>
+            <button onclick="clearSession()">🧹 Clear Session</button>
+        </div>
+        
+        <div class="test-step" id="step3">
+            <h3>Step 3: Test POS Access</h3>
+            <p>Test different POS access scenarios:</p>
+            <button onclick="testGlobalPOSAccess()">🌍 Global POS Access</button>
+            <button onclick="testBusinessContextAccess()">🏢 Business Context Access</button>
+            <button onclick="openPOSInterface()">🖥️ Open POS Interface</button>
+        </div>
+        
+        <div class="test-step" id="step4">
+            <h3>Step 4: Navigation Tests</h3>
+            <p>Test navigation between different interfaces:</p>
+            <button onclick="openSuperAdminDashboard()">👑 Super Admin Dashboard</button>
+            <button onclick="openBusinessSettings()">⚙️ Business Settings</button>
+            <button onclick="openLogin()">🔐 Login Page</button>
+        </div>
+        
+        <div class="test-step" id="results">
+            <h3>Test Results</h3>
+            <div id="testResults">
+                <p>Run tests to see results here...</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="super-admin.js"></script>
+    <script>
+        // Test Functions
+        
+        function updateStatus() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const superAdminAccess = localStorage.getItem('superAdminPOSAccess');
+            const businessContext = localStorage.getItem('currentBusinessContext');
+            
+            document.getElementById('userStatus').innerHTML = currentUser.role 
+                ? `<span class="status success">${currentUser.firstName} ${currentUser.lastName} (${currentUser.role})</span>`
+                : '<span class="status error">No user logged in</span>';
+                
+            document.getElementById('superAdminStatus').innerHTML = superAdminAccess === 'true'
+                ? '<span class="status success">Active</span>'
+                : '<span class="status error">Inactive</span>';
+                
+            document.getElementById('businessContext').innerHTML = businessContext
+                ? `<span class="status warning">${JSON.parse(businessContext).companyName || 'Context Active'}</span>`
+                : '<span class="status error">No context</span>';
+        }
+        
+        function loginAsSuperAdmin() {
+            // Simulate super admin login
+            const superAdmin = {
+                id: 'SUPER_ADMIN_001',
+                username: 'superadmin',
+                firstName: 'Super',
+                lastName: 'Administrator',
+                email: 'admin@macrospos.com',
+                role: 'super_admin',
+                accessLevel: 'global',
+                permissions: ['all']
+            };
+            
+            localStorage.setItem('currentUser', JSON.stringify(superAdmin));
+            localStorage.setItem('isLoggedIn', 'true');
+            
+            addTestResult('✅ Super admin login simulated', 'success');
+            updateStatus();
+        }
+        
+        function clearSession() {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('superAdminPOSAccess');
+            localStorage.removeItem('currentBusinessContext');
+            
+            addTestResult('🧹 Session cleared', 'warning');
+            updateStatus();
+        }
+        
+        function testGlobalPOSAccess() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            
+            if (currentUser.role !== 'super_admin') {
+                addTestResult('❌ Must be logged in as super admin first', 'error');
+                return;
+            }
+            
+            // Simulate global POS access
+            localStorage.setItem('superAdminPOSAccess', 'true');
+            localStorage.setItem('currentBusinessContext', JSON.stringify({
+                businessID: 'SUPER_ADMIN_GLOBAL',
+                companyName: 'Super Admin Global Access',
+                businessType: 'super_admin'
+            }));
+            
+            addTestResult('✅ Global POS access activated', 'success');
+            updateStatus();
+        }
+        
+        function testBusinessContextAccess() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            
+            if (currentUser.role !== 'super_admin') {
+                addTestResult('❌ Must be logged in as super admin first', 'error');
+                return;
+            }
+            
+            // Simulate business context access
+            localStorage.setItem('superAdminPOSAccess', 'true');
+            localStorage.setItem('currentBusinessContext', JSON.stringify({
+                businessID: 'BUS_001',
+                companyName: 'Demo Restaurant',
+                businessType: 'restaurant',
+                ownerName: 'Demo Owner'
+            }));
+            
+            addTestResult('✅ Business context POS access activated', 'success');
+            updateStatus();
+        }
+        
+        function openPOSInterface() {
+            window.open('pos-interface-fixed.html', '_blank');
+            addTestResult('🖥️ POS interface opened in new tab', 'success');
+        }
+        
+        function openSuperAdminDashboard() {
+            window.open('super-admin-dashboard.html', '_blank');
+            addTestResult('👑 Super admin dashboard opened', 'success');
+        }
+        
+        function openBusinessSettings() {
+            window.open('business-settings.html', '_blank');
+            addTestResult('⚙️ Business settings opened', 'success');
+        }
+        
+        function openLogin() {
+            window.open('login.html', '_blank');
+            addTestResult('🔐 Login page opened', 'success');
+        }
+        
+        function addTestResult(message, type) {
+            const results = document.getElementById('testResults');
+            const timestamp = new Date().toLocaleTimeString();
+            const resultClass = type === 'success' ? 'success' : type === 'error' ? 'error' : 'warning';
+            
+            results.innerHTML += `
+                <div class="test-step ${resultClass}" style="margin-bottom: 0.5rem; padding: 0.75rem;">
+                    <strong>[${timestamp}]</strong> ${message}
+                </div>
+            `;
+            
+            // Scroll to bottom
+            results.scrollTop = results.scrollHeight;
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus();
+            addTestResult('🚀 Super Admin POS Test Tool initialized', 'success');
+        });
+        
+        // Auto-refresh status every 2 seconds
+        setInterval(updateStatus, 2000);
+    </script>
+</body>
+</html>

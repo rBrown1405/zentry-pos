@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Property System Integration Test</title>
+    <script src="multi-property-manager.js"></script>
+    <script src="property-switcher.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .test-pass {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .test-fail {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .test-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .property-switcher {
+            margin: 20px 0;
+            padding: 10px;
+            background: rgba(45, 55, 72, 0.95);
+            border-radius: 6px;
+            color: white;
+        }
+        .property-select {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(45, 55, 72, 0.3);
+            border-radius: 4px;
+            padding: 8px 12px;
+            color: #2d3748;
+            font-size: 14px;
+            min-width: 200px;
+        }
+        #testResults {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Multi-Property System Integration Test</h1>
+        <p>This test validates the integration of the multi-property management system with the property switcher functionality.</p>
+
+        <div class="test-section">
+            <h3>1. System Initialization Test</h3>
+            <button onclick="testSystemInitialization()">Test System Initialization</button>
+            <div id="initResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Business Account Creation Test</h3>
+            <button onclick="testBusinessAccountCreation()">Create Test Business Account</button>
+            <div id="businessResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Property Management Test</h3>
+            <button onclick="testPropertyManagement()">Test Property Creation</button>
+            <div id="propertyResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Staff Registration Test</h3>
+            <button onclick="testStaffRegistration()">Test Staff Registration</button>
+            <div id="staffResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. Property Switcher Test</h3>
+            <div id="propertySwitcher" class="property-switcher" style="display: none;">
+                <label for="propertySelect">Switch Property:</label>
+                <select id="propertySelect" class="property-select">
+                    <option value="">Select Property...</option>
+                </select>
+            </div>
+            <button onclick="testPropertySwitcher()">Test Property Switcher</button>
+            <div id="switcherResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>6. Integration Test Results</h3>
+            <button onclick="runFullIntegrationTest()">Run Full Integration Test</button>
+            <div id="testResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>7. Data Cleanup</h3>
+            <button onclick="cleanupTestData()" style="background: #dc3545;">Clean Up Test Data</button>
+            <div id="cleanupResults"></div>
+        </div>
+    </div>
+
+    <script>
+        let testBusinessId = null;
+        let testPropertyIds = [];
+        let testStaffId = null;
+
+        function addTestResult(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result test-${type}`;
+            resultDiv.innerHTML = `${new Date().toLocaleTimeString()}: ${message}`;
+            container.appendChild(resultDiv);
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function testSystemInitialization() {
+            const container = 'initResults';
+            document.getElementById(container).innerHTML = '';
+            
+            try {
+                // Test MultiPropertyManager availability
+                if (typeof MultiPropertyManager !== 'undefined') {
+                    addTestResult(container, '✓ MultiPropertyManager class is available', 'pass');
+                } else {
+                    addTestResult(container, '✗ MultiPropertyManager class not found', 'fail');
+                    return;
+                }
+
+                // Test PropertySwitcher availability
+                if (typeof PropertySwitcher !== 'undefined') {
+                    addTestResult(container, '✓ PropertySwitcher class is available', 'pass');
+                } else {
+                    addTestResult(container, '✗ PropertySwitcher class not found', 'fail');
+                    return;
+                }
+
+                // Test static methods
+                if (typeof MultiPropertyManager.createBusinessAccount === 'function') {
+                    addTestResult(container, '✓ MultiPropertyManager.createBusinessAccount method available', 'pass');
+                } else {
+                    addTestResult(container, '✗ MultiPropertyManager.createBusinessAccount method not found', 'fail');
+                }
+
+                if (typeof PropertySwitcher.initialize === 'function') {
+                    addTestResult(container, '✓ PropertySwitcher.initialize method available', 'pass');
+                } else {
+                    addTestResult(container, '✗ PropertySwitcher.initialize method not found', 'fail');
+                }
+
+                addTestResult(container, 'System initialization test completed', 'info');
+
+            } catch (error) {
+                addTestResult(container, `✗ System initialization error: ${error.message}`, 'fail');
+            }
+        }
+
+        function testBusinessAccountCreation() {
+            const container = 'businessResults';
+            document.getElementById(container).innerHTML = '';
+            
+            try {
+                // Create a test business account
+                const businessData = {
+                    businessName: 'Test Restaurant Group',
+                    businessType: 'restaurant',
+                    ownerName: 'Test Owner',
+                    email: 'test@example.com',
+                    phone: '555-0123',
+                    address: '123 Test Street, Test City, TC 12345'
+                };
+
+                const result = MultiPropertyManager.createBusinessAccount(businessData);
+                
+                if (result.success) {
+                    testBusinessId = result.businessId;
+                    addTestResult(container, `✓ Business account created successfully: ${result.businessId}`, 'pass');
+                    addTestResult(container, `✓ Connection code generated: ${result.connectionCode}`, 'pass');
+                    
+                    // Verify the account was stored
+                    const accounts = MultiPropertyManager.getAllBusinessAccounts();
+                    if (accounts.find(acc => acc.id === result.businessId)) {
+                        addTestResult(container, '✓ Business account stored in localStorage', 'pass');
+                    } else {
+                        addTestResult(container, '✗ Business account not found in storage', 'fail');
+                    }
+                } else {
+                    addTestResult(container, `✗ Failed to create business account: ${result.message}`, 'fail');
+                }
+
+            } catch (error) {
+                addTestResult(container, `✗ Business account creation error: ${error.message}`, 'fail');
+            }
+        }
+
+        function testPropertyManagement() {
+            const container = 'propertyResults';
+            document.getElementById(container).innerHTML = '';
+            
+            if (!testBusinessId) {
+                addTestResult(container, '✗ No test business ID available. Run business creation test first.', 'fail');
+                return;
+            }
+
+            try {
+                // Create multiple test properties
+                const properties = [
+                    {
+                        name: 'Main Restaurant',
+                        type: 'restaurant',
+                        address: '123 Main St',
+                        city: 'Test City',
+                        state: 'TC',
+                        zip: '12345'
+                    },
+                    {
+                        name: 'Downtown Café',
+                        type: 'cafe',
+                        address: '456 Downtown Ave',
+                        city: 'Test City',
+                        state: 'TC',
+                        zip: '12346'
+                    },
+                    {
+                        name: 'Hotel Restaurant',
+                        type: 'hotel',
+                        address: '789 Hotel Blvd',
+                        city: 'Test City',
+                        state: 'TC',
+                        zip: '12347'
+                    }
+                ];
+
+                testPropertyIds = [];
+                
+                properties.forEach((propertyData, index) => {
+                    const result = MultiPropertyManager.addProperty(testBusinessId, propertyData);
+                    
+                    if (result.success) {
+                        testPropertyIds.push(result.propertyId);
+                        addTestResult(container, `✓ Property ${index + 1} created: ${propertyData.name} (${result.propertyId})`, 'pass');
+                    } else {
+                        addTestResult(container, `✗ Failed to create property ${index + 1}: ${result.message}`, 'fail');
+                    }
+                });
+
+                // Verify properties were stored
+                const business = MultiPropertyManager.getBusinessAccount(testBusinessId);
+                if (business && business.properties && business.properties.length === properties.length) {
+                    addTestResult(container, `✓ All ${properties.length} properties stored correctly`, 'pass');
+                } else {
+                    addTestResult(container, '✗ Property storage verification failed', 'fail');
+                }
+
+            } catch (error) {
+                addTestResult(container, `✗ Property management error: ${error.message}`, 'fail');
+            }
+        }
+
+        function testStaffRegistration() {
+            const container = 'staffResults';
+            document.getElementById(container).innerHTML = '';
+            
+            if (!testBusinessId || testPropertyIds.length === 0) {
+                addTestResult(container, '✗ Missing test data. Run previous tests first.', 'fail');
+                return;
+            }
+
+            try {
+                // Get the business account to get the connection code
+                const business = MultiPropertyManager.getBusinessAccount(testBusinessId);
+                if (!business) {
+                    addTestResult(container, '✗ Could not retrieve business account', 'fail');
+                    return;
+                }
+
+                // Register a test staff member
+                const staffData = {
+                    firstName: 'Test',
+                    lastName: 'Staff',
+                    email: 'staff@example.com',
+                    phone: '555-0199',
+                    role: 'manager',
+                    connectionCode: business.connectionCode
+                };
+
+                const result = MultiPropertyManager.registerStaff(staffData);
+                
+                if (result.success) {
+                    testStaffId = result.staffId;
+                    addTestResult(container, `✓ Staff member registered: ${result.staffId}`, 'pass');
+                    addTestResult(container, `✓ Staff connected to business: ${result.businessId}`, 'pass');
+                    
+                    // Grant access to properties
+                    testPropertyIds.forEach((propertyId, index) => {
+                        const accessResult = MultiPropertyManager.grantPropertyAccess(testStaffId, propertyId);
+                        if (accessResult.success) {
+                            addTestResult(container, `✓ Access granted to property ${index + 1}`, 'pass');
+                        } else {
+                            addTestResult(container, `✗ Failed to grant access to property ${index + 1}: ${accessResult.message}`, 'fail');
+                        }
+                    });
+
+                } else {
+                    addTestResult(container, `✗ Staff registration failed: ${result.message}`, 'fail');
+                }
+
+            } catch (error) {
+                addTestResult(container, `✗ Staff registration error: ${error.message}`, 'fail');
+            }
+        }
+
+        function testPropertySwitcher() {
+            const container = 'switcherResults';
+            document.getElementById(container).innerHTML = '';
+            
+            if (!testStaffId) {
+                addTestResult(container, '✗ No test staff ID available. Run staff registration test first.', 'fail');
+                return;
+            }
+
+            try {
+                // Simulate staff login
+                localStorage.setItem('currentStaffId', testStaffId);
+                
+                // Initialize the property switcher
+                PropertySwitcher.initialize();
+                
+                addTestResult(container, '✓ PropertySwitcher.initialize() called', 'pass');
+                
+                // Check if switcher is visible
+                const switcherElement = document.getElementById('propertySwitcher');
+                if (switcherElement && switcherElement.style.display !== 'none') {
+                    addTestResult(container, '✓ Property switcher is visible', 'pass');
+                } else {
+                    addTestResult(container, '✗ Property switcher is not visible', 'fail');
+                }
+
+                // Check if properties are loaded in dropdown
+                const selectElement = document.getElementById('propertySelect');
+                if (selectElement && selectElement.options.length > 1) {
+                    addTestResult(container, `✓ Properties loaded in dropdown: ${selectElement.options.length - 1} options`, 'pass');
+                    
+                    // Test switching to first property
+                    if (selectElement.options.length > 1) {
+                        selectElement.value = selectElement.options[1].value;
+                        selectElement.dispatchEvent(new Event('change'));
+                        
+                        setTimeout(() => {
+                            const currentProperty = PropertySwitcher.currentProperty;
+                            if (currentProperty) {
+                                addTestResult(container, `✓ Property switch successful: ${currentProperty.name}`, 'pass');
+                            } else {
+                                addTestResult(container, '✗ Property switch failed', 'fail');
+                            }
+                        }, 100);
+                    }
+                } else {
+                    addTestResult(container, '✗ No properties found in dropdown', 'fail');
+                }
+
+            } catch (error) {
+                addTestResult(container, `✗ Property switcher error: ${error.message}`, 'fail');
+            }
+        }
+
+        function runFullIntegrationTest() {
+            const container = 'testResults';
+            document.getElementById(container).innerHTML = '';
+            
+            addTestResult(container, 'Starting full integration test...', 'info');
+            
+            // Run all tests in sequence
+            setTimeout(() => {
+                testSystemInitialization();
+                addTestResult(container, '1. System initialization test completed', 'info');
+            }, 100);
+            
+            setTimeout(() => {
+                testBusinessAccountCreation();
+                addTestResult(container, '2. Business account creation test completed', 'info');
+            }, 500);
+            
+            setTimeout(() => {
+                testPropertyManagement();
+                addTestResult(container, '3. Property management test completed', 'info');
+            }, 1000);
+            
+            setTimeout(() => {
+                testStaffRegistration();
+                addTestResult(container, '4. Staff registration test completed', 'info');
+            }, 1500);
+            
+            setTimeout(() => {
+                testPropertySwitcher();
+                addTestResult(container, '5. Property switcher test completed', 'info');
+                addTestResult(container, 'Full integration test completed!', 'pass');
+            }, 2000);
+        }
+
+        function cleanupTestData() {
+            const container = 'cleanupResults';
+            document.getElementById(container).innerHTML = '';
+            
+            try {
+                // Clear test data from localStorage
+                if (testBusinessId) {
+                    // Remove business account
+                    const accounts = JSON.parse(localStorage.getItem('businessAccounts') || '[]');
+                    const filteredAccounts = accounts.filter(acc => acc.id !== testBusinessId);
+                    localStorage.setItem('businessAccounts', JSON.stringify(filteredAccounts));
+                    addTestResult(container, '✓ Test business account removed', 'pass');
+                }
+
+                if (testStaffId) {
+                    // Remove staff member
+                    const staff = JSON.parse(localStorage.getItem('registeredStaff') || '[]');
+                    const filteredStaff = staff.filter(s => s.id !== testStaffId);
+                    localStorage.setItem('registeredStaff', JSON.stringify(filteredStaff));
+                    addTestResult(container, '✓ Test staff member removed', 'pass');
+                }
+
+                // Clear current session data
+                localStorage.removeItem('currentStaffId');
+                localStorage.removeItem('currentPropertyId');
+                
+                // Reset test variables
+                testBusinessId = null;
+                testPropertyIds = [];
+                testStaffId = null;
+                
+                // Hide property switcher
+                const switcherElement = document.getElementById('propertySwitcher');
+                if (switcherElement) {
+                    switcherElement.style.display = 'none';
+                }
+
+                addTestResult(container, '✓ All test data cleaned up', 'pass');
+
+            } catch (error) {
+                addTestResult(container, `✗ Cleanup error: ${error.message}`, 'fail');
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Multi-Property Integration Test Page Loaded');
+        });
+    </script>
+</body>
+</html>
