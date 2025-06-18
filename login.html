@@ -33,17 +33,20 @@
                     <span class="button-text">Staff Sign In</span>
                     <span class="button-icon">→</span>
                 </button>
-            </div>            <!-- Company Login Form -->
-            <div id="companyLogin" class="login-tab-content">
-                <div class="input-group">
-                    <label for="businessId" class="input-label">Business ID</label>
-                    <input type="text" id="businessId" placeholder="Enter your Business ID" autocomplete="off">
-                    <p class="input-hint">Your unique business identifier</p>
-                </div>
-                <button class="login-button" onclick="handleCompanyLogin()">
-                    <span class="button-text">Company Sign In</span>
-                    <span class="button-icon">→</span>
-                </button>
+            </div>            <!-- Company Login Form -->            <div id="companyLogin" class="login-tab-content">
+                <form onsubmit="handleCompanyLogin(event)">
+                    <div class="input-group">
+                        <label for="businessId" class="input-label">Business ID</label>
+                        <input type="text" id="businessId" name="businessId" 
+                               placeholder="Enter your Business ID" 
+                               autocomplete="off" required>
+                        <p class="input-hint">Your unique business identifier</p>
+                    </div>
+                    <button type="submit" class="login-button">
+                        <span class="button-text">Company Sign In</span>
+                        <span class="button-icon">→</span>
+                    </button>
+                </form>
             </div>
 
             <!-- Super Admin Login Form -->

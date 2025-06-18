@@ -227,131 +227,49 @@ function handleStaffLoginLegacy(staffId) {
 }
 
 // Handle company login
-async function handleCompanyLogin() {
+async function handleCompanyLogin(event) {
+    event.preventDefault();
     const businessId = document.getElementById('businessId').value.trim();
     
     if (!businessId) {
-        alert('Please enter your Business ID.');
+        showError('Please enter your Business ID');
         return;
     }
     
     try {
-        // Get business info from storage (check umbrella account format first)
-        let businessInfo = null;
-        let ownerAccount = null;
+        // Show loading state
+        const loginButton = document.querySelector('#companyLogin .login-button');
+        loginButton.classList.add('loading');
         
-        // Try umbrella account format first
-        businessInfo = JSON.parse(localStorage.getItem(`business_id_${businessId}`));
+        // Get business account
+        const businessAccount = MultiPropertyManager.getBusinessAccount(businessId);
         
-        if (!businessInfo) {
-            alert('Business ID not found. Please check your ID and try again.');
-            return;
+        if (!businessAccount) {
+            throw new Error('Business ID not found. Please check your ID and try again.');
         }
-
-        // Check if business is active
-        if (!businessInfo.isActive) {
-            alert('Business account is inactive. Please contact support.');
-            return;
-        }
-
-        // For umbrella accounts, look for the owner account
-        if (businessInfo.businessCode) {
-            // Find the owner staff account for this business
-            const allStaffKeys = Object.keys(localStorage).filter(key => key.startsWith('staff_'));
-            const businessStaff = allStaffKeys.map(key => {
-                try {
-                    return JSON.parse(localStorage.getItem(key));
-                } catch {
-                    return null;
-                }
-            }).filter(staff => 
-                staff && 
-                staff.businessCode === businessInfo.businessCode && 
-                staff.role === 'owner'
-            );
-
-            if (businessStaff.length > 0) {
-                ownerAccount = businessStaff[0];
-                
-                // Update owner's last login
-                ownerAccount.lastLogin = new Date().toISOString();
-                localStorage.setItem(`staff_${ownerAccount.staffID}`, JSON.stringify(ownerAccount));
-            }
-        }
-
-        // Store comprehensive login information for multi-property system
-        const userData = {
-            type: 'company',
-            id: businessId,
-            businessID: businessInfo.businessID,
-            businessCode: businessInfo.businessCode,
-            name: businessInfo.companyName,
-            companyName: businessInfo.companyName,
-            role: ownerAccount ? 'owner' : 'admin',
-            staffID: ownerAccount ? ownerAccount.staffID : null,
-            firstName: ownerAccount ? ownerAccount.firstName : businessInfo.ownerName?.split(' ')[0],
-            lastName: ownerAccount ? ownerAccount.lastName : businessInfo.ownerName?.split(' ').slice(1).join(' '),
-            email: businessInfo.companyEmail,
-            phone: businessInfo.companyPhone,
-            permissions: ownerAccount ? ownerAccount.permissions : ['all_property'],
-            propertyAccess: 'all', // Company owners have access to all properties
-            assignedProperties: [], // Empty means all properties
-            isUmbrellaAccount: !!businessInfo.businessCode,
-            totalProperties: businessInfo.properties ? businessInfo.properties.length : 1,
+        
+        // Store business information for the session
+        localStorage.setItem('currentBusiness', JSON.stringify({
+            id: businessAccount.id,
+            name: businessAccount.businessName,
+            type: businessAccount.businessType,
             lastLogin: new Date().toISOString()
-        };
-
-        localStorage.setItem('currentUser', JSON.stringify(userData));
+        }));
         
-        // Set login flag for authentication
+        // Set login flag
         localStorage.setItem('isLoggedIn', 'true');
-
-        // Set property context - use main property or first property
-        let initialProperty = null;
-        if (businessInfo.properties && businessInfo.properties.length > 0) {
-            initialProperty = businessInfo.properties.find(p => p.isMainProperty) || businessInfo.properties[0];
-        } else {
-            // Single property business
-            initialProperty = {
-                propertyName: businessInfo.companyName,
-                businessType: businessInfo.businessType || 'restaurant'
-            };
-        }
-
-        // Store property information for UI context
-        localStorage.setItem('propertyType', initialProperty.businessType);
-        localStorage.setItem('propertyName', initialProperty.propertyName || businessInfo.companyName);
-        localStorage.setItem('firstLogin', 'true');
-
-        // Set current property context if specific property
-        if (initialProperty.propertyCode) {
-            localStorage.setItem('currentPropertyContext', JSON.stringify({
-                propertyCode: initialProperty.propertyCode,
-                propertyName: initialProperty.propertyName,
-                businessType: initialProperty.businessType,
-                isOwnerAccess: true
-            }));
-        }
-
-        // Check for pending staff approvals
-        const pendingStaff = MultiPropertyManager.getPendingStaff(
-            businessInfo.businessCode, 
-            ownerAccount ? ownerAccount.staffID : 'OWNER_DIRECT'
-        );
+        localStorage.setItem('userRole', 'business');
         
-        if (pendingStaff.length > 0) {
-            if (confirm(`You have ${pendingStaff.length} pending staff approval(s). Would you like to review them now?`)) {
-                navigateWithTransition('staff-approval.html');
-                return;
-            }
-        }
-
-        // Navigate to POS interface
-        navigateWithTransition('pos-interface-fixed.html');
+        // Redirect to business dashboard
+        navigateWithTransition('business-dashboard.html');
         
     } catch (error) {
         console.error('Login error:', error);
-        alert('Error during login. Please try again.');
+        showError(error.message);
+    } finally {
+        // Remove loading state
+        const loginButton = document.querySelector('#companyLogin .login-button');
+        loginButton.classList.remove('loading');
     }
 }
 

@@ -320,8 +320,23 @@ class MultiPropertyManager {
      */
     static getBusinessAccount(businessId) {
         try {
-            const account = localStorage.getItem(`businessAccount_${businessId}`);
-            return account ? JSON.parse(account) : null;
+            // Try getting from direct key first
+            let account = localStorage.getItem(`businessAccount_${businessId}`);
+            if (account) {
+                return JSON.parse(account);
+            }
+
+            // If not found, try searching through all accounts
+            const accounts = this.getAllBusinessAccounts();
+            account = accounts.find(acc => acc.id === businessId);
+            
+            if (account) {
+                // Save it with the direct key for future lookups
+                this.saveBusinessAccount(account);
+                return account;
+            }
+            
+            return null;
         } catch (error) {
             console.error('Error getting business account:', error);
             return null;
