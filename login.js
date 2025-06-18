@@ -256,9 +256,23 @@ async function handleCompanyLogin(event) {
             lastLogin: new Date().toISOString()
         }));
         
-        // Set login flag
+        // Store current user information
+        localStorage.setItem('currentUser', JSON.stringify({
+            type: 'business',
+            id: businessAccount.id,
+            role: 'admin',
+            name: businessAccount.ownerName,
+            businessName: businessAccount.businessName,
+            businessType: businessAccount.businessType,
+            lastLogin: new Date().toISOString()
+        }));
+        
+        // Set login flags
         localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('userRole', 'business');
+        localStorage.setItem('userRole', 'admin');
+        
+        // Clear any existing property context
+        localStorage.removeItem('currentPropertyContext');
         
         // Redirect to business dashboard
         navigateWithTransition('business-dashboard.html');

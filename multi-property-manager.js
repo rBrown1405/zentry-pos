@@ -374,6 +374,9 @@ class MultiPropertyManager {
      */
     static saveBusinessAccount(businessAccount) {
         try {
+            // Ensure business account has admin role
+            businessAccount.role = 'admin';
+            
             localStorage.setItem(`businessAccount_${businessAccount.id}`, JSON.stringify(businessAccount));
             
             // Also maintain a list of all business accounts

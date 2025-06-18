@@ -4,7 +4,12 @@ const propertyManager = new MultiPropertyManager();
 
 // Ensure user is authenticated
 document.addEventListener('DOMContentLoaded', function() {
-    if (!apiManager.isAuthenticated()) {
+    // Check both isLoggedIn and userRole to ensure proper authentication
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const userRole = localStorage.getItem('userRole');
+    
+    if (!isLoggedIn || userRole !== 'admin') {
+        console.error('Not authenticated or invalid role');
         window.location.href = 'login.html';
         return;
     }
@@ -15,17 +20,18 @@ document.addEventListener('DOMContentLoaded', function() {
 // Load business data
 function loadBusinessData() {
     try {
-        const businessAccount = propertyManager.getBusinessAccount();
-        if (!businessAccount) {
-            console.error('No business account found');
+        // Get current user data which includes business info
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (!currentUser || !currentUser.businessName) {
+            console.error('No business data found');
             handleLogout();
             return;
         }
 
         // Update UI elements
-        document.getElementById('businessName').textContent = businessAccount.businessName || 'N/A';
-        document.getElementById('businessType').textContent = businessAccount.businessType || 'N/A';
-        document.getElementById('ownerName').textContent = businessAccount.ownerName || 'N/A';
+        document.getElementById('businessName').textContent = currentUser.businessName || 'N/A';
+        document.getElementById('businessType').textContent = currentUser.businessType || 'N/A';
+        document.getElementById('ownerName').textContent = currentUser.name || 'N/A';
     } catch (error) {
         console.error('Error loading business data:', error);
         handleLogout();
@@ -40,7 +46,14 @@ function toggleProfileMenu() {
 
 // Handle logout
 function handleLogout() {
-    apiManager.logout();
+    // Clear all authentication data
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('currentBusiness');
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('currentPropertyContext');
+    
+    // Redirect to login
     window.location.href = 'login.html';
 }
 
