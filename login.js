@@ -241,23 +241,28 @@ async function handleCompanyLogin(event) {
         const loginButton = document.querySelector('#companyLogin .login-button');
         loginButton.classList.add('loading');
         
+        console.log('Starting business login process for ID:', businessId);
+        
         // Get business account
         const businessAccount = MultiPropertyManager.getBusinessAccount(businessId);
+        console.log('Retrieved business account:', businessAccount);
         
         if (!businessAccount) {
             throw new Error('Business ID not found. Please check your ID and try again.');
         }
         
         // Store business information for the session
-        localStorage.setItem('currentBusiness', JSON.stringify({
+        const businessInfo = {
             id: businessAccount.id,
             name: businessAccount.businessName,
             type: businessAccount.businessType,
             lastLogin: new Date().toISOString()
-        }));
+        };
+        console.log('Storing business info:', businessInfo);
+        localStorage.setItem('currentBusiness', JSON.stringify(businessInfo));
         
         // Store current user information
-        localStorage.setItem('currentUser', JSON.stringify({
+        const userInfo = {
             type: 'business',
             id: businessAccount.id,
             role: 'admin',
@@ -265,7 +270,9 @@ async function handleCompanyLogin(event) {
             businessName: businessAccount.businessName,
             businessType: businessAccount.businessType,
             lastLogin: new Date().toISOString()
-        }));
+        };
+        console.log('Storing user info:', userInfo);
+        localStorage.setItem('currentUser', JSON.stringify(userInfo));
         
         // Set login flags
         localStorage.setItem('isLoggedIn', 'true');
@@ -274,7 +281,9 @@ async function handleCompanyLogin(event) {
         // Clear any existing property context
         localStorage.removeItem('currentPropertyContext');
         
-        // Redirect to business dashboard
+        console.log('Login successful, proceeding to dashboard');
+        
+        // Use navigateWithTransition instead of direct location change
         navigateWithTransition('business-dashboard.html');
         
     } catch (error) {
