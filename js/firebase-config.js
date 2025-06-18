@@ -1,54 +1,59 @@
 // Firebase Configuration for Zentry POS
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_APP_ID,
-  measurementId: process.env.FIREBASE_MEASUREMENT_ID
+    apiKey: "AIzaSyCvJ1tZXJqXz0Vb8K8VY_m3QRxPd2k-D8U",
+    authDomain: "zentry-pos.firebaseapp.com",
+    projectId: "zentry-pos",
+    storageBucket: "zentry-pos.appspot.com",
+    messagingSenderId: "847236563825",
+    appId: "1:847236563825:web:8f9f9f9f9f9f9f9f9f9f9f",
+    measurementId: "G-MEASUREMENT_ID"
 };
 
-// Initialize Firebase
-// Make sure to include the Firebase SDK in your HTML before using this file
-// You'll need: firebase-app.js, firebase-auth.js, firebase-firestore.js, and firebase-storage.js
-
-// To use this configuration, add the following script tags to your HTML head:
-/*
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-<script src="js/firebase-config.js"></script>
-*/
-
-// Initialize Firebase services
-let app, auth, db, storage;
+let app = null;
+let auth = null;
+let db = null;
+let storage = null;
 
 function initializeFirebase() {
-  // Initialize Firebase
-  app = firebase.initializeApp(firebaseConfig);
-  auth = firebase.auth();
-  db = firebase.firestore();
-  storage = firebase.storage();
-  
-  // Enable offline persistence for Firestore (optional but recommended for POS systems)
-  db.enablePersistence()
-    .catch((err) => {
-      if (err.code === 'failed-precondition') {
-        console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-      } else if (err.code === 'unimplemented') {
-        console.warn('The current browser does not support all of the features required to enable persistence');
-      }
-    });
-    
-  console.log('Firebase initialized successfully');
+    try {
+        if (!firebase.apps.length) {
+            app = firebase.initializeApp(firebaseConfig);
+        } else {
+            app = firebase.app();
+        }
+        
+        // Initialize Firebase services
+        auth = firebase.auth();
+        db = firebase.firestore();
+        storage = firebase.storage();
+        
+        // Enable offline persistence for Firestore (important for POS systems)
+        return db.enablePersistence()
+            .then(() => {
+                console.log('Firebase initialized successfully with offline persistence');
+            })
+            .catch((err) => {
+                if (err.code === 'failed-precondition') {
+                    console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+                } else if (err.code === 'unimplemented') {
+                    console.warn('The current browser does not support all of the features required to enable persistence');
+                }
+                // Even if persistence fails, we can continue
+                console.log('Firebase initialized successfully without offline persistence');
+            });
+    } catch (error) {
+        console.error('Error initializing Firebase:', error);
+        throw error;
+    }
 }
 
 // Export Firebase services
-window.firebaseServices = {
-  getApp: () => app,
-  getAuth: () => auth,
-  getDb: () => db,
-  getStorage: () => storage
+const firebaseServices = {
+    initialize: initializeFirebase,
+    getApp: () => app,
+    getAuth: () => auth,
+    getDb: () => db,
+    getStorage: () => storage
 };
+
+export default firebaseServices;

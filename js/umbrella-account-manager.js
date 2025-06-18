@@ -8,6 +8,7 @@ class UmbrellaAccountManager {
         this.db = window.firebaseServices.getDb();
         this.currentBusiness = null;
         this.currentProperty = null;
+        this.availableBusinesses = []; // Track available businesses for the user
         this._initializeFromFirebase();
     }
 
@@ -99,73 +100,137 @@ class UmbrellaAccountManager {
      */
     async loadUserBusinessAccess(userId) {
         try {
-            // Get user document
             const userDoc = await this.db.collection('users').doc(userId).get();
-            
             if (!userDoc.exists) {
-                console.warn('User document not found in Firestore');
-                return;
+                throw new Error('User not found');
             }
 
             const userData = userDoc.data();
-            
-            // Super admin can access all businesses
-            if (userData.role === 'super_admin') {
-                // For super admin, load last accessed business/property if available
-                if (userData.currentBusinessId) {
-                    const businessDoc = await this.db.collection('businesses').doc(userData.currentBusinessId).get();
-                    if (businessDoc.exists) {
-                        await this.setCurrentBusiness(businessDoc.id, businessDoc.data());
-                        
-                        // Load last accessed property
-                        if (userData.currentPropertyId) {
-                            const propertyDoc = await this.db.collection('properties').doc(userData.currentPropertyId).get();
-                            if (propertyDoc.exists) {
-                                await this.setCurrentProperty(propertyDoc.id, propertyDoc.data());
-                            }
-                        }
-                    }
-                }
-                return;
+            const userRole = userData.role;
+
+            // Handle different user roles
+            if (userRole === 'superAdmin') {
+                // Super admins can access all businesses
+                await this._loadAllBusinesses();
+            } else if (userRole === 'businessAdmin') {
+                // Business admins can access their assigned businesses
+                await this._loadAssignedBusinesses(userId);
+            } else if (userRole === 'propertyManager') {
+                // Property managers can access only their assigned property's business
+                await this._loadPropertyBusinesses(userId);
+            } else {
+                // Regular users can only access their current business
+                await this._loadCurrentBusiness(userId);
             }
-            
-            // For business owners and managers
-            if (userData.businessId) {
-                // Get the business document
-                const businessDoc = await this.db.collection('businesses').doc(userData.businessId).get();
-                
-                if (businessDoc.exists) {
-                    this.setCurrentBusiness(businessDoc.id, businessDoc.data());
-                    
-                    // Load default property if there's property access
-                    if (userData.propertyAccess && userData.propertyAccess.length > 0) {
-                        // Try to load the main property first
-                        const propertiesRef = await this.db.collection('properties')
-                            .where('business', '==', userData.businessId)
-                            .where('isMainProperty', '==', true)
-                            .limit(1)
-                            .get();
-                            
-                        if (!propertiesRef.empty) {
-                            // Set main property
-                            const mainPropertyDoc = propertiesRef.docs[0];
-                            this.setCurrentProperty(mainPropertyDoc.id, mainPropertyDoc.data());
-                        } else if (userData.propertyAccess.length > 0) {
-                            // Fall back to first available property
-                            const firstPropertyId = userData.propertyAccess[0];
-                            const propertyDoc = await this.db.collection('properties').doc(firstPropertyId).get();
-                            
-                            if (propertyDoc.exists) {
-                                this.setCurrentProperty(propertyDoc.id, propertyDoc.data());
-                            }
-                        }
-                    }
-                } else {
-                    console.error('Referenced business not found');
-                }
+
+            // Set current business and property if they exist in user data
+            if (userData.currentBusinessId) {
+                await this.setCurrentBusiness(userData.currentBusinessId);
+            }
+            if (userData.currentPropertyId) {
+                await this.setCurrentProperty(userData.currentPropertyId);
             }
         } catch (error) {
-            console.error('Error loading business access:', error);
+            console.error('Error loading user business access:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Load all businesses (for super admins)
+     * @private
+     */
+    async _loadAllBusinesses() {
+        const snapshot = await this.db.collection('businesses').get();
+        this.availableBusinesses = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+    }
+
+    /**
+     * Load assigned businesses (for business admins)
+     * @private
+     */
+    async _loadAssignedBusinesses(userId) {
+        const snapshot = await this.db.collection('businessAccess')
+            .where('userId', '==', userId)
+            .get();
+            
+        const businessIds = snapshot.docs.map(doc => doc.data().businessId);
+        
+        if (businessIds.length > 0) {
+            const businessesSnapshot = await this.db.collection('businesses')
+                .where(firebase.firestore.FieldPath.documentId(), 'in', businessIds)
+                .get();
+                
+            this.availableBusinesses = businessesSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+        } else {
+            this.availableBusinesses = [];
+        }
+    }
+
+    /**
+     * Load property businesses (for property managers)
+     * @private
+     */
+    async _loadPropertyBusinesses(userId) {
+        const snapshot = await this.db.collection('propertyAccess')
+            .where('userId', '==', userId)
+            .get();
+            
+        const propertyIds = snapshot.docs.map(doc => doc.data().propertyId);
+        
+        if (propertyIds.length > 0) {
+            const propertiesSnapshot = await this.db.collection('properties')
+                .where(firebase.firestore.FieldPath.documentId(), 'in', propertyIds)
+                .get();
+                
+            const businessIds = [...new Set(propertiesSnapshot.docs.map(doc => doc.data().businessId))];
+            
+            if (businessIds.length > 0) {
+                const businessesSnapshot = await this.db.collection('businesses')
+                    .where(firebase.firestore.FieldPath.documentId(), 'in', businessIds)
+                    .get();
+                    
+                this.availableBusinesses = businessesSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+            } else {
+                this.availableBusinesses = [];
+            }
+        } else {
+            this.availableBusinesses = [];
+        }
+    }
+
+    /**
+     * Load current business (for regular users)
+     * @private
+     */
+    async _loadCurrentBusiness(userId) {
+        const userDoc = await this.db.collection('users').doc(userId).get();
+        const userData = userDoc.data();
+        
+        if (userData.currentBusinessId) {
+            const businessDoc = await this.db.collection('businesses')
+                .doc(userData.currentBusinessId)
+                .get();
+                
+            if (businessDoc.exists) {
+                this.availableBusinesses = [{
+                    id: businessDoc.id,
+                    ...businessDoc.data()
+                }];
+            } else {
+                this.availableBusinesses = [];
+            }
+        } else {
+            this.availableBusinesses = [];
         }
     }
 
@@ -197,6 +262,49 @@ class UmbrellaAccountManager {
     }
 
     /**
+     * Set the current business for the user
+     * @param {string} businessId - The business ID to set as current
+     * @returns {Promise<void>}
+     */
+    async setCurrentBusiness(businessId) {
+        const user = this.firebaseManager.getCurrentUser();
+        if (!user) throw new Error('No user logged in');
+
+        try {
+            // Verify business exists and user has access
+            const businessDoc = await this.db.collection('businesses').doc(businessId).get();
+            if (!businessDoc.exists) {
+                throw new Error('Business not found');
+            }
+
+            // Update user's current business
+            await this.db.collection('users').doc(user.uid).update({
+                currentBusinessId: businessId,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Update local state
+            this.currentBusiness = {
+                id: businessDoc.id,
+                ...businessDoc.data()
+            };
+
+            // Clear current property if it doesn't belong to the new business
+            if (this.currentProperty && this.currentProperty.businessId !== businessId) {
+                await this.clearCurrentProperty();
+            }
+
+            // Trigger business change event
+            document.dispatchEvent(new CustomEvent('businessChanged', {
+                detail: { business: this.currentBusiness }
+            }));
+        } catch (error) {
+            console.error('Error setting current business:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Set the current property
      * @param {string} id - Property ID
      * @param {Object} propertyData - Property data
@@ -221,6 +329,77 @@ class UmbrellaAccountManager {
             detail: { property: this.currentProperty } 
         });
         document.dispatchEvent(event);
+    }
+
+    /**
+     * Set the current property for the user
+     * @param {string} propertyId - The property ID to set as current
+     * @returns {Promise<void>}
+     */
+    async setCurrentProperty(propertyId) {
+        const user = this.firebaseManager.getCurrentUser();
+        if (!user) throw new Error('No user logged in');
+
+        try {
+            // Verify property exists
+            const propertyDoc = await this.db.collection('properties').doc(propertyId).get();
+            if (!propertyDoc.exists) {
+                throw new Error('Property not found');
+            }
+
+            const propertyData = propertyDoc.data();
+            
+            // Verify property belongs to current business
+            if (propertyData.businessId !== this.currentBusiness?.id) {
+                throw new Error('Property does not belong to current business');
+            }
+
+            // Update user's current property
+            await this.db.collection('users').doc(user.uid).update({
+                currentPropertyId: propertyId,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Update local state
+            this.currentProperty = {
+                id: propertyDoc.id,
+                ...propertyData
+            };
+
+            // Trigger property change event
+            document.dispatchEvent(new CustomEvent('propertyChanged', {
+                detail: { property: this.currentProperty }
+            }));
+        } catch (error) {
+            console.error('Error setting current property:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Clear the current property selection
+     * @returns {Promise<void>}
+     */
+    async clearCurrentProperty() {
+        const user = this.firebaseManager.getCurrentUser();
+        if (!user) throw new Error('No user logged in');
+
+        try {
+            await this.db.collection('users').doc(user.uid).update({
+                currentPropertyId: null,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            this.currentProperty = null;
+
+            // Trigger property change event
+            document.dispatchEvent(new CustomEvent('propertyChanged', {
+                detail: { property: null }
+            }));
+        } catch (error) {
+            console.error('Error clearing current property:', error);
+            throw error;
+        }
     }
 
     /**
@@ -672,6 +851,46 @@ class UmbrellaAccountManager {
         } catch (error) {
             console.error('Error switching business:', error);
             return false;
+        }
+    }
+
+    /**
+     * Get available properties for the current business
+     * @returns {Promise<Array>} Array of property objects
+     */
+    async getAvailableProperties() {
+        if (!this.currentBusiness) {
+            return [];
+        }
+
+        try {
+            const user = this.firebaseManager.getCurrentUser();
+            const userDoc = await this.db.collection('users').doc(user.uid).get();
+            const userData = userDoc.data();
+
+            let query = this.db.collection('properties')
+                .where('businessId', '==', this.currentBusiness.id);
+
+            // For property managers, filter only their assigned properties
+            if (userData.role === 'propertyManager') {
+                const accessSnapshot = await this.db.collection('propertyAccess')
+                    .where('userId', '==', user.uid)
+                    .get();
+                const propertyIds = accessSnapshot.docs.map(doc => doc.data().propertyId);
+                
+                if (propertyIds.length === 0) return [];
+                
+                query = query.where(firebase.firestore.FieldPath.documentId(), 'in', propertyIds);
+            }
+
+            const snapshot = await query.get();
+            return snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+        } catch (error) {
+            console.error('Error getting available properties:', error);
+            throw error;
         }
     }
 }

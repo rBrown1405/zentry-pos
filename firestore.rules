@@ -7,81 +7,73 @@ service cloud.firestore {
     }
     
     function isSuperAdmin() {
-      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superAdmin';
     }
     
-    function isBusinessOwner(businessId) {
-      return isAuthenticated() && get(/databases/$(database)/documents/businesses/$(businessId)).data.owner == request.auth.uid;
+    function isBusinessAdmin() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'businessAdmin';
+    }
+    
+    function isPropertyManager() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'propertyManager';
     }
     
     function hasBusinessAccess(businessId) {
-      let user = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return isAuthenticated() && (
-        user.data.role == 'super_admin' ||
-        user.data.businessId == businessId
-      );
+      return isAuthenticated() &&
+        (isSuperAdmin() ||
+         (isBusinessAdmin() && exists(/databases/$(database)/documents/businessAccess/$(request.auth.uid)_$(businessId))) ||
+         (isPropertyManager() && exists(/databases/$(database)/documents/properties/$(resource.data.propertyId)) && 
+          get(/databases/$(database)/documents/properties/$(resource.data.propertyId)).data.businessId == businessId));
     }
     
     function hasPropertyAccess(propertyId) {
-      let user = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return isAuthenticated() && (
-        user.data.role == 'super_admin' ||
-        user.data.propertyAccess.hasAny([propertyId])
-      );
+      return isAuthenticated() &&
+        (isSuperAdmin() ||
+         (isBusinessAdmin() && get(/databases/$(database)/documents/properties/$(propertyId)).data.businessId == resource.data.businessId) ||
+         (isPropertyManager() && exists(/databases/$(database)/documents/propertyAccess/$(request.auth.uid)_$(propertyId))));
     }
 
-    // System collection (for migration and system-wide settings)
-    match /system/{document=**} {
-      allow read: if isAuthenticated();
+    // User rules
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
+      allow write: if isSuperAdmin() || (isAuthenticated() && request.auth.uid == userId);
+    }
+
+    // Business rules
+    match /businesses/{businessId} {
+      allow read: if isAuthenticated() && hasBusinessAccess(businessId);
       allow write: if isSuperAdmin();
     }
 
-    // Users collection
-    match /users/{userId} {
-      allow read: if isAuthenticated() && (
-        request.auth.uid == userId || 
-        isSuperAdmin()
-      );
-      allow write: if isAuthenticated() && (
-        request.auth.uid == userId ||
-        isSuperAdmin()
-      );
-    }
-
-    // Businesses collection
-    match /businesses/{businessId} {
-      allow read: if hasBusinessAccess(businessId);
-      allow create: if isSuperAdmin();
-      allow update: if isBusinessOwner(businessId) || isSuperAdmin();
-      allow delete: if isSuperAdmin();
-    }
-
-    // Properties collection
+    // Property rules
     match /properties/{propertyId} {
-      allow read: if hasPropertyAccess(propertyId);
-      allow create: if hasBusinessAccess(resource.data.business);
-      allow update: if hasPropertyAccess(propertyId);
-      allow delete: if isBusinessOwner(resource.data.business) || isSuperAdmin();
+      allow read: if isAuthenticated() && hasPropertyAccess(propertyId);
+      allow write: if isSuperAdmin() || (isBusinessAdmin() && hasBusinessAccess(resource.data.businessId));
     }
 
-    // Menu items collection
-    match /menu_items/{itemId} {
-      allow read: if hasPropertyAccess(resource.data.propertyId);
-      allow write: if hasPropertyAccess(resource.data.propertyId);
+    // Business access rules
+    match /businessAccess/{accessId} {
+      allow read: if isAuthenticated() && (
+        isSuperAdmin() ||
+        (accessId.split('_')[0] == request.auth.uid)
+      );
+      allow write: if isSuperAdmin();
     }
 
-    // Tables collection
-    match /tables/{tableId} {
-      allow read: if hasPropertyAccess(resource.data.propertyId);
-      allow write: if hasPropertyAccess(resource.data.propertyId);
+    // Property access rules
+    match /propertyAccess/{accessId} {
+      allow read: if isAuthenticated() && (
+        isSuperAdmin() ||
+        isBusinessAdmin() ||
+        (accessId.split('_')[0] == request.auth.uid)
+      );
+      allow write: if isSuperAdmin() || (isBusinessAdmin() && hasBusinessAccess(resource.data.businessId));
     }
 
-    // Orders collection
-    match /orders/{orderId} {
-      allow read: if hasPropertyAccess(resource.data.propertyId);
-      allow create: if hasPropertyAccess(request.resource.data.propertyId);
-      allow update: if hasPropertyAccess(resource.data.propertyId);
-      allow delete: if hasPropertyAccess(resource.data.propertyId);
+    // System-wide settings
+    match /system/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
     }
   }
 }

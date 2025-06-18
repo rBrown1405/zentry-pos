@@ -4,6 +4,142 @@
  * Run this script once after setting up Firebase to transfer your existing data
  */
 
+// Data Migration Utility for Zentry POS
+// Handles migration from localStorage to Firebase
+
+class DataMigrationUtil {
+    constructor(firebaseServices) {
+        this.db = firebaseServices.getDb();
+        this.auth = firebaseServices.getAuth();
+    }
+
+    /**
+     * Check if migration is needed
+     * @returns {boolean}
+     */
+    needsMigration() {
+        // Check if we have any data in localStorage
+        return Object.keys(localStorage).some(key => 
+            key.startsWith('zentry_') || 
+            key.startsWith('business_') || 
+            key.startsWith('property_'));
+    }
+
+    /**
+     * Migrate data from localStorage to Firebase
+     * @returns {Promise<void>}
+     */
+    async migrateData() {
+        try {
+            const user = this.auth.currentUser;
+            if (!user) {
+                throw new Error('User must be logged in to migrate data');
+            }
+
+            // Start a batch write
+            const batch = this.db.batch();
+
+            // Migrate businesses
+            const businesses = this._getLocalStorageItems('business_');
+            for (const business of businesses) {
+                const businessRef = this.db.collection('businesses').doc();
+                batch.set(businessRef, {
+                    ...business,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    migratedFrom: 'localStorage',
+                    migratedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // Create business access for the user
+                const accessRef = this.db.collection('businessAccess')
+                    .doc(`${user.uid}_${businessRef.id}`);
+                batch.set(accessRef, {
+                    userId: user.uid,
+                    businessId: businessRef.id,
+                    role: 'businessAdmin',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+
+            // Migrate properties
+            const properties = this._getLocalStorageItems('property_');
+            for (const property of properties) {
+                const propertyRef = this.db.collection('properties').doc();
+                batch.set(propertyRef, {
+                    ...property,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    migratedFrom: 'localStorage',
+                    migratedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // Create property access for the user
+                const accessRef = this.db.collection('propertyAccess')
+                    .doc(`${user.uid}_${propertyRef.id}`);
+                batch.set(accessRef, {
+                    userId: user.uid,
+                    propertyId: propertyRef.id,
+                    role: 'propertyManager',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+
+            // Update user document with migration status
+            const userRef = this.db.collection('users').doc(user.uid);
+            batch.update(userRef, {
+                dataMigrated: true,
+                dataMigratedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Commit the batch
+            await batch.commit();
+
+            // Clear migrated data from localStorage
+            this._clearMigratedData();
+
+            console.log('Data migration completed successfully');
+        } catch (error) {
+            console.error('Error migrating data:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get items from localStorage by prefix
+     * @private
+     */
+    _getLocalStorageItems(prefix) {
+        const items = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith(prefix)) {
+                try {
+                    const item = JSON.parse(localStorage.getItem(key));
+                    items.push(item);
+                } catch (error) {
+                    console.warn(`Failed to parse item ${key} from localStorage`, error);
+                }
+            }
+        }
+        return items;
+    }
+
+    /**
+     * Clear migrated data from localStorage
+     * @private
+     */
+    _clearMigratedData() {
+        const prefixes = ['zentry_', 'business_', 'property_'];
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (prefixes.some(prefix => key.startsWith(prefix))) {
+                localStorage.removeItem(key);
+            }
+        }
+    }
+}
+
 // Function to migrate data from localStorage to Firebase
 async function migrateDataToFirebase() {
   console.log('Starting data migration to Firebase...');
