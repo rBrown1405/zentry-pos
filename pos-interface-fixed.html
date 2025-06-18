@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Macros POS LOL - Point of Sale</title>
+    <title>ZENTRY POS - Point of Sale</title>
     <style>        /* Complete CSS Reset for Full Viewport */
         * {
             margin: 0;
@@ -2909,9 +2909,16 @@
             
             // Add temporary user info for development
             const accountInfo = document.querySelector('.account-info');
-            const hotelName = document.querySelector('.hotel-name');
-            if (accountInfo) accountInfo.textContent = 'Developer (Testing Mode)';
-            if (hotelName) hotelName.textContent = 'Development Restaurant';
+            const hotelName = document.querySelector('.hotel-name');            // Get current user and property info
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const currentProperty = JSON.parse(localStorage.getItem('currentProperty') || '{}');
+            
+            if (accountInfo && currentUser.role) {
+                accountInfo.textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+            }
+            if (hotelName) {
+                hotelName.textContent = currentProperty.name || currentUser.businessName || '';
+            }
             
             // Check for super admin access and show notification
             const superAdminAccess = localStorage.getItem('superAdminPOSAccess');            if (superAdminAccess === 'true') {
@@ -7370,4 +7377,37 @@
         }
     </script>
 </body>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize header with property information
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const currentProperty = JSON.parse(localStorage.getItem('currentProperty') || '{}');
+            
+            const systemName = document.querySelector('.system-name');
+            if (systemName) {
+                systemName.textContent = 'ZENTRY POS';
+            }
+
+            const accountInfo = document.querySelector('.account-info');
+            if (accountInfo && currentUser.role) {
+                accountInfo.textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+            }
+
+            const hotelName = document.querySelector('.hotel-name');
+            if (hotelName) {
+                hotelName.textContent = currentProperty.name || currentUser.businessName || '';
+            }
+
+            const propertyInfo = document.querySelector('.property-info');
+            if (propertyInfo && currentProperty) {
+                propertyInfo.innerHTML = `
+                    <div class="property-name">${currentProperty.name || ''}</div>
+                    <div class="property-type">${currentProperty.type || ''}</div>
+                    ${currentProperty.location ? `<div class="property-location">${currentProperty.location}</div>` : ''}
+                `;
+            }
+        });
+
+        // ...existing code...
+    </script>
 </html>
