@@ -1,5 +1,24 @@
 // Navigation utility functions with smooth transitions
 
+// Update header information
+function updateHeaderInfo() {
+    try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const hotelName = document.querySelector('.hotel-name');
+        const userRole = document.querySelector('.user-role');
+        
+        if (hotelName && currentUser.businessName) {
+            hotelName.textContent = currentUser.businessName;
+        }
+        
+        if (userRole && currentUser.role) {
+            userRole.textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+        }
+    } catch (error) {
+        console.error('Error updating header:', error);
+    }
+}
+
 // Navigate with smooth transition effect
 function navigateWithTransition(url) {
     // Add loading effect
@@ -29,6 +48,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const body = document.body;
     body.style.opacity = '0';
     body.style.transition = 'opacity 0.4s ease-in';
+    
+    // Update header information
+    updateHeaderInfo();
     
     // Fade in after page load
     setTimeout(() => {
