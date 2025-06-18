@@ -15,9 +15,7 @@
         <div class="gradient-sphere"></div>
         <div class="gradient-sphere"></div>
         <div class="gradient-sphere"></div>
-    </div>
-
-    <div class="registration-container">
+    </div>    <div class="registration-container">
         <div class="logo-container">
             <div class="logo">M</div>
         </div>
@@ -28,22 +26,30 @@
                 <h3 class="section-title">Company Information</h3>
                 <div class="form-group">
                     <label for="companyName">Company Name</label>
-                    <input type="text" id="companyName" required placeholder="Your umbrella company name">
+                    <input type="text" id="companyName" name="companyName" required 
+                           placeholder="Your umbrella company name"
+                           autocomplete="organization">
                 </div>
                 
                 <div class="form-group">
                     <label for="ownerName">Owner/General Manager Name</label>
-                    <input type="text" id="ownerName" required>
+                    <input type="text" id="ownerName" name="ownerName" required 
+                           placeholder="Full name of the owner or general manager"
+                           autocomplete="name">
                 </div>
 
                 <div class="form-group">
                     <label for="companyEmail">Company Email</label>
-                    <input type="email" id="companyEmail" required>
+                    <input type="email" id="companyEmail" name="companyEmail" required 
+                           placeholder="company@example.com"
+                           autocomplete="email">
                 </div>
 
                 <div class="form-group">
                     <label for="companyPhone">Company Phone</label>
-                    <input type="tel" id="companyPhone" required>
+                    <input type="tel" id="companyPhone" name="companyPhone" required 
+                           placeholder="(000) 000-0000"
+                           autocomplete="tel">
                 </div>
             </div>
 
@@ -51,13 +57,23 @@
                 <h3 class="section-title">First Property Information</h3>
                 <div class="form-group">
                     <label for="propertyName">Property Name</label>
-                    <input type="text" id="propertyName" required placeholder="Name of your first location">
+                    <input type="text" id="propertyName" name="propertyName" required 
+                           placeholder="Name of your first location"
+                           autocomplete="organization">
                 </div>                <div class="form-group">
                     <label for="businessType">Property Type</label>
-                    <select id="businessType" required onchange="toggleHotelFields()">
+                    <select id="businessType" name="businessType" required onchange="toggleHotelFields()">
                         <option value="" disabled selected>Select your property type</option>
                         <option value="restaurant">Restaurant</option>
+                        <option value="cafe">Café</option>
+                        <option value="bar">Bar/Pub</option>
+                        <option value="hotel">Hotel</option>
                         <option value="retail">Retail Store</option>
+                        <option value="food-truck">Food Truck</option>
+                        <option value="catering">Catering Service</option>
+                        <option value="fine-dining">Fine Dining</option>
+                        <option value="fast-food">Fast Food</option>
+                        <option value="other">Other</option>
                         <option value="hotel">Hotel</option>
                         <option value="cafe">Café</option>
                         <option value="bar">Bar/Pub</option>
@@ -113,8 +129,7 @@
             <button type="submit" class="submit-button">
                 <span class="button-text">Create Business Account</span>
                 <span class="button-icon">→</span>
-            </button>        </form>
-        <!-- Success Message Container -->
+            </button>        </form>        <!-- Success Message Container -->
         <div class="success-message" style="display: none;">
             <div class="success-content">
                 <h2>Business Account Created Successfully! 🎉</h2>
@@ -131,20 +146,16 @@
                     </div>
                 </div>
                 <div class="button-container">
-                    <button type="button" onclick="window.location.href='login.html'" class="continue-button">Continue to Login</button>
+                    <button type="button" onclick="window.location.href='login.html'" class="continue-button">
+                        <span class="button-text">Continue to Login</span>
+                        <svg class="button-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4.16666 10H15.8333" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M10.8333 5L15.8333 10L10.8333 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
-                </div>                <div class="identifier-section">
-                    <h3>Property Connection Code</h3>
-                    <p class="property-connection-code"></p>
-                    <p class="code-instruction">🔑 Share this 6-digit code with staff members to connect them to your properties</p>
-                </div>
-            </div>
-            <button class="done-button" onclick="navigateWithTransition('login.html')">
-                <span class="button-text">Done</span>
-                <span class="button-icon">✓</span>
-            </button>
-        </div>    </div>
+        </div></div>
     <script src="multi-property-manager.js"></script>
     <script src="id-utils.js"></script>
     <script src="property-management.js"></script>
