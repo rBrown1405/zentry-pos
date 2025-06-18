@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Dashboard - Macros POS</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Add required JavaScript dependencies -->
+    <script src="js/api-manager.js"></script>
+    <script src="js/firebase-manager.js"></script>
+    <script src="multi-property-manager.js"></script>
+    <script src="business-dashboard.js" defer></script>
+</head>
+<body>
+    <nav class="dashboard-nav">
+        <div class="nav-left">
+            <div class="logo">M</div>
+            <div class="business-info">
+                <h2 id="businessName">Loading...</h2>
+                <p id="businessType">Loading...</p>
+            </div>
+        </div>
+        <div class="nav-right">
+            <button class="profile-button" onclick="toggleProfileMenu()">
+                <span class="profile-icon">👤</span>
+                <span id="ownerName">Loading...</span>
+            </button>
+            <div class="profile-menu" id="profileMenu">
+                <button onclick="handleLogout()">Sign Out</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="dashboard-sidebar">
+            <div class="menu-section">
+                <h3>Management</h3>
+                <button onclick="navigateWithTransition('pos-interface-fixed.html')" class="menu-button">
+                    <span class="icon">💰</span>
+                    Point of Sale
+                </button>
+                <button onclick="navigateWithTransition('room-service-menu-editor.html')" class="menu-button">
+                    <span class="icon">🍽️</span>
+                    Menu Management
+                </button>
+                <button onclick="navigateWithTransition('staff-registration.html')" class="menu-button">
+                    <span class="icon">👥</span>
+                    Staff Management
+                </button>
+                <button onclick="navigateWithTransition('floor-plan-editor.html')" class="menu-button">
+                    <span class="icon">🪑</span>
+                    Floor Plan Management
+                </button>
+            </div>
+
+            <div class="menu-section">
+                <h3>Settings</h3>
+                <button onclick="navigateWithTransition('business-settings.html')" class="menu-button">
+                    <span class="icon">⚙️</span>
+                    Business Settings
+                </button>
+                <button onclick="navigateWithTransition('property-management.html')" class="menu-button">
+                    <span class="icon">🏢</span>
+                    Property Management
+                </button>
+            </div>
+        </div>
+
+        <main class="dashboard-main">
+            <div class="dashboard-header">
+                <h1>Business Dashboard</h1>
+                <div class="quick-actions">
+                    <button class="action-button" onclick="navigateWithTransition('pos-interface.html')">
+                        Launch POS
+                    </button>
+                    <button class="action-button" onclick="navigateWithTransition('staff-registration.html')">
+                        Add Staff
+                    </button>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <h3>Today's Sales</h3>
+                    <div class="card-content">
+                        <span class="card-value" id="todaySales">$0.00</span>
+                        <span class="card-change positive">+0% from yesterday</span>
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Active Staff</h3>
+                    <div class="card-content">
+                        <span class="card-value" id="activeStaff">0</span>
+                        <span class="card-label">members on duty</span>
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Open Tables</h3>
+                    <div class="card-content">
+                        <span class="card-value" id="openTables">0/0</span>
+                        <span class="card-label">tables in service</span>
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Average Service Time</h3>
+                    <div class="card-content">
+                        <span class="card-value" id="avgServiceTime">0 min</span>
+                        <span class="card-label">per table</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-sections">
+                <section class="recent-activity">
+                    <h2>Recent Activity</h2>
+                    <div class="activity-list" id="activityList">
+                        <p class="no-activity">No recent activity to display</p>
+                    </div>
+                </section>
+
+                <section class="quick-stats">
+                    <h2>Quick Statistics</h2>
+                    <div class="stats-grid" id="quickStats">
+                        <!-- Stats will be populated by JavaScript -->
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="navigation.js"></script>
+    <script>
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get business information from localStorage
+            const businessInfo = JSON.parse(localStorage.getItem('currentBusiness'));
+            if (!businessInfo) {
+                // Redirect to login if no business info is found
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Update business information in the UI
+            document.getElementById('businessName').textContent = businessInfo.name;
+            document.getElementById('businessType').textContent = 
+                MultiPropertyManager.PROPERTY_TYPES[businessInfo.type] || businessInfo.type;
+
+            // Initialize the rest of the dashboard
+            initializeDashboard();
+        });
+
+        function initializeDashboard() {
+            // This function would normally fetch real-time data
+            // For now, we'll just show sample data
+            document.getElementById('todaySales').textContent = '$1,234.56';
+            document.getElementById('activeStaff').textContent = '3';
+            document.getElementById('openTables').textContent = '5/12';
+            document.getElementById('avgServiceTime').textContent = '45 min';
+        }
+
+        function handleLogout() {
+            // Clear business session
+            localStorage.removeItem('currentBusiness');
+            localStorage.removeItem('isLoggedIn');
+            
+            // Redirect to login
+            navigateWithTransition('login.html');
+        }
+
+        function toggleProfileMenu() {
+            const menu = document.getElementById('profileMenu');
+            menu.classList.toggle('show');
+        }
+    </script>
+</body>
+</html>
