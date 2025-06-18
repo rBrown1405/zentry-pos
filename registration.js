@@ -99,28 +99,45 @@ function updateRewardsProgram() {
 async function handleRegistration(event) {
     event.preventDefault();
 
-    // Get company information
-    const companyName = document.getElementById('companyName').value;
-    const ownerName = document.getElementById('ownerName').value;
-    const companyEmail = document.getElementById('companyEmail').value;
-    const companyPhone = document.getElementById('companyPhone').value;    // Get property information
-    const propertyName = document.getElementById('propertyName').value;
-    const businessType = document.getElementById('businessType').value;
-    const address = document.getElementById('address').value;
-    const country = document.getElementById('country').value;
-    const state = document.getElementById('state').value;
-    
-    // Get hotel-specific information if applicable
-    let hotelBrand = '';
-    let rewardsProgram = '';
-    if (businessType === 'hotel') {
-        hotelBrand = document.getElementById('hotelBrand').value;
-        rewardsProgram = document.getElementById('rewardsProgram').value;
-    }    try {
+    try {
+        // Validate form fields
+        const requiredFields = ['companyName', 'ownerName', 'companyEmail', 'businessType'];
+        const missingFields = requiredFields.filter(field => !document.getElementById(field).value);
+        
+        if (missingFields.length > 0) {
+            throw new Error(`Please fill in all required fields: ${missingFields.join(', ')}`);
+        }
+
+        // Get company information
+        const companyName = document.getElementById('companyName').value.trim();
+        const ownerName = document.getElementById('ownerName').value.trim();
+        const companyEmail = document.getElementById('companyEmail').value.trim();
+        const companyPhone = document.getElementById('companyPhone').value.trim();
+        
+        // Get property information
+        const propertyName = document.getElementById('propertyName').value.trim();
+        const businessType = document.getElementById('businessType').value;
+        const address = document.getElementById('address').value.trim();
+        const country = document.getElementById('country').value;
+        const state = document.getElementById('state').value;
+        
+        // Get hotel-specific information if applicable
+        let hotelBrand = '';
+        let rewardsProgram = '';
+        if (businessType === 'hotel') {
+            hotelBrand = document.getElementById('hotelBrand').value.trim();
+            rewardsProgram = document.getElementById('rewardsProgram').value;
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(companyEmail)) {
+            throw new Error('Please enter a valid email address');
+        }
+
         // Show loading state
         const submitButton = event.target.querySelector('.submit-button');
-        const originalContent = submitButton.innerHTML;
-        submitButton.innerHTML = '<span class="button-text">Creating Account...</span><span class="button-icon">⏳</span>';
+        const originalContent = submitButton.innerHTML;        submitButton.innerHTML = '<span class="button-text">Creating Account...</span><span class="button-icon">⏳</span>';
         submitButton.disabled = true;
 
         // Prepare business data
@@ -138,24 +155,55 @@ async function handleRegistration(event) {
             rewardsProgram
         };
 
-        // Create umbrella business account using new multi-property system
-        const result = await MultiPropertyManager.createBusinessAccount(businessData);
-
-        if (result.success) {
-            // Show success message
-            document.querySelector('.registration-form').style.display = 'none';
-            const successMessage = document.querySelector('.success-message');
-            successMessage.style.display = 'block';
-            successMessage.querySelector('.business-id').textContent = result.businessID;
-            successMessage.querySelector('.business-code').textContent = result.businessCode;
-            successMessage.querySelector('.property-code').textContent = result.umbrellaAccount.mainPropertyCode;
-            successMessage.querySelector('.property-connection-code').textContent = result.propertyConnectionCode;
-        } else {
-            throw new Error('Failed to create business account');
+        // Ensure Firebase is initialized and authorized
+        if (!window.firebaseManager || !window.firebaseManager.db) {
+            throw new Error('Firebase is not properly initialized. Please refresh the page and try again.');
         }
 
-    } catch (error) {
-        alert('Error creating business account. Please try again.');
-        console.error('Registration error:', error);
-    }
+        // Create umbrella business account using new multi-property system
+        const result = await MultiPropertyManager.createBusinessAccount(businessData);
+        
+        if (!result.success || !result.businessId) {
+            throw new Error(result.message || 'Failed to create business account');
+        }
+
+        // Show success message
+        document.querySelector('.registration-form').style.display = 'none';
+        const successMessage = document.querySelector('.success-message');
+        successMessage.style.display = 'block';
+        
+        // Update all success message elements
+        successMessage.querySelector('.business-id').textContent = result.businessId;
+        successMessage.querySelector('.business-code').textContent = result.businessCode;
+        successMessage.querySelector('.property-code').textContent = result.umbrellaAccount.mainPropertyCode;            successMessage.querySelector('.property-connection-code').textContent = result.propertyConnectionCode;
+
+            // Log success for monitoring
+            console.log('Business account created successfully:', result.businessId);
+
+            // Optional: Clear the form
+            event.target.reset();
+
+        } catch (error) {
+            console.error('Registration error:', error);
+            
+            // Reset button state
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<span class="button-text">Create Business Account</span><span class="button-icon">→</span>';
+            
+            // Show error to user
+            const errorMessage = error.code === 'permission-denied' ? 
+                'You do not have permission to create a business account.' :
+                error.message || 'Failed to create business account. Please try again.';
+            
+            const errorAlert = document.createElement('div');
+            errorAlert.className = 'error-alert';
+            errorAlert.textContent = errorMessage;
+            
+            const formContainer = document.querySelector('.registration-form');
+            const existingError = formContainer.querySelector('.error-alert');
+            if (existingError) {
+                existingError.remove();
+            }
+            formContainer.insertBefore(errorAlert, formContainer.firstChild);
+        }
 }

@@ -48,48 +48,67 @@ class MultiPropertyManager {
     /**
      * Create a new business account
      */
-    static createBusinessAccount(businessData) {
+    static async createBusinessAccount(businessData) {
         try {
             // Validate required fields
-            if (!businessData.businessName || !businessData.ownerName || !businessData.email) {
+            if (!businessData.companyName || !businessData.ownerName || !businessData.companyEmail) {
                 return {
                     success: false,
-                    message: 'Missing required fields: businessName, ownerName, email'
+                    message: 'Missing required fields: Company Name, Owner Name, Company Email'
                 };
             }
 
             // Generate unique business identifiers
             const businessId = this.generateUniqueId('business');
-            const connectionCode = this.generateConnectionCode();
+            const businessCode = this.generateConnectionCode();
+            const mainPropertyCode = this.generateConnectionCode();
 
+            // Create the business account document in Firestore
             const businessAccount = {
                 id: businessId,
-                businessName: businessData.businessName,
-                businessType: businessData.businessType || 'restaurant',
+                companyName: businessData.companyName,
                 ownerName: businessData.ownerName,
-                email: businessData.email,
-                phone: businessData.phone || '',
-                address: businessData.address || '',
-                connectionCode: connectionCode,
+                businessType: businessData.businessType || 'restaurant',
+                companyEmail: businessData.companyEmail,
+                companyPhone: businessData.companyPhone || '',
+                businessCode: businessCode,
+                mainProperty: {
+                    id: this.generateUniqueId('property'),
+                    name: businessData.propertyName || businessData.companyName,
+                    address: businessData.address || '',
+                    country: businessData.country || '',
+                    state: businessData.state || '',
+                    connectionCode: mainPropertyCode,
+                    isMainProperty: true
+                },
                 properties: [],
                 staff: [],
-                createdAt: new Date().toISOString(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 isActive: true,
                 settings: {
                     allowMultiProperty: true,
                     maxProperties: 50,
                     requireApprovalForNewStaff: true,
                     crossPropertyAccess: false
-                }
+                },
+                hotelBrand: businessData.hotelBrand || '',
+                rewardsProgram: businessData.rewardsProgram || ''
             };
 
-            // Store business account
-            this.saveBusinessAccount(businessAccount);
+            // Add main property to properties array
+            businessAccount.properties.push(businessAccount.mainProperty);
+
+            // Store in Firestore
+            await window.firebaseManager.db.collection('businesses').doc(businessId).set(businessAccount);
 
             return {
                 success: true,
                 businessId: businessId,
-                connectionCode: connectionCode,
+                businessCode: businessCode,
+                umbrellaAccount: {
+                    mainPropertyCode: mainPropertyCode
+                },
+                propertyConnectionCode: mainPropertyCode,
                 message: 'Business account created successfully'
             };
 

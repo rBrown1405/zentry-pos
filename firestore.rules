@@ -7,30 +7,47 @@ service cloud.firestore {
     }
     
     function isSuperAdmin() {
-      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superAdmin';
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superAdmin';
     }
     
     function isBusinessAdmin() {
-      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'businessAdmin';
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'businessAdmin';
     }
     
     function isPropertyManager() {
-      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'propertyManager';
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'propertyManager';
     }
     
     function hasBusinessAccess(businessId) {
-      return isAuthenticated() &&
-        (isSuperAdmin() ||
-         (isBusinessAdmin() && exists(/databases/$(database)/documents/businessAccess/$(request.auth.uid)_$(businessId))) ||
-         (isPropertyManager() && exists(/databases/$(database)/documents/properties/$(resource.data.propertyId)) && 
-          get(/databases/$(database)/documents/properties/$(resource.data.propertyId)).data.businessId == businessId));
+      let businessAccess = exists(/databases/$(database)/documents/businessAccess/$(request.auth.uid + '_' + businessId));
+      let hasPropertyAccess = exists(/databases/$(database)/documents/properties/$(resource.data.propertyId));
+      let propertyBusinessMatch = hasPropertyAccess && 
+        get(/databases/$(database)/documents/properties/$(resource.data.propertyId)).data.businessId == businessId;
+      
+      return isAuthenticated() && (
+        isSuperAdmin() ||
+        (isBusinessAdmin() && businessAccess) ||
+        (isPropertyManager() && propertyBusinessMatch)
+      );
     }
     
     function hasPropertyAccess(propertyId) {
-      return isAuthenticated() &&
-        (isSuperAdmin() ||
-         (isBusinessAdmin() && get(/databases/$(database)/documents/properties/$(propertyId)).data.businessId == resource.data.businessId) ||
-         (isPropertyManager() && exists(/databases/$(database)/documents/propertyAccess/$(request.auth.uid)_$(propertyId))));
+      let propertyExists = exists(/databases/$(database)/documents/properties/$(propertyId));
+      let businessMatch = propertyExists && resource != null && 
+        get(/databases/$(database)/documents/properties/$(propertyId)).data.businessId == resource.data.businessId;
+      let propertyAccess = exists(/databases/$(database)/documents/propertyAccess/$(request.auth.uid + '_' + propertyId));
+      
+      return isAuthenticated() && (
+        isSuperAdmin() ||
+        (isBusinessAdmin() && businessMatch) ||
+        (isPropertyManager() && propertyAccess)
+      );
     }
 
     // User rules
@@ -55,7 +72,7 @@ service cloud.firestore {
     match /businessAccess/{accessId} {
       allow read: if isAuthenticated() && (
         isSuperAdmin() ||
-        (accessId.split('_')[0] == request.auth.uid)
+        accessId.matches(request.auth.uid + "_.*")
       );
       allow write: if isSuperAdmin();
     }
@@ -65,7 +82,7 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         isSuperAdmin() ||
         isBusinessAdmin() ||
-        (accessId.split('_')[0] == request.auth.uid)
+        accessId.matches(request.auth.uid + "_.*")
       );
       allow write: if isSuperAdmin() || (isBusinessAdmin() && hasBusinessAccess(resource.data.businessId));
     }
