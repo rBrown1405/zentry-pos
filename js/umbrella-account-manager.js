@@ -6,8 +6,20 @@ class UmbrellaAccountManager {
     constructor(firebaseManager) {
         this.firebaseManager = firebaseManager;
         this.db = window.firebaseServices.getDb();
-        this.currentBusiness = JSON.parse(localStorage.getItem('currentBusiness') || 'null');
-        this.currentProperty = JSON.parse(localStorage.getItem('currentProperty') || 'null');
+        this.currentBusiness = null;
+        this.currentProperty = null;
+        this._initializeFromFirebase();
+    }
+
+    /**
+     * Initialize current business and property from Firebase
+     * @private
+     */
+    async _initializeFromFirebase() {
+        const user = this.firebaseManager.getCurrentUser();
+        if (user) {
+            await this.loadUserBusinessAccess(user.uid);
+        }
     }
 
     /**
@@ -15,17 +27,67 @@ class UmbrellaAccountManager {
      * @returns {Promise<void>}
      */
     async initialize() {
-        // Listen for auth state changes to load business and property automatically
-        this.firebaseManager.auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                // Try to load user's business and property access
-                await this.loadUserBusinessAccess(user.uid);
-            } else {
-                // Clear business and property data
-                this.currentBusiness = null;
-                this.currentProperty = null;
-                localStorage.removeItem('currentBusiness');
-                localStorage.removeItem('currentProperty');
+        // Initialize from Firebase
+        await this._initializeFromFirebase();
+        
+        // Set up real-time listeners
+        await this._initializeRealTimeListeners();
+    }
+
+    /**
+     * Initialize real-time listeners for business and property changes
+     * @private
+     */
+    async _initializeRealTimeListeners() {
+        const user = this.firebaseManager.getCurrentUser();
+        if (!user) return;
+
+        // Listen for changes to user's current business/property selection
+        this.userListener = this.db.collection('users').doc(user.uid)
+            .onSnapshot(async (doc) => {
+                if (!doc.exists) return;
+                
+                const userData = doc.data();
+                
+                // Handle business change
+                if (userData.currentBusinessId && 
+                    (!this.currentBusiness || this.currentBusiness.id !== userData.currentBusinessId)) {
+                    const businessDoc = await this.db.collection('businesses')
+                        .doc(userData.currentBusinessId).get();
+                    if (businessDoc.exists) {
+                        this.currentBusiness = {
+                            id: businessDoc.id,
+                            ...businessDoc.data()
+                        };
+                        // Trigger business change event
+                        document.dispatchEvent(new CustomEvent('businessChanged', {
+                            detail: { business: this.currentBusiness }
+                        }));
+                    }
+                }
+                
+                // Handle property change
+                if (userData.currentPropertyId &&
+                    (!this.currentProperty || this.currentProperty.id !== userData.currentPropertyId)) {
+                    const propertyDoc = await this.db.collection('properties')
+                        .doc(userData.currentPropertyId).get();
+                    if (propertyDoc.exists) {
+                        this.currentProperty = {
+                            id: propertyDoc.id,
+                            ...propertyDoc.data()
+                        };
+                        // Trigger property change event
+                        document.dispatchEvent(new CustomEvent('propertyChanged', {
+                            detail: { property: this.currentProperty }
+                        }));
+                    }
+                }
+            });
+
+        // Clean up listener when object is destroyed
+        window.addEventListener('unload', () => {
+            if (this.userListener) {
+                this.userListener();
             }
         });
     }
@@ -49,7 +111,21 @@ class UmbrellaAccountManager {
             
             // Super admin can access all businesses
             if (userData.role === 'super_admin') {
-                // Don't set a specific business for super_admin
+                // For super admin, load last accessed business/property if available
+                if (userData.currentBusinessId) {
+                    const businessDoc = await this.db.collection('businesses').doc(userData.currentBusinessId).get();
+                    if (businessDoc.exists) {
+                        await this.setCurrentBusiness(businessDoc.id, businessDoc.data());
+                        
+                        // Load last accessed property
+                        if (userData.currentPropertyId) {
+                            const propertyDoc = await this.db.collection('properties').doc(userData.currentPropertyId).get();
+                            if (propertyDoc.exists) {
+                                await this.setCurrentProperty(propertyDoc.id, propertyDoc.data());
+                            }
+                        }
+                    }
+                }
                 return;
             }
             
@@ -98,12 +174,20 @@ class UmbrellaAccountManager {
      * @param {string} id - Business ID
      * @param {Object} businessData - Business data
      */
-    setCurrentBusiness(id, businessData) {
+    async setCurrentBusiness(id, businessData) {
         this.currentBusiness = {
             id,
             ...businessData
         };
-        localStorage.setItem('currentBusiness', JSON.stringify(this.currentBusiness));
+
+        // Store the current business selection in user's document
+        const user = this.firebaseManager.getCurrentUser();
+        if (user) {
+            await this.db.collection('users').doc(user.uid).update({
+                currentBusinessId: id,
+                lastBusinessAccess: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
         
         // Trigger event for business change
         const event = new CustomEvent('businessChanged', { 
@@ -117,12 +201,20 @@ class UmbrellaAccountManager {
      * @param {string} id - Property ID
      * @param {Object} propertyData - Property data
      */
-    setCurrentProperty(id, propertyData) {
+    async setCurrentProperty(id, propertyData) {
         this.currentProperty = {
             id,
             ...propertyData
         };
-        localStorage.setItem('currentProperty', JSON.stringify(this.currentProperty));
+
+        // Store the current property selection in user's document
+        const user = this.firebaseManager.getCurrentUser();
+        if (user) {
+            await this.db.collection('users').doc(user.uid).update({
+                currentPropertyId: id,
+                lastPropertyAccess: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
         
         // Trigger event for property change
         const event = new CustomEvent('propertyChanged', { 

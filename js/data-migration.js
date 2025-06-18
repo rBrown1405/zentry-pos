@@ -5,7 +5,7 @@
  */
 
 // Function to migrate data from localStorage to Firebase
-function migrateDataToFirebase() {
+async function migrateDataToFirebase() {
   console.log('Starting data migration to Firebase...');
   const firebaseManager = window.firebaseManager;
   
@@ -14,20 +14,44 @@ function migrateDataToFirebase() {
     console.error('Firebase Manager not initialized. Aborting migration.');
     return;
   }
-  
-  // 1. Migrate Menu Items
-  migrateMenuItems()
-    .then(() => migrateTableData())
-    .then(() => migrateOrderData())
-    .then(() => migrateUmbrellaAccountData())
-    .then(() => {
-      console.log('✅ Data migration completed successfully!');
-      alert('Data successfully migrated to Firebase!');
-    })
-    .catch(error => {
-      console.error('❌ Data migration failed:', error);
-      alert('Data migration failed. Check console for details.');
+
+  try {
+    // Check if migration has already been completed
+    const migrationDoc = await firebaseManager.db.collection('system').doc('migration').get();
+    if (migrationDoc.exists && migrationDoc.data().completed) {
+      console.log('Migration already completed. Skipping...');
+      return;
+    }
+
+    // Start transaction for atomic migration
+    await firebaseManager.db.runTransaction(async (transaction) => {
+      // 1. Create migration record
+      transaction.set(firebaseManager.db.collection('system').doc('migration'), {
+        started: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      // 2. Migrate data
+      await migrateMenuItems();
+      await migrateTableData();
+      await migrateOrderData();
+      await migrateUmbrellaAccountData();
+
+      // 3. Mark migration as complete
+      transaction.update(firebaseManager.db.collection('system').doc('migration'), {
+        completed: true,
+        completedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
     });
+
+    console.log('✅ Data migration completed successfully!');
+    alert('Data successfully migrated to Firebase!');
+
+    // Clear localStorage after successful migration
+    clearLocalStorage();
+  } catch (error) {
+    console.error('❌ Data migration failed:', error);
+    alert('Data migration failed. Check console for details.');
+  }
   
   // Migrate Menu Items
   async function migrateMenuItems() {
@@ -257,6 +281,32 @@ function migrateDataToFirebase() {
       throw error;
     }
   }
+}
+
+// Clear localStorage after successful migration
+function clearLocalStorage() {
+  // List of keys to preserve (Firebase and essential system data)
+  const preserveKeys = [
+    'firebase:host:*',  // Firebase hosting data
+    'firebase:auth:*',  // Firebase auth data
+    'firebase:session', // Firebase session
+  ];
+
+  // Get all localStorage keys
+  const keys = Object.keys(localStorage);
+
+  // Remove all items except preserved keys
+  keys.forEach(key => {
+    if (!preserveKeys.some(pattern => 
+      pattern.endsWith('*') 
+        ? key.startsWith(pattern.slice(0, -1))
+        : key === pattern
+    )) {
+      localStorage.removeItem(key);
+    }
+  });
+
+  console.log('localStorage cleared except for essential Firebase data');
 }
 
 // Add a migration button to the UI

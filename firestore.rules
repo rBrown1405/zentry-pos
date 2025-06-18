@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isSuperAdmin() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
+    }
+    
+    function isBusinessOwner(businessId) {
+      return isAuthenticated() && get(/databases/$(database)/documents/businesses/$(businessId)).data.owner == request.auth.uid;
+    }
+    
+    function hasBusinessAccess(businessId) {
+      let user = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return isAuthenticated() && (
+        user.data.role == 'super_admin' ||
+        user.data.businessId == businessId
+      );
+    }
+    
+    function hasPropertyAccess(propertyId) {
+      let user = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return isAuthenticated() && (
+        user.data.role == 'super_admin' ||
+        user.data.propertyAccess.hasAny([propertyId])
+      );
+    }
+
+    // System collection (for migration and system-wide settings)
+    match /system/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId || 
+        isSuperAdmin()
+      );
+      allow write: if isAuthenticated() && (
+        request.auth.uid == userId ||
+        isSuperAdmin()
+      );
+    }
+
+    // Businesses collection
+    match /businesses/{businessId} {
+      allow read: if hasBusinessAccess(businessId);
+      allow create: if isSuperAdmin();
+      allow update: if isBusinessOwner(businessId) || isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // Properties collection
+    match /properties/{propertyId} {
+      allow read: if hasPropertyAccess(propertyId);
+      allow create: if hasBusinessAccess(resource.data.business);
+      allow update: if hasPropertyAccess(propertyId);
+      allow delete: if isBusinessOwner(resource.data.business) || isSuperAdmin();
+    }
+
+    // Menu items collection
+    match /menu_items/{itemId} {
+      allow read: if hasPropertyAccess(resource.data.propertyId);
+      allow write: if hasPropertyAccess(resource.data.propertyId);
+    }
+
+    // Tables collection
+    match /tables/{tableId} {
+      allow read: if hasPropertyAccess(resource.data.propertyId);
+      allow write: if hasPropertyAccess(resource.data.propertyId);
+    }
+
+    // Orders collection
+    match /orders/{orderId} {
+      allow read: if hasPropertyAccess(resource.data.propertyId);
+      allow create: if hasPropertyAccess(request.resource.data.propertyId);
+      allow update: if hasPropertyAccess(resource.data.propertyId);
+      allow delete: if hasPropertyAccess(resource.data.propertyId);
+    }
+  }
+}
