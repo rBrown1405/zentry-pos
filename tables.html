@@ -464,7 +464,7 @@
             
             <div class="header-tabs">
                 <a href="tables.html" class="tab-button active">Tables</a>
-                <a href="pos-interface.html" class="tab-button">Kitchen</a>
+                <a href="pos-interface-fixed.html" class="tab-button">Kitchen</a>
             </div>
             
             <div class="header-actions">
@@ -777,19 +777,17 @@
             showNotification(`Table ${selectedTable.id} reserved for ${reservedBy}!`, 'success');
         }        function takeOrder() {
             if (!selectedTable || selectedTable.status !== 'occupied') return;
-            
-            showNotification('Redirecting to order screen...', 'info');
+              showNotification('Redirecting to order screen...', 'info');
             setTimeout(() => {
-                window.location.href = 'pos-interface.html';
+                window.location.href = 'pos-interface-fixed.html';
             }, 1000);
         }
 
         function startNewOrder() {
             if (!selectedTable) return;
-            
-            showNotification('Starting new order - Redirecting to POS...', 'info');
+              showNotification('Starting new order - Redirecting to POS...', 'info');
             setTimeout(() => {
-                window.location.href = 'pos-interface.html';
+                window.location.href = 'pos-interface-fixed.html';
             }, 1000);
         }
 
