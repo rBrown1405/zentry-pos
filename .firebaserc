@@ -1,19 +1,7 @@
 {
   "projects": {
-    "default": "your-project-id",
-    "production": "your-production-project-id",
-    "staging": "your-staging-project-id"
+    "default": "zentry-pos-d10b5"
   },
-  "targets": {
-    "your-project-id": {
-      "hosting": {
-        "production": [
-          "your-production-site"
-        ],
-        "staging": [
-          "your-staging-site"
-        ]
-      }
-    }
-  }
+  "targets": {},
+  "etags": {}
 }
