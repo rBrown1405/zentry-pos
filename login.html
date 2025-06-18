@@ -16,7 +16,10 @@
         <div class="logo-container">
             <div class="logo">M</div>
         </div>
-        <h1 class="login-title">Sign In to <span class="highlight">Macros</span></h1>        <div class="login-form">            <div class="login-tabs">
+        <h1 class="login-title">Sign In to <span class="highlight">Macros</span></h1>
+        <!-- Add error message container -->
+        <div class="error-message" id="errorMessage" style="display: none;"></div>
+        <div class="login-form">            <div class="login-tabs">
                 <button class="tab-button active" onclick="switchLoginTab('staff')">Staff Login</button>
                 <button class="tab-button" onclick="switchLoginTab('company')">Company Login</button>
                 <button class="tab-button" onclick="switchLoginTab('superadmin')">Super Admin</button>

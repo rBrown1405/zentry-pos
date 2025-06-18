@@ -316,26 +316,57 @@ class MultiPropertyManager {
     }
 
     /**
-     * Get a specific business account by ID
+     * Get a business account by ID
      */
     static getBusinessAccount(businessId) {
         try {
+            console.log('Looking up business account:', businessId);
+            
             // Try getting from direct key first
-            let account = localStorage.getItem(`businessAccount_${businessId}`);
+            const directKey = `businessAccount_${businessId}`;
+            console.log('Checking direct key:', directKey);
+            let account = localStorage.getItem(directKey);
+            
             if (account) {
+                console.log('Found account via direct key');
                 return JSON.parse(account);
             }
 
+            // Try getting from registration data
+            console.log('Checking registration data');
+            const registeredId = localStorage.getItem('businessId');
+            if (registeredId === businessId) {
+                console.log('Found matching registration, creating account object');
+                // Create an account object from registration data
+                const account = {
+                    id: businessId,
+                    businessName: localStorage.getItem('businessName') || 'Unknown Business',
+                    businessType: localStorage.getItem('businessType') || 'restaurant',
+                    ownerName: localStorage.getItem('ownerName') || 'Business Owner',
+                    email: localStorage.getItem('businessEmail') || '',
+                    role: 'admin',
+                    isActive: true,
+                    createdAt: localStorage.getItem('registrationDate') || new Date().toISOString()
+                };
+                
+                // Save it for future lookups
+                this.saveBusinessAccount(account);
+                return account;
+            }
+
             // If not found, try searching through all accounts
+            console.log('Checking all business accounts');
             const accounts = this.getAllBusinessAccounts();
             account = accounts.find(acc => acc.id === businessId);
             
             if (account) {
+                console.log('Found account in all accounts');
                 // Save it with the direct key for future lookups
                 this.saveBusinessAccount(account);
                 return account;
             }
             
+            console.log('No business account found');
             return null;
         } catch (error) {
             console.error('Error getting business account:', error);

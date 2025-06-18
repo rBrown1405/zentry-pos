@@ -1,6 +1,33 @@
 // Initialize API Manager
 const apiManager = new ApiManager();
 
+// Error display function
+function showError(message) {
+    const errorMessage = document.getElementById('errorMessage');
+    if (errorMessage) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+        errorMessage.classList.add('show');
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            errorMessage.classList.remove('show');
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 300);
+        }, 5000);
+    } else {
+        console.error('Error message container not found');
+        alert(message);
+    }
+}
+
+// Success message function
+function showSuccess(message) {
+    // You can enhance this later to show a green success message
+    showError(message);
+}
+
 // Login tab switching
 function switchLoginTab(tabName) {
     // Update tab buttons
