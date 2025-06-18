@@ -4,15 +4,35 @@
 function updateHeaderInfo() {
     try {
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const currentProperty = JSON.parse(localStorage.getItem('currentProperty') || '{}');
+        
         const hotelName = document.querySelector('.hotel-name');
         const userRole = document.querySelector('.user-role');
+        const systemInfo = document.querySelector('.system-name');
         
-        if (hotelName && currentUser.businessName) {
-            hotelName.textContent = currentUser.businessName;
+        // Update hotel/business name
+        if (hotelName) {
+            hotelName.textContent = currentProperty.name || currentUser.businessName || '';
         }
         
+        // Update user role
         if (userRole && currentUser.role) {
             userRole.textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+        }
+        
+        // Update system name without dev mode
+        if (systemInfo) {
+            systemInfo.textContent = 'ZENTRY POS';
+        }
+        
+        // Update property info if available
+        const propertyInfo = document.querySelector('.property-info');
+        if (propertyInfo && currentProperty) {
+            propertyInfo.innerHTML = `
+                <div class="property-name">${currentProperty.name || ''}</div>
+                <div class="property-type">${currentProperty.type || ''}</div>
+                ${currentProperty.location ? `<div class="property-location">${currentProperty.location}</div>` : ''}
+            `;
         }
     } catch (error) {
         console.error('Error updating header:', error);
