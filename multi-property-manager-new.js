@@ -159,12 +159,10 @@ class MultiPropertyManager {
                 message: 'Failed to add property: ' + error.message
             };
         }
-    }
-
-    /**
+    }    /**
      * Register a new staff member
      */
-    static registerStaff(staffData) {
+    static async registerStaff(staffData) {
         try {
             // Validate required fields
             if (!staffData.firstName || !staffData.lastName || !staffData.connectionCode) {
@@ -172,9 +170,7 @@ class MultiPropertyManager {
                     success: false,
                     message: 'Missing required fields: firstName, lastName, connectionCode'
                 };
-            }
-
-            // Find business by connection code
+            }            // Find business by connection code
             const business = this.getBusinessByConnectionCode(staffData.connectionCode);
             if (!business) {
                 return {
@@ -183,8 +179,25 @@ class MultiPropertyManager {
                 };
             }
 
-            // Generate staff ID
-            const staffId = this.generateUniqueId('staff');
+            // Generate memorable staff account name using business + property info
+            const fullName = `${staffData.firstName} ${staffData.lastName}`;
+            const businessName = business.businessName || business.name || 'Business';
+            
+            // Get the first property name (or use business name as fallback)
+            let propertyName = businessName; // Default fallback
+            if (business.properties && business.properties.length > 0) {
+                // Use the main property or first property
+                const mainProperty = business.properties.find(p => p.isMainProperty) || business.properties[0];
+                propertyName = mainProperty.name || mainProperty.propertyName || businessName;
+            }
+
+            // Generate memorable account name
+            const staffId = await IDStorage.generateUniqueMemorableAccountName(
+                businessName, 
+                propertyName, 
+                fullName, 
+                staffData.role || 'server'
+            );
 
             const staffMember = {
                 id: staffId,

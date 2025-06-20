@@ -14,9 +14,7 @@ class IDGenerator {
         const timestamp = Date.now().toString();
         const random = Math.random().toString(36).substring(2, 6).toUpperCase();
         return `BIZ${businessCode}${random}${timestamp.slice(-3)}`;
-    }
-
-    static generateStaffId(fullName, position) {
+    }    static generateStaffId(fullName, position) {
         // Generate staff ID from name and position
         const nameParts = fullName.trim().split(' ');
         const firstName = nameParts[0] || '';
@@ -32,6 +30,32 @@ class IDGenerator {
         const randomNum = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
         
         return `${initials}${positionCode}${randomNum}`;
+    }
+
+    static generateMemorableAccountName(businessName, propertyName, fullName) {
+        // Generate memorable account name: business letter + property letters + 3 numbers
+        // Example: "Wine Inc" + "John Wine Inc" → "wjwin470"
+        
+        // Get business letter - first letter of business name
+        const businessLetter = (businessName || '').trim().charAt(0).toLowerCase();
+        
+        // Get property letters - extract letters from property name
+        const cleanPropertyName = (propertyName || '').replace(/[^a-zA-Z]/g, '').toLowerCase();
+        const propertyLetters = cleanPropertyName.substring(0, 4); // Take up to 4 letters
+        
+        // Generate 3 random numbers
+        const randomNumbers = Math.floor(Math.random() * 900) + 100; // 100-999
+        
+        // Combine: business letter + property letters + 3 numbers
+        const accountName = `${businessLetter}${propertyLetters}${randomNumbers}`;
+        
+        return accountName.toLowerCase();
+    }
+
+    static generateStaffAccountName(businessName, propertyName, fullName, position) {
+        // New method to generate memorable staff account names
+        // Uses business + property + numbers format for better memorability
+        return this.generateMemorableAccountName(businessName, propertyName, fullName);
     }
 
     static getPositionCode(position) {
@@ -51,11 +75,14 @@ class IDGenerator {
     static validateBusinessCode(code) {
         // Business code should be 3 letters + 4 numbers (e.g., ABC1234)
         return /^[A-Z]{3}[0-9]{4}$/.test(code);
-    }
-
-    static validateStaffID(staffId) {
-        // Staff ID should be 2 letters + 2 letters + 4 numbers (e.g., ABSV1234)
-        return /^[A-Z]{2}[A-Z]{2}[0-9]{4}$/.test(staffId);
+    }    static validateStaffID(staffId) {
+        // Original format: 2 letters + 2 letters + 4 numbers (e.g., ABSV1234)
+        const originalFormat = /^[A-Z]{2}[A-Z]{2}[0-9]{4}$/.test(staffId);
+        
+        // New memorable format: 1 letter + 1-4 letters + 3 numbers (e.g., wjwin470)
+        const memorableFormat = /^[a-z]{2,6}[0-9]{3}$/.test(staffId);
+        
+        return originalFormat || memorableFormat;
     }
 
     static validateBusinessId(businessId) {
@@ -64,8 +91,7 @@ class IDGenerator {
     }
 }
 
-class IDStorage {
-    static async generateUniqueStaffID(fullName, position) {
+class IDStorage {    static async generateUniqueStaffID(fullName, position) {
         let attempts = 0;
         let staffId;
         
@@ -90,6 +116,34 @@ class IDStorage {
         }
         
         return staffId;
+    }
+
+    static async generateUniqueMemorableAccountName(businessName, propertyName, fullName, position) {
+        let attempts = 0;
+        let accountName;
+        
+        do {
+            accountName = IDGenerator.generateStaffAccountName(businessName, propertyName, fullName, position);
+            attempts++;
+            
+            // Check if account name already exists
+            if (!localStorage.getItem(`staff_${accountName}`) && !localStorage.getItem(`staffMember_${accountName}`)) {
+                break;
+            }
+            
+            // Add random suffix if duplicate
+            if (attempts > 1) {
+                const extraRandom = Math.floor(Math.random() * 90) + 10; // 10-99
+                // Replace last 2 digits with new random numbers
+                accountName = accountName.slice(0, -2) + extraRandom;
+            }
+        } while (attempts < 10);
+        
+        if (attempts >= 10) {
+            throw new Error('Unable to generate unique memorable account name');
+        }
+        
+        return accountName;
     }
 
     static async generateUniqueBusinessCode(businessName) {
