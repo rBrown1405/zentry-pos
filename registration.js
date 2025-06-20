@@ -162,17 +162,27 @@ async function handleRegistration(event) {
         
         if (!result.success || !result.businessId) {
             throw new Error(result.message || 'Failed to create business account');
-        }
-
-        // Show success message
+        }        // Show success message
         document.querySelector('.registration-form').style.display = 'none';
         const successMessage = document.querySelector('.success-message');
         successMessage.style.display = 'block';
         
-        // Update all success message elements
-        successMessage.querySelector('.business-id').textContent = result.businessId;
-        successMessage.querySelector('.business-code').textContent = result.businessCode;
-        successMessage.querySelector('.property-code').textContent = result.umbrellaAccount.mainPropertyCode;            successMessage.querySelector('.property-connection-code').textContent = result.propertyConnectionCode;
+        // Update all success message elements - check if elements exist before setting
+        const businessIdElement = successMessage.querySelector('.business-id');
+        const propertyCodeElement = successMessage.querySelector('.property-code');
+        const propertyConnectionCodeElement = successMessage.querySelector('.property-connection-code');
+        
+        if (businessIdElement) {
+            businessIdElement.textContent = result.businessId;
+        }
+        
+        if (propertyCodeElement && result.umbrellaAccount && result.umbrellaAccount.mainPropertyCode) {
+            propertyCodeElement.textContent = result.umbrellaAccount.mainPropertyCode;
+        }
+        
+        if (propertyConnectionCodeElement) {
+            propertyConnectionCodeElement.textContent = result.propertyConnectionCode;
+        }
 
             // Log success for monitoring
             console.log('Business account created successfully:', result.businessId);

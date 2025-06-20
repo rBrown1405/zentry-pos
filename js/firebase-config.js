@@ -34,27 +34,29 @@ function initializeFirebase() {
         db = firebase.firestore();
         storage = firebase.storage();
         
-        // Test Firebase connection with a simple operation
-        return testFirebaseConnection()
+        // Try to enable persistence first, before any operations
+        return db.enablePersistence()
+            .then(() => {
+                console.log('Firebase persistence enabled');
+                // Now test the connection
+                return testFirebaseConnection();
+            })
+            .catch((persistenceError) => {
+                if (persistenceError.code === 'failed-precondition') {
+                    console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+                } else if (persistenceError.code === 'unimplemented') {
+                    console.warn('The current browser does not support all of the features required to enable persistence');
+                } else {
+                    console.warn('Failed to enable persistence:', persistenceError);
+                }
+                // Continue without persistence and test connection
+                return testFirebaseConnection();
+            })
             .then(() => {
                 console.log('Firebase connection test successful');
                 isFirebaseConnected = true;
                 useFirebase = true;
-                
-                // Enable offline persistence for Firestore (important for POS systems)
-                return db.enablePersistence()
-                    .then(() => {
-                        console.log('Firebase initialized successfully with offline persistence');
-                    })
-                    .catch((err) => {
-                        if (err.code === 'failed-precondition') {
-                            console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-                        } else if (err.code === 'unimplemented') {
-                            console.warn('The current browser does not support all of the features required to enable persistence');
-                        }
-                        // Even if persistence fails, we can continue
-                        console.log('Firebase initialized successfully without offline persistence');
-                    });
+                console.log('Firebase initialized successfully');
             })
             .catch((error) => {
                 console.warn('Firebase connection failed, falling back to localStorage:', error);
@@ -73,21 +75,36 @@ function initializeFirebase() {
 // Test Firebase connection
 function testFirebaseConnection() {
     return new Promise((resolve, reject) => {
-        // Try to read from Firestore with a timeout
+        // Set a shorter timeout for faster fallback
         const timeout = setTimeout(() => {
-            reject(new Error('Firebase connection timeout'));
-        }, 5000);
+            reject(new Error('Firebase connection timeout - using localStorage fallback'));
+        }, 3000); // Reduced from 5000ms to 3000ms
         
-        // Test with a simple read operation
-        db.collection('_test').limit(1).get()
-            .then(() => {
-                clearTimeout(timeout);
-                resolve();
-            })
-            .catch((error) => {
-                clearTimeout(timeout);
-                reject(error);
-            });
+        try {
+            // Test with a simple read operation that should work with any Firebase project
+            db.collection('_connection_test').limit(1).get()
+                .then(() => {
+                    clearTimeout(timeout);
+                    resolve();
+                })
+                .catch((error) => {
+                    clearTimeout(timeout);
+                    // Common Firebase errors that indicate we should fall back to localStorage
+                    if (error.code === 'permission-denied' || 
+                        error.code === 'unauthenticated' || 
+                        error.code === 'unavailable' ||
+                        error.message.includes('project does not exist') ||
+                        error.message.includes('Invalid project')) {
+                        console.log('Firebase project not accessible, using localStorage fallback');
+                        reject(new Error('Firebase project not accessible'));
+                    } else {
+                        reject(error);
+                    }
+                });
+        } catch (error) {
+            clearTimeout(timeout);
+            reject(error);
+        }
     });
 }
 
