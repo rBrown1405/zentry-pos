@@ -96,10 +96,8 @@ class MultiPropertyManager {
             };
 
             // Add main property to properties array
-            businessAccount.properties.push(businessAccount.mainProperty);
-
-            // Store in Firestore
-            await window.firebaseManager.db.collection('businesses').doc(businessId).set(businessAccount);
+            businessAccount.properties.push(businessAccount.mainProperty);            // Store in Firestore or localStorage
+            await window.firebaseServices.db.collection('businesses').doc(businessId).set(businessAccount);
 
             return {
                 success: true,

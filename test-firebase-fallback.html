@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Fallback Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .warning { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #output {
+            margin-top: 20px;
+            white-space: pre-wrap;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <h1>Firebase Fallback Test</h1>
+    <p>This page tests whether Firebase is working or if localStorage fallback is being used.</p>
+    
+    <div id="status"></div>
+    
+    <button onclick="testConnection()">Test Firebase Connection</button>
+    <button onclick="testBusinessCreation()">Test Business Creation</button>
+    <button onclick="testDataRetrieval()">Test Data Retrieval</button>
+    <button onclick="clearLocalStorage()">Clear localStorage</button>
+    
+    <div id="output"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+    
+    <!-- Our Firebase config -->
+    <script src="js/firebase-config.js"></script>
+    
+    <script>
+        function addStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            statusDiv.appendChild(div);
+            
+            // Keep only last 5 status messages
+            const statuses = statusDiv.children;
+            if (statuses.length > 5) {
+                statusDiv.removeChild(statuses[0]);
+            }
+        }
+        
+        function addOutput(message) {
+            const output = document.getElementById('output');
+            output.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        async function testConnection() {
+            addStatus('Testing Firebase connection...', 'info');
+            addOutput('=== Testing Firebase Connection ===');
+            
+            try {
+                if (window.firebaseServices) {
+                    const isConnected = window.firebaseServices.isConnected();
+                    const isUsingFirebase = window.firebaseServices.isUsingFirebase();
+                    
+                    addOutput(`Firebase connected: ${isConnected}`);
+                    addOutput(`Using Firebase: ${isUsingFirebase}`);
+                    
+                    if (isConnected && isUsingFirebase) {
+                        addStatus('Firebase is connected and working!', 'success');
+                        addOutput('✅ Firebase is fully operational');
+                    } else {
+                        addStatus('Using localStorage fallback', 'warning');
+                        addOutput('⚠️ Using localStorage fallback (Firebase not available)');
+                    }
+                } else {
+                    addStatus('Firebase services not found', 'error');
+                    addOutput('❌ Firebase services not initialized');
+                }
+            } catch (error) {
+                addStatus('Error testing connection: ' + error.message, 'error');
+                addOutput('❌ Error: ' + error.message);
+            }
+        }
+        
+        async function testBusinessCreation() {
+            addStatus('Testing business creation...', 'info');
+            addOutput('=== Testing Business Creation ===');
+            
+            try {
+                const testBusiness = {
+                    name: 'Test Business ' + Date.now(),
+                    type: 'hotel',
+                    address: '123 Test Street',
+                    phone: '555-0123',
+                    email: 'test@example.com',
+                    created: new Date().toISOString()
+                };
+                
+                const businessId = 'test-business-' + Date.now();
+                
+                await window.firebaseServices.db.collection('businesses').doc(businessId).set(testBusiness);
+                
+                addStatus('Business created successfully!', 'success');
+                addOutput(`✅ Business created with ID: ${businessId}`);
+                addOutput(`Business data: ${JSON.stringify(testBusiness, null, 2)}`);
+                
+                // Test retrieval
+                const doc = await window.firebaseServices.db.collection('businesses').doc(businessId).get();
+                if (doc.exists) {
+                    addOutput('✅ Business retrieval confirmed');
+                    addOutput(`Retrieved data: ${JSON.stringify(doc.data(), null, 2)}`);
+                } else {
+                    addOutput('❌ Business not found after creation');
+                }
+                
+            } catch (error) {
+                addStatus('Error creating business: ' + error.message, 'error');
+                addOutput('❌ Error: ' + error.message);
+            }
+        }
+        
+        async function testDataRetrieval() {
+            addStatus('Testing data retrieval...', 'info');
+            addOutput('=== Testing Data Retrieval ===');
+            
+            try {
+                const snapshot = await window.firebaseServices.db.collection('businesses').get();
+                
+                addOutput(`Found ${snapshot.docs.length} businesses`);
+                
+                snapshot.forEach(doc => {
+                    addOutput(`Business ID: ${doc.id}`);
+                    addOutput(`Data: ${JSON.stringify(doc.data(), null, 2)}`);
+                    addOutput('---');
+                });
+                
+                if (snapshot.docs.length === 0) {
+                    addOutput('No businesses found. Try creating one first.');
+                }
+                
+                addStatus('Data retrieval completed', 'success');
+                
+            } catch (error) {
+                addStatus('Error retrieving data: ' + error.message, 'error');
+                addOutput('❌ Error: ' + error.message);
+            }
+        }
+        
+        function clearLocalStorage() {
+            if (confirm('Are you sure you want to clear localStorage? This will delete all test data.')) {
+                localStorage.removeItem('businesses');
+                localStorage.removeItem('staff');
+                localStorage.removeItem('properties');
+                addStatus('localStorage cleared', 'warning');
+                addOutput('=== localStorage Cleared ===');
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            addStatus('Page loaded, waiting for Firebase initialization...', 'info');
+            
+            // Wait a bit for Firebase to initialize
+            setTimeout(() => {
+                testConnection();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
