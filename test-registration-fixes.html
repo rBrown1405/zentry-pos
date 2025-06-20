@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration Fix Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .warning { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #console {
+            background-color: #000;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .test-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .business-id-display {
+            font-family: 'Courier New', monospace;
+            background-color: #e3f2fd;
+            padding: 10px;
+            border-radius: 5px;
+            border: 2px solid #2196f3;
+            font-size: 18px;
+            font-weight: bold;
+            color: #1565c0;
+            text-align: center;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Registration Fix Verification</h1>
+    <p>This page tests the fixes for Firebase connection issues and registration UI errors.</p>
+    
+    <div id="status"></div>
+    
+    <div class="test-section">
+        <h3>📋 Issues Being Fixed:</h3>
+        <ul>
+            <li>✅ Firebase 400 errors and connection timeout</li>
+            <li>✅ Firestore persistence initialization order</li>
+            <li>✅ Registration UI null reference errors</li>
+            <li>✅ Business ID generation and display</li>
+        </ul>
+    </div>
+    
+    <button onclick="testFirebaseConnection()">Test Firebase Connection</button>
+    <button onclick="testBusinessRegistration()">Test Business Registration Flow</button>
+    <button onclick="testUIElements()">Test UI Elements</button>
+    <button onclick="clearConsole()">Clear Console</button>
+    
+    <h3>Console Output:</h3>
+    <div id="console"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+    
+    <!-- Our scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="id-utils.js"></script>
+    <script src="multi-property-manager.js"></script>
+    
+    <script>
+        function log(message, type = 'info') {
+            const console = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            console.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            console.scrollTop = console.scrollHeight;
+            
+            // Also add to status
+            addStatus(message, type);
+        }
+        
+        function addStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            statusDiv.appendChild(div);
+            
+            // Keep only last 3 status messages
+            const statuses = statusDiv.children;
+            if (statuses.length > 3) {
+                statusDiv.removeChild(statuses[0]);
+            }
+        }
+        
+        function clearConsole() {
+            document.getElementById('console').textContent = '';
+        }
+        
+        async function testFirebaseConnection() {
+            log('=== Testing Firebase Connection & Fallback ===');
+            
+            try {
+                if (!window.firebaseServices) {
+                    log('Firebase services not found', 'error');
+                    return;
+                }
+                
+                const isConnected = window.firebaseServices.isConnected();
+                const isUsingFirebase = window.firebaseServices.isUsingFirebase();
+                
+                log(`Firebase connected: ${isConnected}`);
+                log(`Using Firebase: ${isUsingFirebase}`);
+                
+                if (isConnected && isUsingFirebase) {
+                    log('Firebase is fully operational', 'success');
+                } else {
+                    log('Using localStorage fallback (this is expected with demo credentials)', 'warning');
+                }
+                
+                // Test database operations
+                log('Testing database write operation...');
+                const testData = { test: true, timestamp: new Date().toISOString() };
+                await window.firebaseServices.db.collection('test').doc('connection-test').set(testData);
+                log('Database write successful', 'success');
+                
+                // Test database read operation
+                log('Testing database read operation...');
+                const doc = await window.firebaseServices.db.collection('test').doc('connection-test').get();
+                if (doc.exists) {
+                    log('Database read successful', 'success');
+                } else {
+                    log('Document not found after write', 'warning');
+                }
+                
+            } catch (error) {
+                log(`Firebase test error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testBusinessRegistration() {
+            log('=== Testing Business Registration Flow ===');
+            
+            try {
+                // Simulate business registration data
+                const businessData = {
+                    companyName: 'Test Registration Company',
+                    ownerName: 'John Doe',
+                    companyEmail: 'test@registration.com',
+                    companyPhone: '555-0123',
+                    propertyName: 'Main Location',
+                    businessType: 'restaurant',
+                    address: '123 Test St',
+                    country: 'united-states',
+                    state: 'california'
+                };
+                
+                log(`Testing business registration for: ${businessData.companyName}`);
+                
+                // Test business account creation
+                const result = await window.MultiPropertyManager.createBusinessAccount(businessData);
+                
+                if (result.success) {
+                    log('Business registration successful!', 'success');
+                    log(`✅ Business ID: ${result.businessId}`);
+                    log(`✅ Business Code: ${result.businessCode}`);
+                    log(`✅ Property Connection Code: ${result.propertyConnectionCode}`);
+                    
+                    // Display the new business ID format
+                    const businessIdDisplay = document.createElement('div');
+                    businessIdDisplay.className = 'business-id-display';
+                    businessIdDisplay.textContent = result.businessId;
+                    document.body.appendChild(businessIdDisplay);
+                    
+                    // Test ID validation
+                    const isValid = IDGenerator.validateBusinessId(result.businessId);
+                    log(`Business ID validation: ${isValid ? 'VALID' : 'INVALID'}`, isValid ? 'success' : 'error');
+                    
+                    // Show the improvement
+                    log('=== Business ID Improvement Demonstrated ===');
+                    log(`Old format would be: business_${Date.now()}_${Math.floor(Math.random() * 10000)} (28+ chars)`);
+                    log(`New format is: ${result.businessId} (${result.businessId.length} chars)`);
+                    log(`Improvement: ${Math.round((1 - result.businessId.length / 28) * 100)}% shorter and includes company name!`, 'success');
+                    
+                } else {
+                    log(`Business registration failed: ${result.message}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`Registration test error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testUIElements() {
+            log('=== Testing UI Elements ===');
+            
+            // Test if we can create the success message elements that registration.js expects
+            const testContainer = document.createElement('div');
+            testContainer.innerHTML = `
+                <div class="success-message" style="display: none;">
+                    <h2>Business Account Created Successfully!</h2>
+                    <div class="identifier-container">
+                        <div class="identifier-section">
+                            <h3>Company Business ID</h3>
+                            <p class="business-id"></p>
+                        </div>
+                        <div class="identifier-section">
+                            <h3>Property Code</h3>
+                            <p class="property-code"></p>
+                        </div>
+                        <div class="identifier-section">
+                            <h3>Property Connection Code</h3>
+                            <p class="property-connection-code"></p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(testContainer);
+            
+            // Test setting values like registration.js does
+            const successMessage = testContainer.querySelector('.success-message');
+            
+            try {
+                const businessIdElement = successMessage.querySelector('.business-id');
+                const propertyCodeElement = successMessage.querySelector('.property-code');
+                const propertyConnectionCodeElement = successMessage.querySelector('.property-connection-code');
+                
+                if (businessIdElement) {
+                    businessIdElement.textContent = 'TESXY123456';
+                    log('✅ .business-id element found and set', 'success');
+                } else {
+                    log('❌ .business-id element not found', 'error');
+                }
+                
+                if (propertyCodeElement) {
+                    propertyCodeElement.textContent = 'PROP123';
+                    log('✅ .property-code element found and set', 'success');
+                } else {
+                    log('❌ .property-code element not found', 'error');
+                }
+                
+                if (propertyConnectionCodeElement) {
+                    propertyConnectionCodeElement.textContent = '123456';
+                    log('✅ .property-connection-code element found and set', 'success');
+                } else {
+                    log('❌ .property-connection-code element not found', 'error');
+                }
+                
+                // Show the success message to verify it works
+                successMessage.style.display = 'block';
+                log('UI elements test completed - success message displayed below', 'success');
+                
+            } catch (error) {
+                log(`UI test error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Page loaded, waiting for Firebase initialization...', 'info');
+            
+            // Wait for Firebase initialization
+            setTimeout(() => {
+                testFirebaseConnection();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

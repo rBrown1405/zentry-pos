@@ -16,20 +16,29 @@ class FirebaseManager {
     // Initialize when Firebase services are ready
     this.initializeServices();
   }
-  
-  /**
+    /**
    * Initialize Firebase services when they become available
    */
   initializeServices() {
     const checkServices = () => {
       if (window.firebaseServices) {
+        // Check if Firebase is disabled
+        if (window.firebaseServices.isDisabled()) {
+          console.log('Firebase is disabled, FirebaseManager operating in localStorage mode');
+          this.app = null;
+          this.auth = null;
+          this.db = null;
+          this.storage = null;
+          return;
+        }
+        
         // Get Firebase services
         this.app = window.firebaseServices.getApp();
         this.auth = window.firebaseServices.getAuth();
         this.db = window.firebaseServices.getDb();
         this.storage = window.firebaseServices.getStorage();
         
-        // Set up auth state change listener
+        // Set up auth state change listener only if auth is available
         if (this.auth) {
           this.auth.onAuthStateChanged(user => {
             if (user) {
@@ -61,13 +70,16 @@ class FirebaseManager {
     
     checkServices();
   }
-  
-  /**
+    /**
    * Check if the user is authenticated
    * @returns {boolean} - True if authenticated
    */
   isAuthenticated() {
-    return this.auth.currentUser !== null;
+    // If Firebase is disabled, check localStorage for authentication
+    if (window.firebaseServices && window.firebaseServices.isDisabled()) {
+      return this.user !== null;
+    }
+    return this.auth && this.auth.currentUser !== null;
   }
   
   /**
@@ -85,8 +97,7 @@ class FirebaseManager {
   getCurrentUser() {
     return this.user;
   }
-  
-  /**
+    /**
    * Login with email and password
    * @param {string} email - User email
    * @param {string} password - User password
@@ -94,6 +105,30 @@ class FirebaseManager {
    */
   async login(email, password) {
     try {
+      // If Firebase is disabled, use localStorage authentication simulation
+      if (window.firebaseServices && window.firebaseServices.isDisabled()) {
+        // Simple localStorage-based authentication for development
+        const users = JSON.parse(localStorage.getItem('users') || '{}');
+        const userKey = email.toLowerCase();
+        
+        if (users[userKey] && users[userKey].password === password) {
+          this.user = {
+            uid: users[userKey].uid || 'local_' + Date.now(),
+            email: email,
+            displayName: users[userKey].displayName || email,
+            photoURL: users[userKey].photoURL || null,
+            emailVerified: true,
+            role: users[userKey].role || 'employee'
+          };
+          
+          localStorage.setItem('user', JSON.stringify(this.user));
+          return this.user;
+        } else {
+          throw new Error('Invalid email or password');
+        }
+      }
+      
+      // Use Firebase authentication if available
       const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
       const idTokenResult = await userCredential.user.getIdTokenResult();
       
@@ -114,13 +149,20 @@ class FirebaseManager {
       throw error;
     }
   }
-  
-  /**
+    /**
    * Log out the current user
    * @returns {Promise} - Promise resolving to void
    */
   async logout() {
     try {
+      // If Firebase is disabled, just clear localStorage
+      if (window.firebaseServices && window.firebaseServices.isDisabled()) {
+        this.user = null;
+        localStorage.removeItem('user');
+        return;
+      }
+      
+      // Use Firebase logout if available
       await this.auth.signOut();
       this.user = null;
       localStorage.removeItem('user');
@@ -129,8 +171,7 @@ class FirebaseManager {
       throw error;
     }
   }
-  
-  /**
+    /**
    * Register a new user
    * @param {string} email - User email
    * @param {string} password - User password
@@ -139,6 +180,36 @@ class FirebaseManager {
    */
   async register(email, password, userData = {}) {
     try {
+      // If Firebase is disabled, use localStorage registration simulation
+      if (window.firebaseServices && window.firebaseServices.isDisabled()) {
+        const users = JSON.parse(localStorage.getItem('users') || '{}');
+        const userKey = email.toLowerCase();
+        
+        if (users[userKey]) {
+          throw new Error('User already exists');
+        }
+        
+        const newUser = {
+          uid: 'local_' + Date.now(),
+          email: email,
+          password: password, // Note: In real apps, never store plain text passwords
+          displayName: userData.displayName || email,
+          photoURL: userData.photoURL || null,
+          role: userData.role || 'employee',
+          createdAt: new Date().toISOString(),
+          ...userData
+        };
+        
+        users[userKey] = newUser;
+        localStorage.setItem('users', JSON.stringify(users));
+        
+        // Also store in unified database
+        await window.firebaseServices.db.collection('users').doc(newUser.uid).set(newUser);
+        
+        return { uid: newUser.uid, email: email };
+      }
+      
+      // Use Firebase registration if available
       const userCredential = await this.auth.createUserWithEmailAndPassword(email, password);
       
       // Update profile
@@ -149,12 +220,12 @@ class FirebaseManager {
         });
       }
       
-      // Store additional user data in Firestore
-      await this.db.collection('users').doc(userCredential.user.uid).set({
+      // Store additional user data in database
+      await window.firebaseServices.db.collection('users').doc(userCredential.user.uid).set({
         email: email,
         displayName: userData.displayName || '',
         role: userData.role || 'employee',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: new Date().toISOString(),
         ...userData
       });
       
@@ -166,14 +237,13 @@ class FirebaseManager {
   }
   
   // Menu Items CRUD Operations
-  
-  /**
+    /**
    * Get all menu items
    * @returns {Promise<Array>} - Promise resolving to array of menu items
    */
   async getMenuItems() {
     try {
-      const menuSnapshot = await this.db.collection('menu_items').get();
+      const menuSnapshot = await window.firebaseServices.db.collection('menu_items').get();
       return menuSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -183,27 +253,30 @@ class FirebaseManager {
       throw error;
     }
   }
-  
-  /**
+    /**
    * Add a new menu item
    * @param {Object} menuItem - Menu item data
    * @returns {Promise<string>} - Promise resolving to created document ID
    */
   async addMenuItem(menuItem) {
     try {
-      const docRef = await this.db.collection('menu_items').add({
+      // Generate unique ID for localStorage mode
+      const id = 'menu_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      
+      const menuItemData = {
         ...menuItem,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      return docRef.id;
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      await window.firebaseServices.db.collection('menu_items').doc(id).set(menuItemData);
+      return id;
     } catch (error) {
       console.error("Failed to add menu item:", error);
       throw error;
     }
   }
-  
-  /**
+    /**
    * Update a menu item
    * @param {string} id - Menu item ID
    * @param {Object} menuItemData - Updated menu item data
@@ -211,16 +284,18 @@ class FirebaseManager {
    */
   async updateMenuItem(id, menuItemData) {
     try {
-      await this.db.collection('menu_items').doc(id).update({
+      const updateData = {
         ...menuItemData,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+        updatedAt: new Date().toISOString()
+      };
+      
+      await window.firebaseServices.db.collection('menu_items').doc(id).update(updateData);
     } catch (error) {
       console.error("Failed to update menu item:", error);
       throw error;
     }
   }
-  
+
   /**
    * Delete a menu item
    * @param {string} id - Menu item ID
@@ -228,7 +303,7 @@ class FirebaseManager {
    */
   async deleteMenuItem(id) {
     try {
-      await this.db.collection('menu_items').doc(id).delete();
+      await window.firebaseServices.db.collection('menu_items').doc(id).delete();
     } catch (error) {
       console.error("Failed to delete menu item:", error);
       throw error;

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Creation Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .warning { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #console {
+            background-color: #000;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .form-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            flex: 1;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <h1>Business Creation Test Page</h1>
+    <p>This page tests the complete business creation process with Firebase fallback.</p>
+    
+    <div id="status"></div>
+    
+    <div class="form-section">
+        <h3>Test Business Registration</h3>
+        <form id="testForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="businessName">Business Name:</label>
+                    <input type="text" id="businessName" value="Test Hotel Palace" required>
+                </div>
+                <div class="form-group">
+                    <label for="businessType">Business Type:</label>
+                    <select id="businessType" required>
+                        <option value="hotel">Hotel</option>
+                        <option value="restaurant">Restaurant</option>
+                        <option value="retail">Retail</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="address">Address:</label>
+                    <input type="text" id="address" value="123 Main Street" required>
+                </div>
+                <div class="form-group">
+                    <label for="city">City:</label>
+                    <input type="text" id="city" value="Test City" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="state">State:</label>
+                    <input type="text" id="state" value="NY" required>
+                </div>
+                <div class="form-group">
+                    <label for="zipCode">ZIP Code:</label>
+                    <input type="text" id="zipCode" value="12345" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="phone">Phone:</label>
+                    <input type="tel" id="phone" value="555-0123" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" value="test@testhotel.com" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="hotelBrand">Hotel Brand:</label>
+                    <input type="text" id="hotelBrand" value="Independent">
+                </div>
+                <div class="form-group">
+                    <label for="rewardsProgram">Rewards Program:</label>
+                    <input type="text" id="rewardsProgram" value="None">
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <button onclick="checkFirebaseStatus()">Check Firebase Status</button>
+    <button onclick="testBusinessCreation()">Create Test Business</button>
+    <button onclick="viewStoredBusinesses()">View Stored Businesses</button>
+    <button onclick="clearStorage()">Clear Storage</button>
+    <button onclick="clearConsole()">Clear Console</button>
+    
+    <h3>Console Output:</h3>
+    <div id="console"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+    
+    <!-- Our scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="id-utils.js"></script>
+    <script src="multi-property-manager.js"></script>
+    
+    <script>
+        function log(message, type = 'info') {
+            const console = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            console.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            console.scrollTop = console.scrollHeight;
+            
+            // Also add to status
+            addStatus(message, type);
+        }
+        
+        function addStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            statusDiv.appendChild(div);
+            
+            // Keep only last 3 status messages
+            const statuses = statusDiv.children;
+            if (statuses.length > 3) {
+                statusDiv.removeChild(statuses[0]);
+            }
+        }
+        
+        function clearConsole() {
+            document.getElementById('console').textContent = '';
+        }
+        
+        function clearStorage() {
+            if (confirm('Clear all stored business data?')) {
+                localStorage.removeItem('businesses');
+                localStorage.removeItem('staff');
+                localStorage.removeItem('properties');
+                log('Storage cleared', 'warning');
+            }
+        }
+        
+        function checkFirebaseStatus() {
+            log('=== Checking Firebase Status ===');
+            
+            if (!window.firebaseServices) {
+                log('Firebase services not found', 'error');
+                return;
+            }
+            
+            const isConnected = window.firebaseServices.isConnected();
+            const isUsingFirebase = window.firebaseServices.isUsingFirebase();
+            
+            log(`Firebase connected: ${isConnected}`);
+            log(`Using Firebase: ${isUsingFirebase}`);
+            
+            if (isConnected && isUsingFirebase) {
+                log('Firebase is fully operational', 'success');
+            } else {
+                log('Using localStorage fallback', 'warning');
+            }
+        }
+        
+        async function testBusinessCreation() {
+            log('=== Testing Business Creation ===');
+            
+            try {
+                // Get form data
+                const formData = {
+                    businessName: document.getElementById('businessName').value,
+                    businessType: document.getElementById('businessType').value,
+                    address: document.getElementById('address').value,
+                    city: document.getElementById('city').value,
+                    state: document.getElementById('state').value,
+                    zipCode: document.getElementById('zipCode').value,
+                    phone: document.getElementById('phone').value,
+                    email: document.getElementById('email').value,
+                    hotelBrand: document.getElementById('hotelBrand').value,
+                    rewardsProgram: document.getElementById('rewardsProgram').value
+                };
+                
+                log(`Creating business: ${formData.businessName}`);
+                log(`Business data: ${JSON.stringify(formData, null, 2)}`);
+                
+                // Check if MultiPropertyManager is available
+                if (!window.MultiPropertyManager) {
+                    log('MultiPropertyManager not found', 'error');
+                    return;
+                }
+                
+                // Create business account
+                const result = await window.MultiPropertyManager.createBusinessAccount(formData);
+                
+                if (result.success) {
+                    log('Business creation successful!', 'success');
+                    log(`Business ID: ${result.businessId}`);
+                    log(`Business Code: ${result.businessCode}`);
+                    log(`Property Connection Code: ${result.propertyConnectionCode}`);
+                    log(`Message: ${result.message}`);
+                } else {
+                    log(`Business creation failed: ${result.message}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`Error during business creation: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+        
+        async function viewStoredBusinesses() {
+            log('=== Viewing Stored Businesses ===');
+            
+            try {
+                const snapshot = await window.firebaseServices.db.collection('businesses').get();
+                
+                if (snapshot.docs.length === 0) {
+                    log('No businesses found in storage');
+                    return;
+                }
+                
+                log(`Found ${snapshot.docs.length} businesses:`);
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    log(`\nBusiness ID: ${doc.id}`);
+                    log(`Name: ${data.name || 'Unknown'}`);
+                    log(`Type: ${data.type || 'Unknown'}`);
+                    log(`Code: ${data.businessCode || 'No code'}`);
+                    log(`Created: ${data.dateCreated || 'Unknown'}`);
+                    log(`Properties: ${data.properties ? data.properties.length : 0}`);
+                    log('---');
+                });
+                
+            } catch (error) {
+                log(`Error retrieving businesses: ${error.message}`, 'error');
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Page loaded, initializing...', 'info');
+            
+            // Wait for Firebase initialization
+            setTimeout(() => {
+                checkFirebaseStatus();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

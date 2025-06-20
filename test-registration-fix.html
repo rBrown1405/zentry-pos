@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Registration Fix</title>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    
+    <!-- Firebase config and manager -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-manager.js"></script>
+</head>
+<body>
+    <h1>Registration Fix Test</h1>
+    <div id="status">Loading...</div>
+    <button id="testButton" disabled>Test Firebase Connection</button>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const statusDiv = document.getElementById('status');
+            const testButton = document.getElementById('testButton');
+            
+            // Wait for Firebase services to be ready
+            setTimeout(() => {
+                if (window.firebaseServices && window.firebaseServices.getDb()) {
+                    statusDiv.innerHTML = '✅ Firebase services are properly initialized!';
+                    statusDiv.style.color = 'green';
+                    testButton.disabled = false;
+                } else {
+                    statusDiv.innerHTML = '❌ Firebase services failed to initialize';
+                    statusDiv.style.color = 'red';
+                }
+                
+                if (window.firebaseManager) {
+                    statusDiv.innerHTML += '<br>✅ FirebaseManager instance is available globally';
+                } else {
+                    statusDiv.innerHTML += '<br>❌ FirebaseManager instance is not available';
+                }
+            }, 2000);
+            
+            testButton.addEventListener('click', function() {
+                statusDiv.innerHTML += '<br>🔄 Testing Firebase connection...';
+                
+                // Test basic Firebase connectivity
+                try {
+                    const db = window.firebaseServices.getDb();
+                    const testDoc = db.collection('test').doc('connection-test');
+                    
+                    testDoc.get().then(() => {
+                        statusDiv.innerHTML += '<br>✅ Firebase database connection successful!';
+                    }).catch((error) => {
+                        statusDiv.innerHTML += '<br>⚠️ Firebase connection test: ' + error.message;
+                    });
+                } catch (error) {
+                    statusDiv.innerHTML += '<br>❌ Firebase test error: ' + error.message;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
