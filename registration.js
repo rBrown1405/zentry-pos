@@ -133,11 +133,10 @@ async function handleRegistration(event) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(companyEmail)) {
             throw new Error('Please enter a valid email address');
-        }
-
-        // Show loading state
+        }        // Show loading state
         const submitButton = event.target.querySelector('.submit-button');
-        const originalContent = submitButton.innerHTML;        submitButton.innerHTML = '<span class="button-text">Creating Account...</span><span class="button-icon">⏳</span>';
+        const originalContent = submitButton.innerHTML;
+        submitButton.innerHTML = '<span class="button-text">Creating Account...</span><span class="button-icon">⏳</span>';
         submitButton.disabled = true;
 
         // Prepare business data
@@ -153,10 +152,8 @@ async function handleRegistration(event) {
             state,
             hotelBrand,
             rewardsProgram
-        };
-
-        // Ensure Firebase is initialized and authorized
-        if (!window.firebaseManager || !window.firebaseManager.db) {
+        };        // Ensure Firebase is initialized and authorized
+        if (!window.firebaseServices || !window.firebaseServices.getDb()) {
             throw new Error('Firebase is not properly initialized. Please refresh the page and try again.');
         }
 
@@ -181,12 +178,11 @@ async function handleRegistration(event) {
             console.log('Business account created successfully:', result.businessId);
 
             // Optional: Clear the form
-            event.target.reset();
-
-        } catch (error) {
+            event.target.reset();        } catch (error) {
             console.error('Registration error:', error);
             
             // Reset button state
+            const submitButton = event.target.querySelector('.submit-button');
             submitButton.disabled = false;
             submitButton.innerHTML = '<span class="button-text">Create Business Account</span><span class="button-icon">→</span>';
             

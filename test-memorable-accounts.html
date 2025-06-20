@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Memorable Account Generation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            border-left: 4px solid #007cba;
+        }
+        .result {
+            font-family: monospace;
+            background: #e8f4f8;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a85;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Memorable Account Name Generation Test</h1>
+        
+        <div class="test-section">
+            <h3>Test Account Name Generation</h3>
+            <p>Testing the new memorable account format: business letter + property letters + 3 numbers</p>
+            <button onclick="runTests()">Run Tests</button>
+            <div id="testResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Interactive Test</h3>
+            <label>Business Name: <input type="text" id="businessName" value="Wine Inc" placeholder="Business Name"></label><br><br>
+            <label>Property Name: <input type="text" id="propertyName" value="John Wine Inc" placeholder="Property Name"></label><br><br>
+            <label>Staff Name: <input type="text" id="staffName" value="Alice Manager" placeholder="Staff Full Name"></label><br><br>
+            <button onclick="generateCustomAccount()">Generate Account Name</button>
+            <div id="customResult"></div>
+        </div>
+    </div>
+
+    <script src="id-utils.js"></script>
+    <script>
+        function runTests() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<h4>Test Results:</h4>';
+            
+            const testCases = [
+                {
+                    business: 'Wine Inc',
+                    property: 'John Wine Inc',
+                    staff: 'Alice Manager',
+                    expected: /^w[a-z]{1,4}[0-9]{3}$/
+                },
+                {
+                    business: 'Pizza Palace',
+                    property: 'Downtown Location',
+                    staff: 'Bob Server',
+                    expected: /^p[a-z]{1,4}[0-9]{3}$/
+                },
+                {
+                    business: 'Coffee Corner',
+                    property: 'Main Street Cafe',
+                    staff: 'Carol Barista',
+                    expected: /^c[a-z]{1,4}[0-9]{3}$/
+                },
+                {
+                    business: 'Hotel Grande',
+                    property: 'Hotel Grande',
+                    staff: 'David Concierge',
+                    expected: /^h[a-z]{1,4}[0-9]{3}$/
+                }
+            ];
+
+            testCases.forEach((testCase, index) => {
+                try {
+                    const accountName = IDGenerator.generateMemorableAccountName(
+                        testCase.business, 
+                        testCase.property, 
+                        testCase.staff
+                    );
+                    
+                    const isValid = testCase.expected.test(accountName);
+                    const validFormat = IDGenerator.validateStaffID(accountName);
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="result">
+                            <strong>Test ${index + 1}:</strong> ${testCase.business} + ${testCase.property}<br>
+                            <strong>Generated:</strong> <span class="${isValid ? 'success' : 'error'}">${accountName}</span><br>
+                            <strong>Format Valid:</strong> <span class="${validFormat ? 'success' : 'error'}">${validFormat ? 'Yes' : 'No'}</span><br>
+                            <strong>Pattern Match:</strong> <span class="${isValid ? 'success' : 'error'}">${isValid ? 'Yes' : 'No'}</span>
+                        </div>
+                    `;
+                } catch (error) {
+                    resultsDiv.innerHTML += `
+                        <div class="result">
+                            <strong>Test ${index + 1}:</strong> <span class="error">Error: ${error.message}</span>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        function generateCustomAccount() {
+            const businessName = document.getElementById('businessName').value;
+            const propertyName = document.getElementById('propertyName').value;
+            const staffName = document.getElementById('staffName').value;
+            const resultsDiv = document.getElementById('customResult');
+            
+            if (!businessName || !propertyName || !staffName) {
+                resultsDiv.innerHTML = '<div class="result error">Please fill in all fields</div>';
+                return;
+            }
+            
+            try {
+                const accountName = IDGenerator.generateMemorableAccountName(businessName, propertyName, staffName);
+                const isValid = IDGenerator.validateStaffID(accountName);
+                
+                resultsDiv.innerHTML = `
+                    <div class="result">
+                        <strong>Business:</strong> ${businessName}<br>
+                        <strong>Property:</strong> ${propertyName}<br>
+                        <strong>Staff:</strong> ${staffName}<br>
+                        <strong>Generated Account:</strong> <span class="success">${accountName}</span><br>
+                        <strong>Valid Format:</strong> <span class="${isValid ? 'success' : 'error'}">${isValid ? 'Yes' : 'No'}</span><br>
+                        <strong>Example Login:</strong> Username: <code>${accountName}</code>
+                    </div>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="result error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Run tests on page load
+        window.onload = function() {
+            console.log('Testing memorable account generation...');
+            if (typeof IDGenerator !== 'undefined') {
+                console.log('✅ IDGenerator loaded successfully');
+            } else {
+                console.error('❌ IDGenerator not found');
+            }
+        };
+    </script>
+</body>
+</html>
