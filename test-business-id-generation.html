@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business ID Generation Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-result {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .business-name {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .business-id {
+            font-family: 'Courier New', monospace;
+            background-color: #e3f2fd;
+            padding: 5px 8px;
+            border-radius: 3px;
+            color: #1565c0;
+            font-size: 16px;
+        }
+        .comparison {
+            display: flex;
+            gap: 20px;
+            margin: 10px 0;
+        }
+        .old-format, .new-format {
+            flex: 1;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .old-format {
+            background-color: #ffebee;
+            border: 1px solid #f44336;
+        }
+        .new-format {
+            background-color: #e8f5e8;
+            border: 1px solid #4caf50;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Business ID Generation Test</h1>
+    <p>Testing the new, shorter business ID format that includes the company name.</p>
+    
+    <button onclick="generateTestIds()">Generate Test Business IDs</button>
+    <button onclick="testRealCompanies()">Test Real Company Names</button>
+    
+    <h3>How the new IDs work:</h3>
+    <ul>
+        <li><strong>First 3 letters:</strong> From the company name (e.g., "Test Hotel" → "TES")</li>
+        <li><strong>Next 2 characters:</strong> Random characters for uniqueness</li>
+        <li><strong>Last 6 digits:</strong> Timestamp for uniqueness</li>
+    </ul>
+    
+    <div id="results"></div>
+
+    <script src="id-utils.js"></script>
+    <script>
+        function generateTestIds() {
+            const testBusinesses = [
+                'Test Hotel Palace',
+                'Pizza Corner Restaurant', 
+                'Coffee Bean Café',
+                'Golden Dragon Restaurant',
+                'Mountain View Hotel',
+                'Downtown Bistro',
+                'Ocean View Resort',
+                'City Center Mall',
+                'Garden Restaurant',
+                'Sunset Bar & Grill'
+            ];
+            
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<h3>Test Business ID Generation Results:</h3>';
+            
+            testBusinesses.forEach(businessName => {
+                // Generate business code and ID
+                const businessCode = IDGenerator.generateBusinessCode(businessName);
+                const businessId = IDGenerator.generateBusinessId(businessCode);
+                
+                // Create comparison with old vs new format
+                const comparison = `
+                    <div class="test-result">
+                        <div class="business-name">${businessName}</div>
+                        <div class="comparison">
+                            <div class="old-format">
+                                <strong>Old Format (too long):</strong><br>
+                                <span style="font-family: monospace; font-size: 12px;">business_${Date.now()}_${Math.floor(Math.random() * 10000)}</span>
+                            </div>
+                            <div class="new-format">
+                                <strong>New Format (readable):</strong><br>
+                                <span class="business-id">${businessId}</span>
+                            </div>
+                        </div>
+                        <small>Business Code: ${businessCode} | Valid: ${IDGenerator.validateBusinessId(businessId)}</small>
+                    </div>
+                `;
+                resultsDiv.innerHTML += comparison;
+            });
+        }
+        
+        function testRealCompanies() {
+            const realCompanies = [
+                'McDonald\'s',
+                'Hilton Hotels',
+                'Starbucks Coffee',
+                'Marriott International',
+                'Best Buy',
+                'Home Depot',
+                'Target Corporation',
+                'Walmart Stores',
+                'Amazon',
+                'Apple Inc.'
+            ];
+            
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<h3>Real Company Name Test Results:</h3>';
+            
+            realCompanies.forEach(businessName => {
+                const businessCode = IDGenerator.generateBusinessCode(businessName);
+                const businessId = IDGenerator.generateBusinessId(businessCode);
+                
+                const result = `
+                    <div class="test-result">
+                        <div class="business-name">${businessName}</div>
+                        <div>Business ID: <span class="business-id">${businessId}</span></div>
+                        <small>Code: ${businessCode} | Length: ${businessId.length} characters | Valid: ${IDGenerator.validateBusinessId(businessId)}</small>
+                    </div>
+                `;
+                resultsDiv.innerHTML += result;
+            });
+        }
+        
+        // Auto-generate test on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            generateTestIds();
+        });
+    </script>
+</body>
+</html>

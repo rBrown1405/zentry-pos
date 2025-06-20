@@ -43,9 +43,7 @@ class MultiPropertyManager {
      */
     static generateConnectionCode() {
         return Math.floor(100000 + Math.random() * 900000).toString();
-    }
-
-    /**
+    }    /**
      * Create a new business account
      */
     static async createBusinessAccount(businessData) {
@@ -58,9 +56,9 @@ class MultiPropertyManager {
                 };
             }
 
-            // Generate unique business identifiers
-            const businessId = this.generateUniqueId('business');
-            const businessCode = this.generateConnectionCode();
+            // Generate unique business identifiers using the proper ID generator
+            const businessCode = await IDStorage.generateUniqueBusinessCode(businessData.companyName);
+            const businessId = await IDStorage.generateUniqueBusinessId(businessCode);
             const mainPropertyCode = this.generateConnectionCode();
 
             // Create the business account document in Firestore
@@ -71,9 +69,8 @@ class MultiPropertyManager {
                 businessType: businessData.businessType || 'restaurant',
                 companyEmail: businessData.companyEmail,
                 companyPhone: businessData.companyPhone || '',
-                businessCode: businessCode,
-                mainProperty: {
-                    id: this.generateUniqueId('property'),
+                businessCode: businessCode,                mainProperty: {
+                    id: `prop_${businessCode}_main`,
                     name: businessData.propertyName || businessData.companyName,
                     address: businessData.address || '',
                     country: businessData.country || '',

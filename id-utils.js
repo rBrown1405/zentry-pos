@@ -1,7 +1,6 @@
 // ID Generation and Validation Utilities
 
-class IDGenerator {
-    static generateBusinessCode(businessName) {
+class IDGenerator {    static generateBusinessCode(businessName) {
         // Generate a business code from business name
         const cleaned = businessName.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
         const prefix = cleaned.substring(0, 3).padEnd(3, 'X');
@@ -10,11 +9,12 @@ class IDGenerator {
     }
 
     static generateBusinessId(businessCode) {
-        // Generate a unique business ID
-        const timestamp = Date.now().toString();
-        const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-        return `BIZ${businessCode}${random}${timestamp.slice(-3)}`;
-    }    static generateStaffId(fullName, position) {
+        // Generate a more readable business ID that includes the business name
+        const businessNamePart = businessCode.substring(0, 3); // First 3 letters from business name
+        const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
+        const random = Math.random().toString(36).substring(2, 4).toUpperCase(); // 2 random chars
+        return `${businessNamePart}${random}${timestamp}`;
+    }static generateStaffId(fullName, position) {
         // Generate staff ID from name and position
         const nameParts = fullName.trim().split(' ');
         const firstName = nameParts[0] || '';
@@ -83,11 +83,15 @@ class IDGenerator {
         const memorableFormat = /^[a-z]{2,6}[0-9]{3}$/.test(staffId);
         
         return originalFormat || memorableFormat;
-    }
-
-    static validateBusinessId(businessId) {
-        // Business ID should start with BIZ (e.g., BIZABC1234XY567)
-        return /^BIZ[A-Z0-9]+$/.test(businessId);
+    }    static validateBusinessId(businessId) {
+        // Updated formats:
+        // Old format: BIZ + businessCode + random + numbers (e.g., BIZABC1234XY567)
+        const oldFormat = /^BIZ[A-Z0-9]+$/.test(businessId);
+        
+        // New format: 3 letters + 2 random chars + 6 numbers (e.g., ABC8X123456)
+        const newFormat = /^[A-Z]{3}[A-Z0-9]{2}[0-9]{6}$/.test(businessId);
+        
+        return oldFormat || newFormat;
     }
 }
 
