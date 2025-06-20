@@ -4,35 +4,62 @@
  */
 class FirebaseManager {
   constructor() {
-    // Get Firebase services
-    this.app = window.firebaseServices.getApp();
-    this.auth = window.firebaseServices.getAuth();
-    this.db = window.firebaseServices.getDb();
-    this.storage = window.firebaseServices.getStorage();
+    // Initialize with null values and wait for Firebase services
+    this.app = null;
+    this.auth = null;
+    this.db = null;
+    this.storage = null;
     
     // User information
     this.user = JSON.parse(localStorage.getItem('user') || 'null');
     
-    // Set up auth state change listener
-    this.auth.onAuthStateChanged(user => {
-      if (user) {
-        // User is signed in
-        this.user = {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-          emailVerified: user.emailVerified,
-          role: user.customClaims ? user.customClaims.role : 'employee' // Default role
-        };
+    // Initialize when Firebase services are ready
+    this.initializeServices();
+  }
+  
+  /**
+   * Initialize Firebase services when they become available
+   */
+  initializeServices() {
+    const checkServices = () => {
+      if (window.firebaseServices) {
+        // Get Firebase services
+        this.app = window.firebaseServices.getApp();
+        this.auth = window.firebaseServices.getAuth();
+        this.db = window.firebaseServices.getDb();
+        this.storage = window.firebaseServices.getStorage();
         
-        localStorage.setItem('user', JSON.stringify(this.user));
+        // Set up auth state change listener
+        if (this.auth) {
+          this.auth.onAuthStateChanged(user => {
+            if (user) {
+              // User is signed in
+              this.user = {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                photoURL: user.photoURL,
+                emailVerified: user.emailVerified,
+                role: user.customClaims ? user.customClaims.role : 'employee' // Default role
+              };
+              
+              localStorage.setItem('user', JSON.stringify(this.user));
+            } else {
+              // User is signed out
+              this.user = null;
+              localStorage.removeItem('user');
+            }
+          });
+        }
+        
+        console.log('FirebaseManager initialized successfully');
       } else {
-        // User is signed out
-        this.user = null;
-        localStorage.removeItem('user');
+        // Retry after a short delay
+        setTimeout(checkServices, 100);
       }
-    });
+    };
+    
+    checkServices();
   }
   
   /**
@@ -463,5 +490,18 @@ class FirebaseManager {
   }
 }
 
-// Create global instance
-window.firebaseManager = new FirebaseManager();
+// Create global instance when Firebase services are ready
+document.addEventListener('DOMContentLoaded', function() {
+  // Wait for Firebase services to be initialized
+  const initManager = () => {
+    if (window.firebaseServices) {
+      window.firebaseManager = new FirebaseManager();
+      console.log('FirebaseManager instance created globally');
+    } else {
+      // Retry after a short delay
+      setTimeout(initManager, 100);
+    }
+  };
+  
+  initManager();
+});

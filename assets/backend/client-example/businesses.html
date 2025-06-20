@@ -10,9 +10,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-    
-    <!-- Firebase config -->
-    <script src="../../../js/firebase-config.js" type="module"></script>
+      <!-- Firebase config -->
+    <script src="../../../js/firebase-config.js"></script>
 
     <style>
         body {
@@ -300,12 +299,13 @@
                     <button type="submit" class="primary">Save</button>
                 </div>
             </form>
-        </div>
-    </div>
+        </div>    </div>
 
-    <script type="module">
-        import SuperAdminManager from './SuperAdminManager.js';
-        
+    <!-- Include SuperAdminManager and ApiManager -->
+    <script src="../../js/api-manager.js"></script>
+    <script src="SuperAdminManager.js"></script>
+    
+    <script>
         const manager = new SuperAdminManager();
         
         // Check if authenticated

@@ -2,8 +2,6 @@
  * SuperAdminManager class for handling business management operations
  * This class uses the API Manager to communicate with the MongoDB backend
  */
-import ApiManager from '../../js/api-manager.js';
-
 class SuperAdminManager {
     constructor() {
         this.api = new ApiManager('http://localhost:3000/api');
@@ -734,5 +732,5 @@ class SuperAdminManager {
     }
 }
 
-// Export the class for use in other modules
-export default SuperAdminManager;
+// Make SuperAdminManager available globally
+window.SuperAdminManager = SuperAdminManager;

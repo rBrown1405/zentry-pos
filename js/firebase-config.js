@@ -47,7 +47,7 @@ function initializeFirebase() {
     }
 }
 
-// Export Firebase services
+// Export Firebase services to window object for global access
 const firebaseServices = {
     initialize: initializeFirebase,
     getApp: () => app,
@@ -56,4 +56,14 @@ const firebaseServices = {
     getStorage: () => storage
 };
 
-export default firebaseServices;
+// Make firebaseServices available globally
+window.firebaseServices = firebaseServices;
+
+// Auto-initialize Firebase when script loads
+document.addEventListener('DOMContentLoaded', function() {
+    initializeFirebase().then(() => {
+        console.log('Firebase services ready');
+    }).catch(error => {
+        console.error('Failed to initialize Firebase:', error);
+    });
+});
