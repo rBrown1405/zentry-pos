@@ -2271,10 +2271,6 @@
         }
 
         /* ...existing code... */    </style>    <script src="hotel-mode.js"></script>
-    <script src="js/property-switcher.js"></script>
-    <script src="js/business-switcher.js"></script>
-    <script src="js/property-connection.js"></script>
-    <script src="js/header-manager.js"></script>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -2283,10 +2279,46 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     
     <!-- Firebase Configuration -->
-    <script src="js/firebase-config.js"></script>
-    <script src="js/firebase-manager.js"></script>
-    <script src="js/umbrella-account-manager.js"></script>
-    <script src="js/data-migration.js"></script>
+    <script>
+        // Simple Firebase stub for offline operation
+        window.firebaseManager = {
+            initialized: false,
+            onMenuItemsChange: function(callback) {
+                console.log('Firebase offline - menu changes not available');
+            },
+            onTablesChange: function(callback) {
+                console.log('Firebase offline - table changes not available');
+            },
+            onOrdersChange: function(callback) {
+                console.log('Firebase offline - order changes not available');
+            },
+            updateOrderStatus: function(orderId, status) {
+                console.log('Firebase offline - order status update not available');
+                return Promise.resolve();
+            }
+        };
+        
+        // Initialize header with property information
+        function initializeHeader() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const currentProperty = JSON.parse(localStorage.getItem('currentProperty') || '{}');
+            
+            const systemName = document.querySelector('.system-name');
+            if (systemName) {
+                systemName.textContent = 'ZENTRY POS';
+            }
+
+            const accountInfo = document.querySelector('.account-info');
+            if (accountInfo && currentUser.role) {
+                accountInfo.textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+            }
+
+            const hotelName = document.querySelector('.hotel-name');
+            if (hotelName) {
+                hotelName.textContent = currentProperty.name || currentUser.businessName || 'Restaurant';
+            }
+        }
+    </script>
 </head>
 <body>
     <div class="pos-container">
@@ -2311,7 +2343,11 @@
                 <button class="tab-button active" onclick="switchTab('menu')">Menu</button>
                 <button class="tab-button" onclick="switchTab('kitchen')">Kitchen</button>
                 <button class="tab-button" id="roomServiceTab" onclick="switchTab('roomservice')">🛎️ Room Service</button>
-            </div><div class="header-actions">                <button class="header-btn" title="Connect to Property" onclick="showPropertyConnectionModal()">🔗 Connect</button>
+            </div><div class="header-actions">
+                <input type="file" id="menuUploadInput" accept=".json,.csv" style="display:none" />
+                <button class="header-btn" onclick="document.getElementById('menuUploadInput').click()">📋 Upload Menu</button>
+                <button class="header-btn" onclick="clearMenu()">🗑️ Clear Menu</button>
+                <button class="header-btn" title="Connect to Property" onclick="showPropertyConnectionModal()">🔗 Connect</button>
                 <button class="header-btn" title="Help & Support" onclick="window.open('help.html', '_blank')">📚 Help</button>
                 <button class="header-btn" title="General Settings" onclick="openGeneralSettings()">⚙️ Settings</button>
                 <button class="header-btn dropdown-toggle" title="Business Management">🏢 Business
@@ -7146,181 +7182,94 @@
             }
             
             // Initialize Firebase
-            initializeFirebase();
-            console.log('Firebase initialization triggered');
+            try {
+                initializeHeader();
+                console.log('Header initialized');
+            } catch (error) {
+                console.log('Header initialization skipped:', error.message);
+            }
             
-            // Setup real-time listeners for POS data
-            setupFirebaseListeners();
+            // Setup real-time listeners for POS data (offline mode)
+            try {
+                setupFirebaseListeners();
+            } catch (error) {
+                console.log('Firebase listeners skipped - running in offline mode');
+            }
         });
         
         // Setup Firebase real-time data listeners
         function setupFirebaseListeners() {
             const firebaseManager = window.firebaseManager;
             
+            if (!firebaseManager) {
+                console.log('Firebase manager not available - using offline mode');
+                return;
+            }
+            
             // Listen for menu item changes
-            firebaseManager.onMenuItemsChange(menuItems => {
-                console.log('Menu items updated:', menuItems.length);
-                // Update your UI with the new menu items
-                updateMenuDisplay(menuItems);
-            });
+            if (firebaseManager.onMenuItemsChange) {
+                firebaseManager.onMenuItemsChange(menuItems => {
+                    console.log('Menu items updated:', menuItems.length);
+                    updateMenuDisplay(menuItems);
+                });
+            }
             
             // Listen for table changes
-            firebaseManager.onTablesChange(tables => {
-                console.log('Tables updated:', tables.length);
-                // Update your UI with the new table statuses
-                updateTableDisplay(tables);
-            });
+            if (firebaseManager.onTablesChange) {
+                firebaseManager.onTablesChange(tables => {
+                    console.log('Tables updated:', tables.length);
+                    updateTableDisplay(tables);
+                });
+            }
             
             // Listen for order changes (kitchen display)
-            firebaseManager.onOrdersChange(orders => {
-                console.log('Orders updated:', orders.length);
-                // Update your kitchen display with the new orders
-                updateKitchenDisplay(orders);
-            });
+            if (firebaseManager.onOrdersChange) {
+                firebaseManager.onOrdersChange(orders => {
+                    console.log('Orders updated:', orders.length);
+                    updateKitchenDisplay(orders);
+                });
+            }
         }
         
         // Functions to update the UI with Firebase data
         function updateMenuDisplay(menuItems) {
-            // This function will update your menu display with items from Firebase
-            // You can modify this to match your existing menu display logic
-            const menuGrid = document.querySelector('.menu-grid');
-            if (!menuGrid) return;
-            
-            // Clear current menu
-            menuGrid.innerHTML = '';
-            
-            // Add menu items from Firebase
-            menuItems.forEach(item => {
-                const menuItemElement = document.createElement('div');
-                menuItemElement.className = 'menu-item';
-                menuItemElement.dataset.id = item.id;
-                
-                menuItemElement.innerHTML = `
-                    <div class="item-image">${item.emoji || '🍽️'}</div>
-                    <div class="item-name">${item.name}</div>
-                    <div class="item-price">$${parseFloat(item.price).toFixed(2)}</div>
-                    <div class="item-actions">
-                        <button class="item-btn customize-btn">Customize</button>
-                        <button class="item-btn details-btn">Add</button>
-                    </div>
-                `;
-                
-                // Add click handler for the Add button
-                const addButton = menuItemElement.querySelector('.details-btn');
-                if (addButton) {
-                    addButton.addEventListener('click', () => {
-                        // Add this item to the order
-                        addToOrder(item);
-                    });
-                }
-                
-                menuGrid.appendChild(menuItemElement);
-            });
+            // Load menu from localStorage instead
+            loadMenuFromStorage();
         }
         
         function updateTableDisplay(tables) {
-            // This function will update your table display with tables from Firebase
-            // You can modify this to match your existing table display logic
-            const floorPlanCanvas = document.querySelector('.floor-plan-canvas');
-            if (!floorPlanCanvas) return;
-            
-            // Clear current tables
-            floorPlanCanvas.innerHTML = '';
-            
-            // Add tables from Firebase
-            tables.forEach(table => {
-                const tableElement = document.createElement('div');
-                tableElement.className = `floor-plan-table ${table.shape || 'circle'} ${table.status}`;
-                tableElement.dataset.id = table.id;
-                tableElement.dataset.tableNumber = table.number;
-                tableElement.dataset.capacity = table.capacity;
-                tableElement.dataset.status = table.status;
-                
-                // Set position and size
-                tableElement.style.width = `${table.width || 80}px`;
-                tableElement.style.height = `${table.height || 80}px`;
-                tableElement.style.left = `${table.x || 0}px`;
-                tableElement.style.top = `${table.y || 0}px`;
-                
-                tableElement.innerHTML = `
-                    <span class="table-name-display">Table ${table.number}</span>
-                    <span class="table-capacity-display">${table.capacity} seats</span>
-                `;
-                
-                // Add click handler
-                tableElement.addEventListener('click', () => {
-                    // Handle table selection
-                    selectTable(table);
-                });
-                
-                floorPlanCanvas.appendChild(tableElement);
-            });
+            // Table display handled by existing table system
+            console.log('Table display updated');
         }
         
         function updateKitchenDisplay(orders) {
-            // This function will update your kitchen display with orders from Firebase
-            // You can modify this to match your existing kitchen display logic
+            // Kitchen display with offline fallback
             const kitchenOrders = document.querySelector('.kitchen-orders');
             if (!kitchenOrders) return;
             
-            // Clear current orders
-            kitchenOrders.innerHTML = '';
-            
-            // Filter only orders that are in the kitchen workflow
-            const kitchenWorkflowOrders = orders.filter(order => 
-                ['new', 'preparing', 'ready', 'served'].includes(order.status)
-            );
-            
-            // Add orders from Firebase
-            kitchenWorkflowOrders.forEach(order => {
-                const orderElement = document.createElement('div');
-                orderElement.className = `kitchen-order ${order.status}`;
-                orderElement.dataset.id = order.id;
-                
-                // Format timestamp
-                const orderTime = order.createdAt ? new Date(order.createdAt.toDate()) : new Date();
-                const formattedTime = orderTime.toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                
-                orderElement.innerHTML = `
-                    <div class="order-header">
-                        <div class="order-number">Order #${order.orderNumber || order.id.slice(-4)}</div>
-                        <div class="order-status ${order.status}">${order.status.toUpperCase()}</div>
+            // Use local orders if available
+            const localOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+            if (localOrders && localOrders.length > 0) {
+                // Display local orders
+                kitchenOrders.innerHTML = localOrders.map(order => `
+                    <div class="kitchen-order ${order.status || 'new'}">
+                        <div class="order-header">
+                            <div class="order-number">Order #${order.id || 'LOCAL'}</div>
+                            <div class="order-status ${order.status || 'new'}">${(order.status || 'new').toUpperCase()}</div>
+                        </div>
+                        <div class="order-items-list">
+                            ${(order.items || []).map(item => `
+                                <div class="kitchen-item">
+                                    <div class="item-name-qty">${item.quantity || 1}x ${item.name || 'Item'}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="order-time">${new Date().toLocaleTimeString()}</div>
                     </div>
-                    <div class="order-items-list">
-                        ${order.items.map(item => `
-                            <div class="kitchen-item">
-                                <div class="item-name-qty">${item.quantity}x ${item.name}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="order-time">${formattedTime}</div>
-                    <div class="status-buttons">
-                        <button class="status-btn prepare" data-status="preparing">Preparing</button>
-                        <button class="status-btn ready" data-status="ready">Ready</button>
-                        <button class="status-btn served" data-status="served">Served</button>
-                    </div>
-                `;
-                
-                // Add event listeners to status buttons
-                const statusButtons = orderElement.querySelectorAll('.status-btn');
-                statusButtons.forEach(button => {
-                    button.addEventListener('click', () => {
-                        const newStatus = button.dataset.status;
-                        firebaseManager.updateOrderStatus(order.id, newStatus)
-                            .then(() => {
-                                console.log(`Order ${order.id} status updated to ${newStatus}`);
-                            })
-                            .catch(error => {
-                                console.error('Error updating order status:', error);
-                            });
-                    });
-                });
-                
-                kitchenOrders.appendChild(orderElement);
-            });
+                `).join('');
+            } else {
+                kitchenOrders.innerHTML = '<div class="room-service-empty-state"><p>No orders yet</p></div>';
+            }
         }
         
         // Function to add an item to the current order
