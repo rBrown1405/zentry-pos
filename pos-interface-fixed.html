@@ -2366,7 +2366,7 @@
         <main class="pos-main">
             <!-- Menu View -->
             <section class="menu-panel" id="menuView">
-                <div class="menu-panel::before-content">Menu Section</div>                <div class="menu-grid" id="menuGrid">
+                <div class="menu-grid" id="menuGrid">
                     <!-- Menu items will be populated by JavaScript from menu editor -->
                 </div>
             </section>            <!-- Kitchen View -->
@@ -7356,6 +7356,173 @@
                 `;
             }
         });
+
+        // --- MENU UPLOAD & LOCALSTORAGE LOGIC ---
+        function parseCSV(csv) {
+            const lines = csv.split(/\r?\n/).filter(Boolean);
+            const headers = lines[0].split(',').map(h => h.trim());
+            return lines.slice(1).map(line => {
+                const values = line.split(',');
+                let obj = {};
+                headers.forEach((h, i) => obj[h] = values[i] ? values[i].trim() : '');
+                return obj;
+            });
+        }
+
+        function displayMenu(menuItems) {
+            console.log('displayMenu called with:', menuItems);
+            const grid = document.getElementById('menuGrid');
+            console.log('Menu grid element:', grid);
+            
+            if (!grid) {
+                console.error('Menu grid element not found!');
+                return;
+            }
+            
+            grid.innerHTML = '';
+            
+            if (!menuItems || !menuItems.length) {
+                grid.innerHTML = '<div style="color:#888;text-align:center;width:100%;grid-column: 1/-1;padding:2rem;border:2px solid #ddd;border-radius:8px;margin:1rem;">No menu loaded. Click "Upload Menu" to add items.</div>';
+                console.log('No menu items to display');
+                return;
+            }
+            
+            console.log('Displaying', menuItems.length, 'menu items');
+            
+            menuItems.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'menu-item';
+                
+                const itemName = item.name || item.Name || `Item ${index + 1}`;
+                const itemPrice = parseFloat(item.price || item.Price || 0);
+                const itemEmoji = item.emoji || item.Emoji || '🍽️';
+                
+                div.innerHTML = `
+                    <div class="item-image">${itemEmoji}</div>
+                    <div class="item-name">${itemName}</div>
+                    <div class="item-price">$${itemPrice.toFixed(2)}</div>
+                    <div class="item-actions">
+                        <button class="item-btn customize-btn">Customize</button>
+                        <button class="item-btn details-btn" onclick="addToCart('${itemName.replace(/'/g, "\\'")}', ${itemPrice})">Add</button>
+                    </div>
+                `;
+                grid.appendChild(div);
+                console.log('Added menu item:', itemName, '$' + itemPrice.toFixed(2));
+            });
+            
+            console.log('Menu display completed');
+        }
+
+        function loadMenuFromStorage() {
+            console.log('Loading menu from localStorage...');
+            try {
+                const menu = localStorage.getItem('menuData');
+                if (menu) {
+                    const menuItems = JSON.parse(menu);
+                    console.log('Menu loaded from localStorage:', menuItems.length, 'items');
+                    displayMenu(menuItems);
+                } else {
+                    console.log('No menu found in localStorage');
+                    displayMenu([]);
+                }
+            } catch (e) {
+                console.error('Error loading menu from localStorage:', e);
+                displayMenu([]);
+            }
+        }
+
+        function clearMenu() {
+            if (confirm('Are you sure you want to clear the menu?')) {
+                localStorage.removeItem('menuData');
+                loadMenuFromStorage();
+                console.log('Menu cleared');
+            }
+        }
+
+        function addToCart(itemName, itemPrice) {
+            // Simple cart functionality for testing
+            const cart = JSON.parse(localStorage.getItem('currentCart') || '[]');
+            const existingItem = cart.find(item => item.name === itemName);
+            
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({
+                    name: itemName,
+                    price: parseFloat(itemPrice),
+                    quantity: 1
+                });
+            }
+            
+            localStorage.setItem('currentCart', JSON.stringify(cart));
+            console.log('Added to cart:', itemName, '$' + parseFloat(itemPrice).toFixed(2));
+            alert('Added ' + itemName + ' to cart!');
+        }
+
+        // Menu upload event listener
+        function initializeMenuUpload() {
+            const uploadInput = document.getElementById('menuUploadInput');
+            if (uploadInput) {
+                uploadInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    console.log('File selected:', file.name, file.type);
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        let menuItems = [];
+                        
+                        try {
+                            if (file.name.endsWith('.json')) {
+                                console.log('Parsing JSON file...');
+                                menuItems = JSON.parse(evt.target.result);
+                            } else if (file.name.endsWith('.csv')) {
+                                console.log('Parsing CSV file...');
+                                menuItems = parseCSV(evt.target.result);
+                            }
+                            
+                            console.log('Parsed menu items:', menuItems);
+                            
+                            if (Array.isArray(menuItems) && menuItems.length > 0) {
+                                localStorage.setItem('menuData', JSON.stringify(menuItems));
+                                displayMenu(menuItems);
+                                console.log('Menu uploaded successfully:', menuItems.length, 'items');
+                                alert('Menu uploaded successfully! ' + menuItems.length + ' items loaded.');
+                            } else {
+                                console.error('Invalid menu data:', menuItems);
+                                alert('Menu file must contain an array of items.');
+                            }
+                        } catch (err) {
+                            console.error('Error parsing menu file:', err);
+                            alert('Invalid file format. Please use JSON or CSV.');
+                        }
+                    };
+                    
+                    reader.readAsText(file);
+                    e.target.value = ''; // Reset file input
+                });
+                console.log('Menu upload event listener added');
+            } else {
+                console.error('Menu upload input not found');
+            }
+        }
+
+        // Initialize everything when DOM is ready
+        function initializeMenuSystem() {
+            console.log('Initializing menu system...');
+            initializeHeader();
+            initializeMenuUpload();
+            loadMenuFromStorage();
+        }
+
+        // Call initialization
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeMenuSystem);
+        } else {
+            initializeMenuSystem();
+        }
+        // --- END MENU UPLOAD & LOCALSTORAGE LOGIC ---
 
         // ...existing code...
     </script>
