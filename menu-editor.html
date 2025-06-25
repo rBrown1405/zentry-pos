@@ -1126,10 +1126,16 @@
                     console.warn("No property context found, saving to global storage");
                     localStorage.setItem('menuItems', JSON.stringify(menuItems));
                 }
+                
+                // Also save to menuData for sync with POS interface
+                localStorage.setItem('menuData', JSON.stringify(menuItems));
+                console.log("Menu data saved to menuData for POS sync");
+                
             } catch (error) {
                 console.error("Error saving menu data:", error);
                 // Fallback
                 localStorage.setItem('menuItems', JSON.stringify(menuItems));
+                localStorage.setItem('menuData', JSON.stringify(menuItems));
             }
         }
 
@@ -1202,424 +1208,118 @@
             return categoryNames[category] || category;
         }
 
-        // Filter items by category
-        function filterByCategory(category) {
-            currentFilter = category;
+        // Update the 86'd stats and total count
+        function updateEightySixStats() {
+            const totalItems = menuItems.length;
+            const eightySixedToday = menuItems.filter(item => !isItemAvailableToday(item)).length;
+            const availableToday = totalItems - eightySixedToday;
             
-            // Update active button
-            document.querySelectorAll('.category-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
+            // Update all stat counts
+            document.getElementById('totalCount').textContent = totalItems;
+            document.getElementById('eightySixedCount').textContent = eightySixedToday;
+            document.getElementById('availableCount').textContent = availableToday;
             
-            renderMenuItems();
+            console.log(`Stats updated: ${totalItems} total items, ${availableToday} available, ${eightySixedToday} 86'd today`);
         }
 
-        // Filter items by search term
-        function filterItems() {
-            renderMenuItems();
-        }
-
-        // Add new item
-        function addNewItem() {
-            currentEditingItem = null;
-            clearForm();
-            document.getElementById('editorTitle').textContent = 'Add New Item';
-            document.getElementById('saveBtn').textContent = 'Save Item';
-        }        // Edit existing item
-        function editItem(itemId) {
-            const item = menuItems.find(i => i.id === itemId);
-            if (!item) return;
-
-            currentEditingItem = item;
-            
-            // Populate form
-            document.getElementById('itemName').value = item.name;
-            document.getElementById('itemPrice').value = item.price;
-            document.getElementById('itemCategory').value = item.category;
-            document.getElementById('itemDescription').value = item.description || '';
-            document.getElementById('selectedEmoji').value = item.emoji || '🍽️';
-            document.getElementById('itemAvailable').checked = item.available !== false; // Default to true
-            
-            // Update emoji selection UI
-            document.querySelectorAll('.emoji-option').forEach(option => {
-                option.classList.remove('selected');
-                if (option.dataset.emoji === item.emoji) {
-                    option.classList.add('selected');
-                }
-            });
-            
-            // Update day toggle buttons
-            if (item.dayAvailability) {
-                document.querySelectorAll('.day-toggle').forEach(toggle => {
-                    const day = toggle.dataset.day;
-                    if (!item.dayAvailability[day]) {
-                        toggle.classList.add('disabled');
-                    } else {
-                        toggle.classList.remove('disabled');
-                    }
-                });
-            }
-            
-            // Update modifiers badge
-            updateModifiersBadge();
-            
-            // Update UI state
-            document.getElementById('editorTitle').textContent = 'Edit Item';
-            document.getElementById('saveBtn').textContent = 'Update Item';
-            
-            renderMenuItems(); // Re-render to show selection
-        }
-
-        // Duplicate item
-        function duplicateItem(itemId) {
-            const item = menuItems.find(i => i.id === itemId);
-            if (!item) return;
-
-            const newItem = {
-                ...item,
-                id: 'item_' + Date.now(),
-                name: item.name + ' (Copy)'
-            };
-
-            menuItems.push(newItem);
-            saveMenuData();
-            renderMenuItems();
-            showNotification(`${item.name} duplicated successfully!`);
-        }
-
-        // Delete item
-        function deleteItem(itemId) {
-            const item = menuItems.find(i => i.id === itemId);
-            if (!item) return;
-
-            if (confirm(`Are you sure you want to delete "${item.name}"? This cannot be undone.`)) {
-                menuItems = menuItems.filter(i => i.id !== itemId);
-                saveMenuData();
-                renderMenuItems();
-                
-                // Clear form if we were editing this item
-                if (currentEditingItem && currentEditingItem.id === itemId) {
-                    clearForm();
-                }
-                
-                showNotification(`${item.name} deleted successfully!`, 'warning');
-            }
-        }
-
-        // Select emoji
-        function selectEmoji(emoji) {
-            document.getElementById('selectedEmoji').value = emoji;
-            
-            // Update visual selection
-            document.querySelectorAll('.emoji-option').forEach(option => {
-                option.classList.remove('selected');
-            });
-            event.target.classList.add('selected');
-        }        // Handle form submission
-        document.getElementById('itemForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Get day availability
-            const dayAvailability = {};
-            document.querySelectorAll('.day-toggle').forEach(toggle => {
-                const day = toggle.dataset.day;
-                dayAvailability[day] = !toggle.classList.contains('disabled');
-            });
-            
-            const formData = {
-                name: document.getElementById('itemName').value.trim(),
-                price: parseFloat(document.getElementById('itemPrice').value),
-                category: document.getElementById('itemCategory').value,
-                description: document.getElementById('itemDescription').value.trim(),
-                emoji: document.getElementById('selectedEmoji').value || '🍽️',
-                available: document.getElementById('itemAvailable').checked,
-                dayAvailability: dayAvailability
-            };
-
-            // Validation
-            if (!formData.name || !formData.price || !formData.category) {
-                showNotification('Please fill in all required fields!', 'error');
-                return;
-            }
-
-            if (currentEditingItem) {
-                // Update existing item
-                Object.assign(currentEditingItem, formData);
-                showNotification(`${formData.name} updated successfully!`);
-            } else {
-                // Add new item
-                const newItem = {
-                    id: 'item_' + Date.now(),
-                    ...formData
-                };
-                menuItems.push(newItem);
-                showNotification(`${formData.name} added successfully!`);
-            }
-
-            saveMenuData();
-            renderMenuItems();
-            clearForm();
-        });        // Clear form
-        function clearForm() {
-            document.getElementById('itemForm').reset();
-            document.getElementById('selectedEmoji').value = '';
-            document.querySelectorAll('.emoji-option').forEach(option => {
-                option.classList.remove('selected');
-            });
-            
-            // Reset day availability to all available
+        // Initialize day availability controls
+        function initializeDayAvailability() {
+            // Set all days as available by default
             document.querySelectorAll('.day-toggle').forEach(toggle => {
                 toggle.classList.remove('disabled');
             });
-            
-            // Reset modifiers badge
-            const modifierBtn = document.querySelector('.modifier-tab-btn');
-            const existingBadge = modifierBtn.querySelector('.modifiers-badge');
-            if (existingBadge) {
-                modifierBtn.removeChild(existingBadge);
-            }
-            
-            currentEditingItem = null;
-            document.getElementById('editorTitle').textContent = 'Add New Item';
-            document.getElementById('saveBtn').textContent = 'Save Item';
-            
-            renderMenuItems(); // Re-render to clear selection
         }
 
-        // Save all changes and sync with POS
-        function saveAllChanges() {
+        // Get today's day name
+        function getTodayName() {
+            const today = new Date();
+            const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            return dayNames[today.getDay()];
+        }
+
+        // Check if an item is available today
+        function isItemAvailableToday(item) {
+            if (!item.dayAvailability) {
+                return true; // If no day availability set, assume available
+            }
+            const today = getTodayName();
+            return item.dayAvailability[today] !== false;
+        }
+
+        // Toggle day availability for editing item
+        function toggleDayAvailability(day) {
+            const toggle = document.querySelector(`[data-day="${day}"]`);
+            if (toggle) {
+                toggle.classList.toggle('disabled');
+            }
+        }
+
+        // Toggle 86'd status for an item
+        function toggleEightySix(itemId) {
+            const item = menuItems.find(i => i.id === itemId);
+            if (!item) return;
+
+            const today = getTodayName();
+            
+            // Initialize dayAvailability if it doesn't exist
+            if (!item.dayAvailability) {
+                item.dayAvailability = {
+                    monday: true,
+                    tuesday: true,
+                    wednesday: true,
+                    thursday: true,
+                    friday: true,
+                    saturday: true,
+                    sunday: true
+                };
+            }
+
+            // Toggle today's availability
+            item.dayAvailability[today] = !item.dayAvailability[today];
+            
             saveMenuData();
+            renderMenuItems();
             
-            // Generate JavaScript code for POS integration
-            const menuCode = generateMenuCode();
-            
-            showNotification('All changes saved successfully!');
-            
-            // Show integration instructions
-            setTimeout(() => {
-                const integrate = confirm('Menu saved! Would you like to see integration instructions for the POS system?');
-                if (integrate) {
-                    showIntegrationModal();
-                }
-            }, 1000);
+            const status = item.dayAvailability[today] ? 'available' : '86\'d';
+            showNotification(`${item.name} is now ${status} for today`);
         }
 
-        // Generate menu code for POS integration
-        function generateMenuCode() {
-            return menuItems.map(item => `
-                    <div class="menu-item" onclick="addToCart('${item.id}', '${item.name}', ${item.price})">
-                        <div class="item-image">${item.emoji}</div>
-                        <div class="item-name">${item.name}</div>
-                        <div class="item-price">$${item.price.toFixed(2)}</div>
-                        <div class="item-actions">
-                            <button class="item-btn customize-btn" onclick="event.stopPropagation(); customizeItem('${item.id}')">Customize</button>
-                            <button class="item-btn details-btn" onclick="event.stopPropagation(); showDetails('${item.id}')">Details</button>
-                        </div>
-                    </div>`).join('');
-        }
-
-        // Show integration modal
-        function showIntegrationModal() {
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.5);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 10000;
-            `;
-            
-            modal.innerHTML = `                <div style="background: white; border: 3px solid #000; padding: 2rem; max-width: 600px; width: 90%;">
-                    <h3 style="margin-top: 0;">🔗 POS Integration</h3>
-                    <p>Your menu changes have been saved to the property database. To apply them to the POS system:</p>
-                    <ol style="margin: 1rem 0; padding-left: 1.5rem;">
-                        <li>The menu data is now stored in your property's database</li>
-                        <li>The POS system will automatically load the updated menu</li>
-                        <li>Click "Got it!" to return to the POS interface</li>
-                    </ol>
-                    <p><strong>Note:</strong> Menu changes are saved to your property's database and will be available across all devices.</p>
-                    <div style="text-align: center; margin-top: 2rem;">
-                        <button id="gotItButton" onclick="handleGotItClick()" style="background: #3b82f6; color: white; border: 2px solid #000; padding: 0.75rem 1.5rem; font-family: 'Courier New', monospace; cursor: pointer;">Got it!</button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-        }        // Handle the "Got it" button click in the POS integration modal
-        function handleGotItClick() {
-            // Close the modal
-            const modal = document.querySelector('.modal-overlay');
-            if (modal) {
-                document.body.removeChild(modal);
-            }
-            
-            // Redirect to the POS interface
-            window.location.href = 'pos-interface-fixed.html';
-        }
-        
-        // Notification system
+        // Show notification message
         function showNotification(message, type = 'success') {
+            // Create notification element
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
             notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#10b981' : type === 'warning' ? '#f59e0b' : '#ef4444'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                z-index: 1000;
+                font-size: 14px;
+                max-width: 300px;
+                word-wrap: break-word;
+            `;
             
             document.body.appendChild(notification);
             
+            // Remove after 3 seconds
             setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => document.body.removeChild(notification), 300);
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
             }, 3000);
         }
 
-        // --- MENU IMPORT/EXPORT FUNCTIONALITY ---
-        
-        // Parse CSV data
-        function parseCSV(csv) {
-            const lines = csv.split(/\r?\n/).filter(Boolean);
-            const headers = lines[0].split(',').map(h => h.trim());
-            return lines.slice(1).map(line => {
-                const values = line.split(',');
-                let obj = {};
-                headers.forEach((h, i) => obj[h] = values[i] ? values[i].trim() : '');
-                return obj;
-            });
-        }
-
-        // Export menu as JSON
-        function exportMenu() {
-            if (!menuItems || menuItems.length === 0) {
-                alert('No menu items to export!');
-                return;
-            }
-
-            const dataStr = JSON.stringify(menuItems, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(dataBlob);
-            link.download = `menu_export_${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            showNotification(`Exported ${menuItems.length} menu items successfully!`, 'success');
-        }
-
-        // Import menu data
-        function importMenuData(menuData) {
-            if (!Array.isArray(menuData)) {
-                console.error('Invalid menu data - not an array');
-                return false;
-            }
-
-            // Convert imported data to menu editor format
-            const convertedItems = menuData.map((item, index) => {
-                return {
-                    id: item.id || `imported_${Date.now()}_${index}`,
-                    name: item.name || item.Name || `Item ${index + 1}`,
-                    price: parseFloat(item.price || item.Price || 0),
-                    category: item.category || item.Category || 'Main Courses',
-                    description: item.description || item.Description || '',
-                    available: item.available !== false, // Default to available
-                    image: item.image || '',
-                    emoji: item.emoji || item.Emoji || '🍽️',
-                    modifiers: item.modifiers || [],
-                    eightyFive: item.eightyFive || false,
-                    roomServiceOnly: item.roomServiceOnly || false
-                };
-            });
-
-            // Add to existing menu items or replace
-            const shouldReplace = confirm(`Import ${convertedItems.length} items. Replace existing menu (OK) or add to current menu (Cancel)?`);
-            
-            if (shouldReplace) {
-                menuItems = convertedItems;
-            } else {
-                menuItems = [...menuItems, ...convertedItems];
-            }
-
-            // Save to localStorage
-            saveMenuData();
-            
-            // Refresh display
-            renderMenuItems();
-            updateStats();
-            
-            showNotification(`Successfully imported ${convertedItems.length} menu items!`, 'success');
-            return true;
-        }
-
-        // Initialize import functionality
+        // Initialize menu import functionality
         function initializeMenuImport() {
-            const importInput = document.getElementById('menuImportInput');
-            if (importInput) {
-                importInput.addEventListener('change', function(e) {
-                    const file = e.target.files[0];
-                    if (!file) return;
-
-                    console.log('Importing file:', file.name);
-
-                    const reader = new FileReader();
-                    reader.onload = function(evt) {
-                        try {
-                            let importedData = [];
-                            
-                            if (file.name.endsWith('.json')) {
-                                importedData = JSON.parse(evt.target.result);
-                            } else if (file.name.endsWith('.csv')) {
-                                importedData = parseCSV(evt.target.result);
-                            } else {
-                                alert('Please select a JSON or CSV file.');
-                                return;
-                            }
-
-                            if (importMenuData(importedData)) {
-                                console.log('Menu import successful');
-                            }
-                            
-                        } catch (error) {
-                            console.error('Import error:', error);
-                            alert('Error importing file. Please check the file format.');
-                        }
-                    };
-                    
-                    reader.readAsText(file);
-                    e.target.value = ''; // Reset input
-                });
-            }
+            // This function can be expanded later to add import/export UI
+            console.log("Menu import functionality initialized");
         }
-
-        // Enhanced save function to sync with POS interface
-        function saveMenuData() {
-            try {
-                // Save to both menuItems (editor format) and menuData (POS format)
-                localStorage.setItem('menuItems', JSON.stringify(menuItems));
-                localStorage.setItem('menuData', JSON.stringify(menuItems));
-                
-                // Also save property-specific if we have context
-                const propertyContext = getPropertyContext();
-                if (propertyContext && propertyContext.id) {
-                    const propertyMenuKey = `property_${propertyContext.id}_menu`;
-                    localStorage.setItem(propertyMenuKey, JSON.stringify(menuItems));
-                }
-                
-                console.log('Menu data saved to localStorage');
-                return true;
-            } catch (error) {
-                console.error('Error saving menu data:', error);
-                return false;
-            }
-        }
-
-        // --- END MENU IMPORT/EXPORT FUNCTIONALITY ---
-
-        // ...existing code...
     </script>
 </body>
 </html>
