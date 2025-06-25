@@ -775,6 +775,9 @@
         <header class="editor-header">
             <h1 class="editor-title">🍽️ Menu Editor</h1>
             <div class="header-actions">
+                <input type="file" id="menuImportInput" accept=".json,.csv" style="display:none" />
+                <button class="back-button" onclick="document.getElementById('menuImportInput').click()">📁 Import Menu</button>
+                <button class="back-button" onclick="exportMenu()">📤 Export Menu</button>
                 <a href="settings.html" class="back-button">← Back to Settings</a>
                 <button class="save-button" onclick="saveAllChanges()">💾 Save Changes</button>
             </div>
@@ -1011,6 +1014,7 @@
             loadMenuData();
             initializeDayAvailability();
             renderMenuItems();
+            initializeMenuImport(); // Initialize import functionality
         });        // Get property context for storage
         function getPropertyContext() {
             try {
@@ -1053,19 +1057,32 @@
                         menuItems = JSON.parse(savedMenu);
                         console.log(`Loaded menu data for property: ${propertyContext.name} (ID: ${propertyContext.id})`);
                     } else {
-                        // If no property-specific menu, check global storage
-                        const globalMenu = localStorage.getItem('menuItems');
-                        if (globalMenu) {
-                            menuItems = JSON.parse(globalMenu);
-                            console.log("Loaded menu data from global storage (no property-specific menu found)");
+                        // If no property-specific menu, check uploaded menu data
+                        const uploadedMenu = localStorage.getItem('menuData');
+                        if (uploadedMenu) {
+                            menuItems = JSON.parse(uploadedMenu);
+                            console.log("Loaded menu data from uploaded menu (menuData)");
+                        } else {
+                            // If no uploaded menu, check global storage
+                            const globalMenu = localStorage.getItem('menuItems');
+                            if (globalMenu) {
+                                menuItems = JSON.parse(globalMenu);
+                                console.log("Loaded menu data from global storage (no property-specific menu found)");
+                            }
                         }
                     }
                 } else {
-                    // No property context, try global storage
-                    const savedMenu = localStorage.getItem('menuItems');
-                    if (savedMenu) {
-                        menuItems = JSON.parse(savedMenu);
-                        console.log("Loaded menu data from global storage (no property context)");
+                    // No property context, try uploaded menu first, then global storage
+                    const uploadedMenu = localStorage.getItem('menuData');
+                    if (uploadedMenu) {
+                        menuItems = JSON.parse(uploadedMenu);
+                        console.log("Loaded menu data from uploaded menu (menuData, no property context)");
+                    } else {
+                        const savedMenu = localStorage.getItem('menuItems');
+                        if (savedMenu) {
+                            menuItems = JSON.parse(savedMenu);
+                            console.log("Loaded menu data from global storage (no property context)");
+                        }
                     }
                 }
                 renderMenuItems();
@@ -1460,526 +1477,149 @@
             }, 3000);
         }
 
-        // === 86 FUNCTIONALITY ===
-
-        // Get today's day name
-        function getTodayName() {
-            const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-            return days[new Date().getDay()];
+        // --- MENU IMPORT/EXPORT FUNCTIONALITY ---
+        
+        // Parse CSV data
+        function parseCSV(csv) {
+            const lines = csv.split(/\r?\n/).filter(Boolean);
+            const headers = lines[0].split(',').map(h => h.trim());
+            return lines.slice(1).map(line => {
+                const values = line.split(',');
+                let obj = {};
+                headers.forEach((h, i) => obj[h] = values[i] ? values[i].trim() : '');
+                return obj;
+            });
         }
 
-        // Check if item is available today
-        function isItemAvailableToday(item) {
-            if (!item.available) return false;
-            if (!item.dayAvailability) return true;
+        // Export menu as JSON
+        function exportMenu() {
+            if (!menuItems || menuItems.length === 0) {
+                alert('No menu items to export!');
+                return;
+            }
+
+            const dataStr = JSON.stringify(menuItems, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
             
-            const today = getTodayName();
-            return item.dayAvailability[today] !== false;
-        }
-
-        // Toggle day availability for current editing item
-        function toggleDayAvailability(day) {
-            const toggle = document.querySelector(`[data-day="${day}"]`);
-            toggle.classList.toggle('disabled');
-        }
-
-        // Toggle 86 status for an item
-        function toggleEightySix(itemId) {
-            const item = menuItems.find(i => i.id === itemId);
-            if (!item) return;
-
-            const today = getTodayName();
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `menu_export_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
             
-            // Initialize day availability if not exists
-            if (!item.dayAvailability) {
-                item.dayAvailability = {
-                    monday: true, tuesday: true, wednesday: true, thursday: true,
-                    friday: true, saturday: true, sunday: true
+            showNotification(`Exported ${menuItems.length} menu items successfully!`, 'success');
+        }
+
+        // Import menu data
+        function importMenuData(menuData) {
+            if (!Array.isArray(menuData)) {
+                console.error('Invalid menu data - not an array');
+                return false;
+            }
+
+            // Convert imported data to menu editor format
+            const convertedItems = menuData.map((item, index) => {
+                return {
+                    id: item.id || `imported_${Date.now()}_${index}`,
+                    name: item.name || item.Name || `Item ${index + 1}`,
+                    price: parseFloat(item.price || item.Price || 0),
+                    category: item.category || item.Category || 'Main Courses',
+                    description: item.description || item.Description || '',
+                    available: item.available !== false, // Default to available
+                    image: item.image || '',
+                    emoji: item.emoji || item.Emoji || '🍽️',
+                    modifiers: item.modifiers || [],
+                    eightyFive: item.eightyFive || false,
+                    roomServiceOnly: item.roomServiceOnly || false
                 };
-            }
-            
-            // Toggle today's availability
-            item.dayAvailability[today] = !item.dayAvailability[today];
-            
-            const status = item.dayAvailability[today] ? 'available' : '86\'d';
-            showNotification(`${item.name} is now ${status} for ${today}!`, 
-                           item.dayAvailability[today] ? 'success' : 'warning');
-            
-            saveMenuData();
-            renderMenuItems();
-        }
-
-        // Bulk 86 operations
-        function toggleBulkEightySix() {
-            const availableToday = menuItems.filter(item => isItemAvailableToday(item));
-            
-            if (availableToday.length === 0) {
-                showNotification('No items available to 86!', 'warning');
-                return;
-            }
-            
-            const action = confirm(`86 all ${availableToday.length} available items for today?`);
-            if (!action) return;
-            
-            const today = getTodayName();
-            let count = 0;
-            
-            menuItems.forEach(item => {
-                if (isItemAvailableToday(item)) {
-                    if (!item.dayAvailability) {
-                        item.dayAvailability = {
-                            monday: true, tuesday: true, wednesday: true, thursday: true,
-                            friday: true, saturday: true, sunday: true
-                        };
-                    }
-                    item.dayAvailability[today] = false;
-                    count++;
-                }
             });
-            
-            showNotification(`86'd ${count} items for ${today}!`, 'warning');
-            saveMenuData();
-            renderMenuItems();
-        }
 
-        // Update 86 statistics
-        function updateEightySixStats() {
-            const total = menuItems.length;
-            const availableToday = menuItems.filter(item => isItemAvailableToday(item)).length;
-            const eightySixedToday = total - availableToday;
+            // Add to existing menu items or replace
+            const shouldReplace = confirm(`Import ${convertedItems.length} items. Replace existing menu (OK) or add to current menu (Cancel)?`);
             
-            document.getElementById('totalCount').textContent = total;
-            document.getElementById('availableCount').textContent = availableToday;
-            document.getElementById('eightySixedCount').textContent = eightySixedToday;
-        }
-
-        // Initialize day availability for existing items
-        function initializeDayAvailability() {
-            let updated = false;
-            
-            menuItems.forEach(item => {
-                if (!item.dayAvailability) {
-                    item.dayAvailability = {
-                        monday: true, tuesday: true, wednesday: true, thursday: true,
-                        friday: true, saturday: true, sunday: true
-                    };
-                    updated = true;
-                }
-            });
-            
-            if (updated) {
-                saveMenuData();
-            }
-        }
-
-        // === MODIFIER FUNCTIONALITY ===
-
-        // Check if item has modifiers and update badge
-        function updateModifiersBadge() {
-            const modifierBtn = document.querySelector('.modifier-tab-btn');
-            const existingBadge = modifierBtn.querySelector('.modifiers-badge');
-            
-            if (existingBadge) {
-                modifierBtn.removeChild(existingBadge);
-            }
-            
-            if (currentEditingItem && currentEditingItem.modifiers && currentEditingItem.modifiers.length > 0) {
-                const badge = document.createElement('span');
-                badge.className = 'modifiers-badge';
-                badge.textContent = currentEditingItem.modifiers.length;
-                modifierBtn.appendChild(badge);
-            }
-        }
-
-        // Show modifiers panel
-        function showModifiersPanel() {
-            // Initialize modifiers if not present
-            if (currentEditingItem && !currentEditingItem.modifiers) {
-                currentEditingItem.modifiers = [];
-            }
-            
-            renderModifierGroups();
-            document.getElementById('modifiersModal').style.display = 'flex';
-        }
-        
-        // Close modifiers panel
-        function closeModifiersPanel() {
-            document.getElementById('modifiersModal').style.display = 'none';
-        }
-        
-        // Render all modifier groups
-        function renderModifierGroups() {
-            const container = document.getElementById('modifierGroupsContainer');
-            container.innerHTML = '';
-            
-            if (!currentEditingItem) {
-                container.innerHTML = '<div class="empty-state">Please save the item first to add modifiers</div>';
-                return;
-            }
-            
-            if (!currentEditingItem.modifiers || currentEditingItem.modifiers.length === 0) {
-                container.innerHTML = '<div class="empty-state">No modifier groups added yet</div>';
+            if (shouldReplace) {
+                menuItems = convertedItems;
             } else {
-                currentEditingItem.modifiers.forEach((group, groupIndex) => {
-                    container.appendChild(createModifierGroupElement(group, groupIndex));
+                menuItems = [...menuItems, ...convertedItems];
+            }
+
+            // Save to localStorage
+            saveMenuData();
+            
+            // Refresh display
+            renderMenuItems();
+            updateStats();
+            
+            showNotification(`Successfully imported ${convertedItems.length} menu items!`, 'success');
+            return true;
+        }
+
+        // Initialize import functionality
+        function initializeMenuImport() {
+            const importInput = document.getElementById('menuImportInput');
+            if (importInput) {
+                importInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    console.log('Importing file:', file.name);
+
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        try {
+                            let importedData = [];
+                            
+                            if (file.name.endsWith('.json')) {
+                                importedData = JSON.parse(evt.target.result);
+                            } else if (file.name.endsWith('.csv')) {
+                                importedData = parseCSV(evt.target.result);
+                            } else {
+                                alert('Please select a JSON or CSV file.');
+                                return;
+                            }
+
+                            if (importMenuData(importedData)) {
+                                console.log('Menu import successful');
+                            }
+                            
+                        } catch (error) {
+                            console.error('Import error:', error);
+                            alert('Error importing file. Please check the file format.');
+                        }
+                    };
+                    
+                    reader.readAsText(file);
+                    e.target.value = ''; // Reset input
                 });
             }
         }
-          // Create a modifier group element
-        function createModifierGroupElement(group, groupIndex) {
-            const groupElement = document.createElement('div');
-            groupElement.className = 'modifiers-group';
-            groupElement.dataset.groupIndex = groupIndex;
-            
-            const header = document.createElement('div');
-            header.className = 'modifiers-group-header';
-            
-            const groupTypeSelect = document.createElement('select');
-            groupTypeSelect.className = 'form-select';
-            groupTypeSelect.style.width = '120px';
-            groupTypeSelect.innerHTML = `
-                <option value="single" ${group.type === 'single' ? 'selected' : ''}>Single Choice</option>
-                <option value="multi" ${group.type === 'multi' ? 'selected' : ''}>Multi Choice</option>
-            `;
-            groupTypeSelect.onchange = function() {
-                currentEditingItem.modifiers[groupIndex].type = this.value;
-            };
-            
-            const groupTitle = document.createElement('input');
-            groupTitle.type = 'text';
-            groupTitle.className = 'form-input modifiers-group-title';
-            groupTitle.value = group.name;
-            groupTitle.placeholder = 'Group Name';
-            groupTitle.style.flex = '1';
-            groupTitle.style.marginRight = '10px';
-            groupTitle.onchange = function() {
-                currentEditingItem.modifiers[groupIndex].name = this.value;
-            };
-            
-            // Added Required checkbox for modifier groups
-            const requiredCheckbox = document.createElement('div');
-            requiredCheckbox.className = 'modifier-required-container';
-            requiredCheckbox.style.display = 'flex';
-            requiredCheckbox.style.alignItems = 'center';
-            requiredCheckbox.style.marginRight = '10px';
-            
-            const requiredInput = document.createElement('input');
-            requiredInput.type = 'checkbox';
-            requiredInput.checked = group.required || false;
-            requiredInput.style.marginRight = '5px';
-            requiredInput.onchange = function() {
-                currentEditingItem.modifiers[groupIndex].required = this.checked;
-            };
-            
-            const requiredLabel = document.createElement('label');
-            requiredLabel.textContent = 'Required';
-            requiredLabel.style.fontSize = '0.8rem';
-            requiredLabel.style.color = '#374151';
-            
-            requiredCheckbox.appendChild(requiredInput);
-            requiredCheckbox.appendChild(requiredLabel);
-            
-            // Move Buttons
-            const moveUpBtn = document.createElement('button');
-            moveUpBtn.type = 'button';
-            moveUpBtn.className = 'modifier-move-btn';
-            moveUpBtn.innerHTML = '&uarr;';
-            moveUpBtn.title = 'Move Up';
-            moveUpBtn.disabled = groupIndex === 0;
-            moveUpBtn.onclick = function() {
-                moveModifierGroup(groupIndex, -1);
-            };
-            
-            const moveDownBtn = document.createElement('button');
-            moveDownBtn.type = 'button';
-            moveDownBtn.className = 'modifier-move-btn';
-            moveDownBtn.innerHTML = '&darr;';
-            moveDownBtn.title = 'Move Down';
-            moveDownBtn.disabled = groupIndex === currentEditingItem.modifiers.length - 1;
-            moveDownBtn.onclick = function() {
-                moveModifierGroup(groupIndex, 1);
-            };
-            
-            const removeGroupBtn = document.createElement('button');
-            removeGroupBtn.type = 'button';
-            removeGroupBtn.className = 'modifier-remove-btn';
-            removeGroupBtn.innerHTML = '&times;';
-            removeGroupBtn.onclick = function() {
-                removeModifierGroup(groupIndex);
-            };
-            
-            header.appendChild(groupTitle);
-            header.appendChild(requiredCheckbox);
-            header.appendChild(groupTypeSelect);
-            header.appendChild(moveUpBtn);
-            header.appendChild(moveDownBtn);
-            header.appendChild(removeGroupBtn);
-            groupElement.appendChild(header);
-            
-            // Options section
-            const optionsContainer = document.createElement('div');
-            optionsContainer.className = 'modifiers-options';
-            
-            // Options header row
-            const optionHeaderRow = document.createElement('div');
-            optionHeaderRow.className = 'modifier-option-header';
-            optionHeaderRow.style.display = 'flex';
-            optionHeaderRow.style.marginBottom = '8px';
-            optionHeaderRow.style.fontWeight = 'bold';
-            optionHeaderRow.style.fontSize = '0.85rem';
-            optionHeaderRow.style.color = '#4b5563';
-            
-            const optionNameHeader = document.createElement('div');
-            optionNameHeader.textContent = 'Option';
-            optionNameHeader.style.flex = '2';
-            
-            const optionPriceHeader = document.createElement('div');
-            optionPriceHeader.textContent = 'Price Adjustment';
-            optionPriceHeader.style.flex = '1';
-            optionPriceHeader.style.marginLeft = '10px';
-            
-            const optionDefaultHeader = document.createElement('div');
-            optionDefaultHeader.textContent = 'Default';
-            optionDefaultHeader.style.width = '60px';
-            optionDefaultHeader.style.textAlign = 'center';
-            optionDefaultHeader.style.marginLeft = '10px';
-            
-            const optionActionsHeader = document.createElement('div');
-            optionActionsHeader.style.width = '40px';
-            
-            optionHeaderRow.appendChild(optionNameHeader);
-            optionHeaderRow.appendChild(optionPriceHeader);
-            optionHeaderRow.appendChild(optionDefaultHeader);
-            optionHeaderRow.appendChild(optionActionsHeader);
-            optionsContainer.appendChild(optionHeaderRow);
-            
-            group.options.forEach((option, optionIndex) => {
-                // Convert old format (string only) to new format with name, price, and default
-                let optionObj = option;
-                if (typeof option === 'string') {
-                    optionObj = {
-                        name: option,
-                        price: 0,
-                        default: false
-                    };
-                    // Update the option in the array
-                    currentEditingItem.modifiers[groupIndex].options[optionIndex] = optionObj;
+
+        // Enhanced save function to sync with POS interface
+        function saveMenuData() {
+            try {
+                // Save to both menuItems (editor format) and menuData (POS format)
+                localStorage.setItem('menuItems', JSON.stringify(menuItems));
+                localStorage.setItem('menuData', JSON.stringify(menuItems));
+                
+                // Also save property-specific if we have context
+                const propertyContext = getPropertyContext();
+                if (propertyContext && propertyContext.id) {
+                    const propertyMenuKey = `property_${propertyContext.id}_menu`;
+                    localStorage.setItem(propertyMenuKey, JSON.stringify(menuItems));
                 }
                 
-                const optionElement = document.createElement('div');
-                optionElement.className = 'modifier-option';
-                optionElement.style.display = 'flex';
-                optionElement.style.alignItems = 'center';
-                optionElement.style.marginBottom = '8px';
-                
-                // Option name
-                const optionNameInput = document.createElement('input');
-                optionNameInput.type = 'text';
-                optionNameInput.className = 'form-input';
-                optionNameInput.value = optionObj.name;
-                optionNameInput.placeholder = 'Option Name';
-                optionNameInput.style.flex = '2';
-                optionNameInput.onchange = function() {
-                    currentEditingItem.modifiers[groupIndex].options[optionIndex].name = this.value;
-                };
-                
-                // Option price adjustment
-                const optionPriceInput = document.createElement('input');
-                optionPriceInput.type = 'number';
-                optionPriceInput.className = 'form-input';
-                optionPriceInput.value = optionObj.price;
-                optionPriceInput.placeholder = 'Price Adjustment';
-                optionPriceInput.style.width = '120px';
-                optionPriceInput.style.marginLeft = '10px';
-                optionPriceInput.onchange = function() {
-                    currentEditingItem.modifiers[groupIndex].options[optionIndex].price = parseFloat(this.value);
-                };
-                
-                // Default selection checkbox
-                const optionDefaultCheckbox = document.createElement('input');
-                optionDefaultCheckbox.type = 'checkbox';
-                optionDefaultCheckbox.checked = optionObj.default;
-                optionDefaultCheckbox.style.marginLeft = '10px';
-                optionDefaultCheckbox.onchange = function() {
-                    const isChecked = this.checked;
-                    currentEditingItem.modifiers[groupIndex].options.forEach((opt, idx) => {
-                        if (idx !== optionIndex) {
-                            opt.default = false; // Uncheck other options
-                        }
-                    });
-                    optionObj.default = isChecked;
-                    renderModifierGroups(); // Re-render to update UI
-                };
-                
-                const removeOptionBtn = document.createElement('button');
-                removeOptionBtn.type = 'button';
-                removeOptionBtn.className = 'modifier-remove-btn';
-                removeOptionBtn.innerHTML = '&times;';
-                removeOptionBtn.onclick = function() {
-                    removeModifierOption(groupIndex, optionIndex);
-                };
-                
-                optionElement.appendChild(optionNameInput);
-                optionElement.appendChild(optionPriceInput);
-                optionElement.appendChild(optionDefaultCheckbox);
-                optionElement.appendChild(removeOptionBtn);
-                optionsContainer.appendChild(optionElement);
-            });
-            
-            const addOptionRow = document.createElement('div');
-            addOptionRow.style.display = 'flex';
-            addOptionRow.style.justifyContent = 'center';
-            addOptionRow.style.marginTop = '10px';
-            
-            const addOptionBtn = document.createElement('button');
-            addOptionBtn.type = 'button';
-            addOptionBtn.className = 'add-option-btn';
-            addOptionBtn.textContent = 'Add Option';
-            addOptionBtn.style.background = '#f3f4f6';
-            addOptionBtn.style.border = '1px solid #d1d5db';
-            addOptionBtn.style.color = '#374151';
-            addOptionBtn.style.padding = '0.5rem 1rem';
-            addOptionBtn.style.borderRadius = '4px';
-            addOptionBtn.style.cursor = 'pointer';
-            addOptionBtn.onclick = function() {
-                addModifierOption(groupIndex);
-            };
-            
-            addOptionRow.appendChild(addOptionBtn);
-            optionsContainer.appendChild(addOptionRow);
-            
-            groupElement.appendChild(optionsContainer);
-            return groupElement;
-        }
-        
-        // Move a modifier group up or down
-        function moveModifierGroup(groupIndex, direction) {
-            const newIndex = groupIndex + direction;
-            if (newIndex < 0 || newIndex >= currentEditingItem.modifiers.length) return;
-            
-            // Swap positions
-            const temp = currentEditingItem.modifiers[groupIndex];
-            currentEditingItem.modifiers[groupIndex] = currentEditingItem.modifiers[newIndex];
-            currentEditingItem.modifiers[newIndex] = temp;
-            
-            renderModifierGroups();
-        }
-        
-        // Move a modifier option up or down
-        function moveModifierOption(groupIndex, optionIndex, direction) {
-            const newIndex = optionIndex + direction;
-            const group = currentEditingItem.modifiers[groupIndex];
-            
-            if (newIndex < 0 || newIndex >= group.options.length) return;
-            
-            // Swap positions
-            const temp = group.options[optionIndex];
-            group.options[optionIndex] = group.options[newIndex];
-            group.options[newIndex] = temp;
-            
-            renderModifierGroups();
-        }
-        
-        // Add a new modifier group
-        function addModifierGroup() {
-            if (!currentEditingItem) {
-                showNotification('Please save the item first to add modifiers', 'warning');
-                return;
-            }
-            
-            if (!currentEditingItem.modifiers) {
-                currentEditingItem.modifiers = [];
-            }
-            
-            // Show predefined modifier group selection
-            const predefinedGroups = defaultModifierGroups.map(group => group.name);
-            
-            const groupSelectionHTML = predefinedGroups.map(name => 
-                `<option value="${name}">${name}</option>`
-            ).join('');
-            
-            const modal = document.createElement('div');
-            modal.className = 'modifiers-modal-overlay';
-            modal.style.zIndex = '20000';
-            modal.innerHTML = `
-                <div class="modifiers-modal" style="max-width: 500px;">
-                    <div class="modifiers-modal-header">
-                        <h3 class="modifiers-modal-title">Select Modifier Group</h3>
-                        <button class="modal-close" onclick="this.parentNode.parentNode.parentNode.remove()">&times;</button>
-                    </div>
-                    <div class="modifiers-modal-content">
-                        <div class="form-group">
-                            <label class="form-label">Predefined Groups</label>
-                            <select id="predefinedGroupSelect" class="form-select">
-                                <option value="">-- Select a predefined group --</option>
-                                ${groupSelectionHTML}
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">or Create Custom Group</label>
-                            <input type="text" id="customGroupName" class="form-input" placeholder="Custom Group Name">
-                        </div>
-                    </div>
-                    <div class="modifiers-modal-footer">
-                        <button type="button" class="form-btn secondary" onclick="this.parentNode.parentNode.parentNode.remove()">Cancel</button>
-                        <button type="button" class="form-btn primary" onclick="confirmAddModifierGroup()">Add Group</button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-        }
-        
-        // Confirm adding selected modifier group
-        function confirmAddModifierGroup() {
-            const predefinedSelect = document.getElementById('predefinedGroupSelect');
-            const customInput = document.getElementById('customGroupName');
-            
-            let newGroup;
-            
-            if (predefinedSelect.value) {
-                // Use predefined group
-                const template = defaultModifierGroups.find(g => g.name === predefinedSelect.value);
-                if (template) {
-                    newGroup = {
-                        name: template.name,
-                        type: template.type,
-                        options: [...template.options]
-                    };
-                }
-            } else if (customInput.value.trim()) {
-                // Create custom group
-                newGroup = {
-                    name: customInput.value.trim(),
-                    type: "single",
-                    options: ["Option 1", "Option 2"]
-                };
-            } else {
-                showNotification('Please select or enter a group name', 'warning');
-                return;
-            }
-            
-            if (newGroup) {
-                currentEditingItem.modifiers.push(newGroup);
-                renderModifierGroups();
-                document.querySelector('.modifiers-modal-overlay[style*="z-index: 20000"]').remove();
+                console.log('Menu data saved to localStorage');
+                return true;
+            } catch (error) {
+                console.error('Error saving menu data:', error);
+                return false;
             }
         }
-        
-        // Remove a modifier group
-        function removeModifierGroup(groupIndex) {
-            if (confirm('Are you sure you want to remove this modifier group?')) {
-                currentEditingItem.modifiers.splice(groupIndex, 1);
-                renderModifierGroups();
-            }
-        }
-        
-        // Save modifiers and close panel
-        function saveModifiers() {
-            closeModifiersPanel();
-            updateModifiersBadge();
-            showNotification('Modifiers saved successfully!', 'success');
-        }
+
+        // --- END MENU IMPORT/EXPORT FUNCTIONALITY ---
+
+        // ...existing code...
     </script>
 </body>
 </html>
