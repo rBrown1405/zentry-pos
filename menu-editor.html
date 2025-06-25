@@ -1085,6 +1085,11 @@
                         }
                     }
                 }
+                console.log('Final loaded menuItems:', menuItems);
+                console.log('Number of items loaded:', menuItems.length);
+                if (menuItems.length > 0) {
+                    console.log('Sample item structure:', menuItems[0]);
+                }
                 renderMenuItems();
             } catch (error) {
                 console.error("Error loading menu data:", error);
@@ -1141,6 +1146,7 @@
 
         // Render menu items list
         function renderMenuItems() {
+            console.log('renderMenuItems called, menuItems:', menuItems);
             const menuList = document.getElementById('menuItemsList');
             let filteredItems = menuItems;
 
@@ -1174,7 +1180,7 @@
                 return `
                 <div class="menu-item-card ${currentEditingItem && currentEditingItem.id === item.id ? 'selected' : ''} ${isEightySixed ? 'eighty-sixed' : ''}" onclick="editItem('${item.id}')">
                     <div class="item-header">
-                        <span class="item-name">${item.emoji} ${item.name}</span>
+                        <span class="item-name">${item.emoji || '🍽️'} ${item.name}</span>
                         <span class="item-price">$${item.price.toFixed(2)}</span>
                     </div>
                     <div class="item-description">${item.description || 'No description'}</div>
@@ -1256,9 +1262,14 @@
 
         // Toggle 86'd status for an item
         function toggleEightySix(itemId) {
+            console.log('toggleEightySix called with ID:', itemId);
             const item = menuItems.find(i => i.id === itemId);
-            if (!item) return;
+            if (!item) {
+                console.error('Item not found with ID:', itemId);
+                return;
+            }
 
+            console.log('Found item for 86:', item);
             const today = getTodayName();
             
             // Initialize dayAvailability if it doesn't exist
@@ -1420,9 +1431,14 @@
 
         // Edit existing item
         function editItem(itemId) {
+            console.log('editItem called with ID:', itemId);
             const item = menuItems.find(i => i.id === itemId);
-            if (!item) return;
+            if (!item) {
+                console.error('Item not found with ID:', itemId);
+                return;
+            }
 
+            console.log('Found item:', item);
             currentEditingItem = item;
             
             // Populate form
@@ -1641,6 +1657,25 @@
         function addModifierGroup() {
             showNotification('Add modifier group functionality coming soon!', 'warning');
         }
+
+        // Make functions globally accessible for onclick handlers
+        window.editItem = editItem;
+        window.toggleEightySix = toggleEightySix;
+        window.duplicateItem = duplicateItem;
+        window.deleteItem = deleteItem;
+        window.selectEmoji = selectEmoji;
+        window.filterByCategory = filterByCategory;
+        window.filterItems = filterItems;
+        window.addNewItem = addNewItem;
+        window.clearForm = clearForm;
+        window.saveAllChanges = saveAllChanges;
+        window.exportMenu = exportMenu;
+        window.toggleBulkEightySix = toggleBulkEightySix;
+        window.showModifiersPanel = showModifiersPanel;
+        window.closeModifiersPanel = closeModifiersPanel;
+        window.saveModifiers = saveModifiers;
+        window.addModifierGroup = addModifierGroup;
+        window.toggleDayAvailability = toggleDayAvailability;
     </script>
 </body>
 </html>

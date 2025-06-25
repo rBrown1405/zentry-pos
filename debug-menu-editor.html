@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Menu Editor</title>
+</head>
+<body>
+    <h1>Debug Menu Editor</h1>
+    <div id="debug-output"></div>
+    
+    <script>
+        console.log('Debug script starting...');
+        
+        // Check localStorage
+        const menuData = localStorage.getItem('menuData');
+        const menuItems = localStorage.getItem('menuItems');
+        
+        const debugOutput = document.getElementById('debug-output');
+        
+        let output = '<h2>LocalStorage Debug:</h2>';
+        output += '<p><strong>menuData:</strong> ' + (menuData ? 'EXISTS' : 'NOT FOUND') + '</p>';
+        output += '<p><strong>menuItems:</strong> ' + (menuItems ? 'EXISTS' : 'NOT FOUND') + '</p>';
+        
+        if (menuData) {
+            try {
+                const parsed = JSON.parse(menuData);
+                output += '<p><strong>menuData length:</strong> ' + parsed.length + '</p>';
+                output += '<p><strong>First item:</strong> ' + JSON.stringify(parsed[0], null, 2) + '</p>';
+            } catch (e) {
+                output += '<p><strong>menuData parse error:</strong> ' + e.message + '</p>';
+            }
+        }
+        
+        if (menuItems) {
+            try {
+                const parsed = JSON.parse(menuItems);
+                output += '<p><strong>menuItems length:</strong> ' + parsed.length + '</p>';
+                output += '<p><strong>First item:</strong> ' + JSON.stringify(parsed[0], null, 2) + '</p>';
+            } catch (e) {
+                output += '<p><strong>menuItems parse error:</strong> ' + e.message + '</p>';
+            }
+        }
+        
+        debugOutput.innerHTML = output;
+        
+        console.log('menuData:', menuData);
+        console.log('menuItems:', menuItems);
+    </script>
+</body>
+</html>
