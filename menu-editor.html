@@ -1317,8 +1317,329 @@
 
         // Initialize menu import functionality
         function initializeMenuImport() {
-            // This function can be expanded later to add import/export UI
+            const importInput = document.getElementById('menuImportInput');
+            if (importInput) {
+                importInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        try {
+                            let importedData;
+                            
+                            if (file.name.endsWith('.json')) {
+                                importedData = JSON.parse(event.target.result);
+                            } else if (file.name.endsWith('.csv')) {
+                                // Basic CSV parsing
+                                const lines = event.target.result.split('\n');
+                                const headers = lines[0].split(',').map(h => h.trim());
+                                importedData = [];
+                                
+                                for (let i = 1; i < lines.length; i++) {
+                                    if (lines[i].trim()) {
+                                        const values = lines[i].split(',').map(v => v.trim());
+                                        const item = {
+                                            id: 'item_' + Date.now() + '_' + i,
+                                            name: values[0] || 'Unnamed Item',
+                                            price: parseFloat(values[1]) || 0,
+                                            category: values[2] || 'mains',
+                                            description: values[3] || '',
+                                            emoji: values[4] || '🍽️',
+                                            available: true,
+                                            dayAvailability: {
+                                                monday: true,
+                                                tuesday: true,
+                                                wednesday: true,
+                                                thursday: true,
+                                                friday: true,
+                                                saturday: true,
+                                                sunday: true
+                                            }
+                                        };
+                                        importedData.push(item);
+                                    }
+                                }
+                            }
+
+                            if (importedData && Array.isArray(importedData)) {
+                                // Merge or replace menu items
+                                const shouldReplace = confirm('Replace existing menu items? Click Cancel to merge with existing items.');
+                                
+                                if (shouldReplace) {
+                                    menuItems = importedData;
+                                } else {
+                                    menuItems = [...menuItems, ...importedData];
+                                }
+                                
+                                saveMenuData();
+                                renderMenuItems();
+                                showNotification(`Successfully imported ${importedData.length} menu items!`);
+                            } else {
+                                showNotification('Invalid file format. Please use JSON or CSV.', 'error');
+                            }
+                        } catch (error) {
+                            console.error('Import error:', error);
+                            showNotification('Error importing file. Please check the format.', 'error');
+                        }
+                    };
+                    
+                    reader.readAsText(file);
+                    // Reset the input so the same file can be selected again
+                    e.target.value = '';
+                });
+            }
             console.log("Menu import functionality initialized");
+        }
+
+        // Filter items by category
+        function filterByCategory(category) {
+            currentFilter = category;
+            
+            // Update active button
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            renderMenuItems();
+        }
+
+        // Filter items by search term
+        function filterItems() {
+            renderMenuItems();
+        }
+
+        // Add new item
+        function addNewItem() {
+            currentEditingItem = null;
+            clearForm();
+            document.getElementById('editorTitle').textContent = 'Add New Item';
+            document.getElementById('saveBtn').textContent = 'Save Item';
+        }
+
+        // Edit existing item
+        function editItem(itemId) {
+            const item = menuItems.find(i => i.id === itemId);
+            if (!item) return;
+
+            currentEditingItem = item;
+            
+            // Populate form
+            document.getElementById('itemName').value = item.name;
+            document.getElementById('itemPrice').value = item.price;
+            document.getElementById('itemCategory').value = item.category;
+            document.getElementById('itemDescription').value = item.description || '';
+            document.getElementById('selectedEmoji').value = item.emoji || '🍽️';
+            document.getElementById('itemAvailable').checked = item.available !== false; // Default to true
+            
+            // Update emoji selection UI
+            document.querySelectorAll('.emoji-option').forEach(option => {
+                option.classList.remove('selected');
+                if (option.dataset.emoji === item.emoji) {
+                    option.classList.add('selected');
+                }
+            });
+            
+            // Update day toggle buttons
+            if (item.dayAvailability) {
+                document.querySelectorAll('.day-toggle').forEach(toggle => {
+                    const day = toggle.dataset.day;
+                    if (!item.dayAvailability[day]) {
+                        toggle.classList.add('disabled');
+                    } else {
+                        toggle.classList.remove('disabled');
+                    }
+                });
+            }
+            
+            // Update UI state
+            document.getElementById('editorTitle').textContent = 'Edit Item';
+            document.getElementById('saveBtn').textContent = 'Update Item';
+            
+            renderMenuItems(); // Re-render to show selection
+        }
+
+        // Duplicate item
+        function duplicateItem(itemId) {
+            const item = menuItems.find(i => i.id === itemId);
+            if (!item) return;
+
+            const newItem = {
+                ...item,
+                id: 'item_' + Date.now(),
+                name: item.name + ' (Copy)'
+            };
+
+            menuItems.push(newItem);
+            saveMenuData();
+            renderMenuItems();
+            showNotification(`${item.name} duplicated successfully!`);
+        }
+
+        // Delete item
+        function deleteItem(itemId) {
+            const item = menuItems.find(i => i.id === itemId);
+            if (!item) return;
+
+            if (confirm(`Are you sure you want to delete "${item.name}"? This cannot be undone.`)) {
+                menuItems = menuItems.filter(i => i.id !== itemId);
+                saveMenuData();
+                renderMenuItems();
+                
+                // Clear form if we were editing this item
+                if (currentEditingItem && currentEditingItem.id === itemId) {
+                    currentEditingItem = null;
+                    clearForm();
+                }
+                
+                showNotification(`${item.name} deleted successfully!`, 'warning');
+            }
+        }
+
+        // Select emoji
+        function selectEmoji(emoji) {
+            document.getElementById('selectedEmoji').value = emoji;
+            
+            // Update visual selection
+            document.querySelectorAll('.emoji-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+        }
+
+        // Clear form
+        function clearForm() {
+            document.getElementById('itemForm').reset();
+            document.getElementById('selectedEmoji').value = '';
+            document.querySelectorAll('.emoji-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Reset day availability to all available
+            document.querySelectorAll('.day-toggle').forEach(toggle => {
+                toggle.classList.remove('disabled');
+            });
+            
+            currentEditingItem = null;
+            document.getElementById('editorTitle').textContent = 'Add New Item';
+            document.getElementById('saveBtn').textContent = 'Save Item';
+        }
+
+        // Save all changes and sync with POS
+        function saveAllChanges() {
+            saveMenuData();
+            showNotification('All changes saved successfully!');
+        }
+
+        // Export menu function
+        function exportMenu() {
+            const dataStr = JSON.stringify(menuItems, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = 'menu-export.json';
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            
+            showNotification('Menu exported successfully!');
+        }
+
+        // Handle form submission
+        document.getElementById('itemForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get day availability
+            const dayAvailability = {};
+            document.querySelectorAll('.day-toggle').forEach(toggle => {
+                const day = toggle.dataset.day;
+                dayAvailability[day] = !toggle.classList.contains('disabled');
+            });
+            
+            const formData = {
+                id: currentEditingItem ? currentEditingItem.id : 'item_' + Date.now(),
+                name: document.getElementById('itemName').value,
+                price: parseFloat(document.getElementById('itemPrice').value),
+                category: document.getElementById('itemCategory').value,
+                description: document.getElementById('itemDescription').value,
+                emoji: document.getElementById('selectedEmoji').value || '🍽️',
+                available: document.getElementById('itemAvailable').checked,
+                dayAvailability: dayAvailability,
+                modifiers: currentEditingItem ? currentEditingItem.modifiers || [] : []
+            };
+
+            // Validation
+            if (!formData.name || !formData.price || !formData.category) {
+                showNotification('Please fill in all required fields', 'error');
+                return;
+            }
+
+            if (currentEditingItem) {
+                // Update existing item
+                const index = menuItems.findIndex(item => item.id === currentEditingItem.id);
+                if (index !== -1) {
+                    menuItems[index] = formData;
+                }
+                showNotification(`${formData.name} updated successfully!`);
+            } else {
+                // Add new item
+                menuItems.push(formData);
+                showNotification(`${formData.name} added successfully!`);
+            }
+
+            saveMenuData();
+            renderMenuItems();
+            clearForm();
+        });
+
+        // Toggle bulk 86'd status
+        function toggleBulkEightySix() {
+            const today = getTodayName();
+            const allItems86d = menuItems.every(item => !isItemAvailableToday(item));
+            
+            menuItems.forEach(item => {
+                // Initialize dayAvailability if it doesn't exist
+                if (!item.dayAvailability) {
+                    item.dayAvailability = {
+                        monday: true,
+                        tuesday: true,
+                        wednesday: true,
+                        thursday: true,
+                        friday: true,
+                        saturday: true,
+                        sunday: true
+                    };
+                }
+                
+                // If all items are 86'd, make them all available. Otherwise, 86 them all
+                item.dayAvailability[today] = allItems86d;
+            });
+            
+            saveMenuData();
+            renderMenuItems();
+            
+            const status = allItems86d ? 'available' : '86\'d';
+            showNotification(`All items are now ${status} for today`);
+        }
+
+        // Modifier functions (basic placeholders)
+        function showModifiersPanel() {
+            showNotification('Modifier functionality coming soon!', 'warning');
+        }
+
+        function closeModifiersPanel() {
+            document.getElementById('modifiersModal').style.display = 'none';
+        }
+
+        function saveModifiers() {
+            closeModifiersPanel();
+            showNotification('Modifiers saved!');
+        }
+
+        function addModifierGroup() {
+            showNotification('Add modifier group functionality coming soon!', 'warning');
         }
     </script>
 </body>
