@@ -1705,9 +1705,19 @@
             showNotification(`All items are now ${status} for today`);
         }
 
-        // Modifier functions (basic placeholders)
+        // Modifier functions
+        let currentModifiers = [];
+        
         function showModifiersPanel() {
-            showNotification('Modifier functionality coming soon!', 'warning');
+            // Initialize modifiers from current editing item or empty array
+            if (currentEditingItem && currentEditingItem.modifiers) {
+                currentModifiers = JSON.parse(JSON.stringify(currentEditingItem.modifiers));
+            } else {
+                currentModifiers = [];
+            }
+            
+            renderModifierGroups();
+            document.getElementById('modifiersModal').style.display = 'flex';
         }
 
         function closeModifiersPanel() {
@@ -1715,12 +1725,131 @@
         }
 
         function saveModifiers() {
+            // Save modifiers to current editing item
+            if (currentEditingItem) {
+                currentEditingItem.modifiers = JSON.parse(JSON.stringify(currentModifiers));
+            }
+            
             closeModifiersPanel();
-            showNotification('Modifiers saved!');
+            showNotification('Modifiers saved successfully!');
         }
 
         function addModifierGroup() {
-            showNotification('Add modifier group functionality coming soon!', 'warning');
+            const newGroup = {
+                id: 'group_' + Date.now(),
+                name: 'New Modifier Group',
+                type: 'single', // single or multi selection
+                options: []
+            };
+            
+            currentModifiers.push(newGroup);
+            renderModifierGroups();
+        }
+        
+        function renderModifierGroups() {
+            const container = document.getElementById('modifierGroupsContainer');
+            if (!container) return;
+            
+            if (currentModifiers.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #6b7280;">
+                        <p>No modifier groups yet. Click "Add Modifier Group" to get started.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = currentModifiers.map((group, groupIndex) => `
+                <div class="modifiers-group" data-group-index="${groupIndex}">
+                    <div class="modifiers-group-header">
+                        <input type="text" value="${group.name}" 
+                               onchange="updateGroupName(${groupIndex}, this.value)"
+                               style="border: none; background: transparent; font-weight: 600; font-size: 1rem; width: 200px;">
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <select onchange="updateGroupType(${groupIndex}, this.value)" style="padding: 0.25rem; font-size: 0.8rem;">
+                                <option value="single" ${group.type === 'single' ? 'selected' : ''}>Single Choice</option>
+                                <option value="multi" ${group.type === 'multi' ? 'selected' : ''}>Multiple Choice</option>
+                            </select>
+                            <button class="modifier-remove-btn" onclick="removeModifierGroup(${groupIndex})" title="Delete Group">×</button>
+                        </div>
+                    </div>
+                    <div class="modifier-options">
+                        ${group.options.map((option, optionIndex) => `
+                            <div class="modifier-option">
+                                <div style="display: flex; gap: 0.5rem; align-items: center; flex: 1;">
+                                    <input type="text" value="${option.name || option}" 
+                                           onchange="updateOptionName(${groupIndex}, ${optionIndex}, this.value)"
+                                           placeholder="Option name" style="flex: 1; padding: 0.25rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                                    <input type="number" value="${option.price || 0}" step="0.01"
+                                           onchange="updateOptionPrice(${groupIndex}, ${optionIndex}, this.value)"
+                                           placeholder="0.00" style="width: 80px; padding: 0.25rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                                </div>
+                                <button class="modifier-remove-btn" onclick="removeModifierOption(${groupIndex}, ${optionIndex})" title="Remove Option">×</button>
+                            </div>
+                        `).join('')}
+                        <button class="modifier-add-btn" onclick="addModifierOption(${groupIndex})" title="Add Option">+</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function updateGroupName(groupIndex, newName) {
+            if (currentModifiers[groupIndex]) {
+                currentModifiers[groupIndex].name = newName;
+            }
+        }
+        
+        function updateGroupType(groupIndex, newType) {
+            if (currentModifiers[groupIndex]) {
+                currentModifiers[groupIndex].type = newType;
+            }
+        }
+        
+        function removeModifierGroup(groupIndex) {
+            if (confirm('Are you sure you want to delete this modifier group?')) {
+                currentModifiers.splice(groupIndex, 1);
+                renderModifierGroups();
+            }
+        }
+        
+        function addModifierOption(groupIndex) {
+            if (currentModifiers[groupIndex]) {
+                currentModifiers[groupIndex].options.push({
+                    name: 'New Option',
+                    price: 0
+                });
+                renderModifierGroups();
+            }
+        }
+        
+        function updateOptionName(groupIndex, optionIndex, newName) {
+            if (currentModifiers[groupIndex] && currentModifiers[groupIndex].options[optionIndex]) {
+                if (typeof currentModifiers[groupIndex].options[optionIndex] === 'string') {
+                    currentModifiers[groupIndex].options[optionIndex] = { name: newName, price: 0 };
+                } else {
+                    currentModifiers[groupIndex].options[optionIndex].name = newName;
+                }
+            }
+        }
+        
+        function updateOptionPrice(groupIndex, optionIndex, newPrice) {
+            if (currentModifiers[groupIndex] && currentModifiers[groupIndex].options[optionIndex]) {
+                if (typeof currentModifiers[groupIndex].options[optionIndex] === 'string') {
+                    currentModifiers[groupIndex].options[optionIndex] = { 
+                        name: currentModifiers[groupIndex].options[optionIndex], 
+                        price: parseFloat(newPrice) || 0 
+                    };
+                } else {
+                    currentModifiers[groupIndex].options[optionIndex].price = parseFloat(newPrice) || 0;
+                }
+            }
+        }
+        
+        function removeModifierOption(groupIndex, optionIndex) {
+            if (currentModifiers[groupIndex] && currentModifiers[groupIndex].options[optionIndex]) {
+                currentModifiers[groupIndex].options.splice(optionIndex, 1);
+                renderModifierGroups();
+            }
         }
 
         // Make functions globally accessible for onclick handlers
