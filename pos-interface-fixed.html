@@ -3202,7 +3202,7 @@
                                 <div style="font-size: 0.9rem; color: #4b5563; margin-top: 8px;">
                                     ${item.modifiers.map(mod => `
                                         <div class="modifier-group" style="margin-bottom: 6px;">
-                                            <div style="color: #6b7280; font-weight: 600; font-size: 0.8rem;">${mod.group}:</div>
+                                            ${mod.group && mod.group !== 'New Modifier Group' ? `<div style="color: #6b7280; font-weight: 600; font-size: 0.8rem;">${mod.group}:</div>` : ''}
                                             <div>
                                                 ${mod.selected.map(option => {
                                                     // Handle both string and object formats
@@ -3276,12 +3276,22 @@
             orderTotal = total;
         }        // Action functions
         function customizeItem(itemId) {
-            // Find the menu item
-            const item = menuItems.find(i => i.id === itemId);
+            // Find the menu item - check both main menu and room service menu
+            let item = menuItems.find(i => i.id === itemId);
+            
+            // If not found in main menu, check room service menu
+            if (!item && roomServiceMenu && roomServiceMenu.length > 0) {
+                item = roomServiceMenu.find(i => i.id === itemId);
+                console.log('Item found in room service menu:', item);
+            }
+            
             if (!item) {
+                console.error('Item not found in either menu:', itemId);
                 showNotification(`Item not found`, 'error');
                 return;
             }
+            
+            console.log('Found item for customization:', item);
             
             // Check if item has modifiers
             if (!item.modifiers || item.modifiers.length === 0) {
@@ -3390,8 +3400,21 @@
             }
         }
           function addToCartWithModifiers(itemId) {
-            const item = menuItems.find(i => i.id === itemId);
-            if (!item) return;
+            // Find the menu item - check both main menu and room service menu
+            let item = menuItems.find(i => i.id === itemId);
+            
+            // If not found in main menu, check room service menu
+            if (!item && roomServiceMenu && roomServiceMenu.length > 0) {
+                item = roomServiceMenu.find(i => i.id === itemId);
+                console.log('Item found in room service menu for cart:', item);
+            }
+            
+            if (!item) {
+                console.error('Item not found in either menu for cart:', itemId);
+                return;
+            }
+            
+            console.log('Adding item to cart with modifiers:', item);
             
             // Check for required modifiers that haven't been selected
             const missingRequired = [];
@@ -5445,6 +5468,11 @@
             initializeTables(); // Initialize tables on page load
             initializeKeyboardShortcuts(); // Initialize keyboard shortcuts
             
+            // Initialize room service after menu items are loaded
+            setTimeout(() => {
+                initializeRoomService();
+            }, 100);
+            
             // Initialize property switcher for multi-property system
             if (typeof PropertySwitcher !== 'undefined') {
                 PropertySwitcher.initialize();
@@ -5736,6 +5764,11 @@
         function initializeRoomService() {
             console.log('Initializing Room Service...');
             
+            // Ensure we have the global menuItems available
+            if (typeof window.menuItems !== 'undefined') {
+                window.menuItems = menuItems;
+            }
+            
             // Load room service menu (works with or without HotelMode)
             loadRoomServiceMenu();
             
@@ -5783,19 +5816,93 @@
         }
 
         function loadRoomServiceMenu() {
+            console.log('Loading room service menu...');
+            console.log('menuItems available:', menuItems ? menuItems.length : 'undefined');
+            console.log('typeof menuItems:', typeof menuItems);
+            
             if (typeof HotelMode === 'undefined') {
                 // Fallback to main menu items if HotelMode not available
+                console.log('HotelMode not available, using main menu items');
+                
+                // Ensure menuItems is loaded first - try multiple sources
+                if (!menuItems || menuItems.length === 0) {
+                    console.log('menuItems empty or undefined, loading from localStorage...');
+                    
+                    // Try different storage keys
+                    let savedMenu = localStorage.getItem('menuItems');
+                    console.log('menuItems from localStorage:', savedMenu ? 'found' : 'not found');
+                    
+                    if (!savedMenu) {
+                        savedMenu = localStorage.getItem('menuData');
+                        console.log('menuData from localStorage:', savedMenu ? 'found' : 'not found');
+                    }
+                    
+                    // Try property-specific storage
+                    if (!savedMenu) {
+                        try {
+                            const propertyContext = getPropertyContext();
+                            if (propertyContext && propertyContext.id) {
+                                const propertyMenuKey = `property_${propertyContext.id}_menu`;
+                                savedMenu = localStorage.getItem(propertyMenuKey);
+                                console.log('Property-specific menu:', savedMenu ? 'found' : 'not found');
+                            }
+                        } catch (error) {
+                            console.error('Error getting property context:', error);
+                        }
+                    }
+                    
+                    if (savedMenu) {
+                        try {
+                            const parsedMenu = JSON.parse(savedMenu);
+                            console.log('Parsed menu structure:', parsedMenu);
+                            
+                            if (Array.isArray(parsedMenu)) {
+                                menuItems = parsedMenu;
+                            } else if (parsedMenu.items && Array.isArray(parsedMenu.items)) {
+                                menuItems = parsedMenu.items;
+                            } else {
+                                console.error('Invalid menu format:', parsedMenu);
+                                roomServiceMenu = [];
+                                renderRoomServiceMenu();
+                                return;
+                            }
+                            console.log('Loaded menu items from localStorage:', menuItems.length);
+                        } catch (error) {
+                            console.error('Error parsing menu items:', error);
+                            roomServiceMenu = [];
+                            renderRoomServiceMenu();
+                            return;
+                        }
+                    } else {
+                        console.log('No menu found in any storage location');
+                        roomServiceMenu = [];
+                        renderRoomServiceMenu();
+                        return;
+                    }
+                }
+                
                 roomServiceMenu = [...menuItems];
+                console.log('Room service menu initialized with', roomServiceMenu.length, 'items');
                 renderRoomServiceMenu();
                 return;
             }
             
             // Get room service menu from HotelMode
+            console.log('HotelMode is available, trying to get room service menu...');
             roomServiceMenu = HotelMode.getRoomServiceMenu();
+            console.log('HotelMode.getRoomServiceMenu() returned:', roomServiceMenu.length, 'items');
             
             if (roomServiceMenu.length === 0) {
+                console.log('HotelMode returned empty menu, trying initializeRoomServiceMenu...');
                 // Initialize if empty
                 roomServiceMenu = HotelMode.initializeRoomServiceMenu();
+                console.log('HotelMode.initializeRoomServiceMenu() returned:', roomServiceMenu.length, 'items');
+                
+                // If still empty, fall back to main menu items
+                if (roomServiceMenu.length === 0) {
+                    console.log('HotelMode still returned empty, falling back to main menu items');
+                    roomServiceMenu = [...menuItems];
+                }
             }
             
             renderRoomServiceMenu();
@@ -5803,30 +5910,43 @@
         }
 
         function renderRoomServiceMenu() {
+            console.log('=== RENDERING ROOM SERVICE MENU ===');
             const menuGrid = document.getElementById('roomServiceMenuGrid');
-            if (!menuGrid) return;
+            console.log('Menu grid element:', menuGrid);
+            console.log('roomServiceMenu length:', roomServiceMenu.length);
+            console.log('roomServiceMenu items:', roomServiceMenu);
+            
+            if (!menuGrid) {
+                console.error('roomServiceMenuGrid element not found!');
+                return;
+            }
+            
+            // Initialize search functionality
+            initializeMenuSearch();
             
             if (roomServiceMenu.length === 0) {
+                console.log('No room service menu items, showing placeholder');
                 menuGrid.innerHTML = `
                     <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #9ca3af;">
                         <span style="font-size: 3rem;">🍽️</span>
                         <p>No menu items available</p>
-                        <button onclick="initializeFromRestaurant()" style="background: #4f46e5; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer;">
-                            Initialize from Restaurant Menu
-                        </button>
+                        <p style="font-size: 0.875rem; margin: 1rem 0;">You need to upload a menu first or initialize from restaurant menu</p>
+                        <div style="display: flex; flex-direction: column; gap: 1rem; align-items: center;">
+                            <button onclick="initializeFromRestaurant()" style="background: #4f46e5; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-size: 1rem;">
+                                Initialize from Restaurant Menu
+                            </button>
+                            <button onclick="switchTab('menu')" style="background: #059669; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-size: 1rem;">
+                                Go to Menu Tab to Upload
+                            </button>
+                        </div>
                     </div>
                 `;
                 return;
             }
             
-            menuGrid.innerHTML = roomServiceMenu.map(item => `
-                <div class="menu-item" onclick="handleRoomServiceItemClick('${item.id}')">
-                    <h4>${item.name}</h4>
-                    <p class="description">${item.description || ''}</p>
-                    <p class="price">$${item.price.toFixed(2)}</p>
-                    ${item.roomServiceOnly ? '<span class="room-service-only">Room Service Only</span>' : ''}
-                </div>
-            `).join('');
+            // Use the new filtered rendering function
+            renderFilteredRoomServiceMenu(roomServiceMenu);
+            console.log('=== ROOM SERVICE MENU RENDERING COMPLETE ===');
         }
 
         function setupFormValidation() {
@@ -5850,19 +5970,61 @@
             }
         }
 
-        // Handle room service menu item click - check for modifiers
-        function handleRoomServiceItemClick(itemId) {
-            const item = roomServiceMenu.find(i => i.id === itemId);
+        // Handle main menu item click - check for modifiers
+        function handleMenuItemClick(itemId, itemName, itemPrice) {
+            console.log('=== MAIN MENU ITEM CLICKED ===');
+            console.log('Item ID:', itemId);
+            console.log('Item Name:', itemName);
+            console.log('Item Price:', itemPrice);
+            
+            const item = menuItems.find(i => i.id === itemId);
+            console.log('Found item:', item);
+            
             if (!item) {
+                console.error('Item not found in menuItems');
                 showNotification(`Item not found`, 'error');
                 return;
             }
             
+            console.log('Item modifiers:', item.modifiers);
+            console.log('Has modifiers?', item.modifiers && item.modifiers.length > 0);
+            
             // Check if item has modifiers
             if (item.modifiers && item.modifiers.length > 0) {
-                // Item has modifiers, show customization modal for room service
+                console.log('Item has modifiers, showing customization modal');
+                // Item has modifiers, show customization modal
+                customizeItem(itemId);
+            } else {
+                console.log('Item has no modifiers, adding directly to cart');
+                // No modifiers, add directly to cart
+                addToCart(itemId, itemName, itemPrice);
+            }
+        }
+
+        // Handle room service menu item click - check for modifiers
+        function handleRoomServiceItemClick(itemId) {
+            console.log('=== ROOM SERVICE ITEM CLICKED ===');
+            console.log('Item ID:', itemId);
+            
+            const item = roomServiceMenu.find(i => i.id === itemId);
+            console.log('Found item:', item);
+            
+            if (!item) {
+                console.error('Item not found in roomServiceMenu');
+                showNotification(`Item not found`, 'error');
+                return;
+            }
+            
+            console.log('Item modifiers:', item.modifiers);
+            console.log('Has modifiers?', item.modifiers && item.modifiers.length > 0);
+            
+            // Check if item has modifiers
+            if (item.modifiers && item.modifiers.length > 0) {
+                console.log('Item has modifiers, showing room service customization modal');
+                // Item has modifiers, show room service customization modal
                 customizeRoomServiceItem(itemId);
             } else {
+                console.log('Item has no modifiers, adding directly to room service cart');
                 // No modifiers, add directly to room service cart
                 addToRoomServiceCart(itemId);
             }
@@ -6115,7 +6277,234 @@
             
             updateRoomServiceCartDisplay();
             showNotification(`${item.name} added to room service cart!`);
-        }        function updateRoomServiceCartDisplay() {
+        }
+        
+        // Initialize menu search functionality
+        function initializeMenuSearch() {
+            console.log('Initializing menu search functionality');
+            const searchInput = document.getElementById('menuSearch');
+            if (!searchInput) {
+                console.error('Menu search input not found!');
+                return;
+            }
+            
+            // Add event listener for real-time search
+            searchInput.addEventListener('input', function(e) {
+                const searchTerm = e.target.value.trim().toLowerCase();
+                console.log('Search term:', searchTerm);
+                filterRoomServiceMenu(searchTerm);
+            });
+            
+            // Clear search when clicking the clear button
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    e.target.value = '';
+                    filterRoomServiceMenu('');
+                }
+            });
+            
+            console.log('Menu search initialized successfully');
+        }
+        
+        // Filter room service menu based on search term
+        function filterRoomServiceMenu(searchTerm) {
+            console.log('Filtering menu with term:', searchTerm);
+            
+            // Get the current room service menu
+            let menuToFilter = roomServiceMenu;
+            if (menuToFilter.length === 0) {
+                console.log('Room service menu empty, using main menu items');
+                menuToFilter = menuItems;
+            }
+            
+            // If search term is empty, show all items
+            if (!searchTerm) {
+                renderFilteredRoomServiceMenu(menuToFilter);
+                return;
+            }
+            
+            // Filter items based on search term
+            const filteredItems = menuToFilter.filter(item => {
+                const nameMatch = item.name && item.name.toLowerCase().includes(searchTerm);
+                const descriptionMatch = item.description && item.description.toLowerCase().includes(searchTerm);
+                const categoryMatch = item.category && item.category.toLowerCase().includes(searchTerm);
+                
+                return nameMatch || descriptionMatch || categoryMatch;
+            });
+            
+            console.log(`Found ${filteredItems.length} items matching "${searchTerm}"`);
+            renderFilteredRoomServiceMenu(filteredItems, searchTerm);
+        }
+        
+        // Render filtered room service menu with highlighting
+        function renderFilteredRoomServiceMenu(items, searchTerm = '') {
+            console.log('Rendering filtered menu with', items.length, 'items');
+            
+            const menuGrid = document.getElementById('roomServiceMenuGrid');
+            if (!menuGrid) {
+                console.error('Room service menu grid not found!');
+                return;
+            }
+            
+            if (items.length === 0) {
+                if (searchTerm) {
+                    menuGrid.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #9ca3af;">
+                            <span style="font-size: 3rem;">🔍</span>
+                            <p>No items found for "${searchTerm}"</p>
+                            <p style="font-size: 0.9rem; margin-top: 0.5rem;">Try a different search term</p>
+                        </div>
+                    `;
+                } else {
+                    menuGrid.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #9ca3af;">
+                            <span style="font-size: 3rem;">🍽️</span>
+                            <p>No menu items available</p>
+                            <div style="margin-top: 1rem;">
+                                <button onclick="uploadRoomServiceMenu()" style="margin: 0.5rem; padding: 0.75rem 1.5rem; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">Upload Menu</button>
+                                <button onclick="initializeFromRestaurantMenu()" style="margin: 0.5rem; padding: 0.75rem 1.5rem; background: #059669; color: white; border: none; border-radius: 6px; cursor: pointer;">Use Restaurant Menu</button>
+                            </div>
+                        </div>
+                    `;
+                }
+                return;
+            }
+            
+            let menuHTML = '';
+            items.forEach(item => {
+                const safeId = item.id || generateUniqueId();
+                const safeName = item.name || 'Unnamed Item';
+                const safePrice = typeof item.price === 'number' ? item.price : 0;
+                const safeEmoji = item.emoji || '🍽️';
+                const safeDescription = item.description || 'No description available';
+                
+                // Highlight search term in name if provided
+                let displayName = safeName;
+                if (searchTerm && searchTerm.length > 0) {
+                    const regex = new RegExp(`(${searchTerm})`, 'gi');
+                    displayName = safeName.replace(regex, '<mark style="background: #fef3c7; padding: 0 2px;">$1</mark>');
+                }
+                
+                menuHTML += `
+                    <div class="menu-item" onclick="handleRoomServiceItemClick('${safeId}')" style="
+                        border: 1px solid #e5e7eb;
+                        border-radius: 8px;
+                        padding: 1rem;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        background: white;
+                        display: flex;
+                        flex-direction: column;
+                        height: 100%;
+                    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';" 
+                       onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.1)';">
+                        <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-size: 1.5rem; margin-right: 0.5rem;">${safeEmoji}</span>
+                            <h3 style="margin: 0; font-size: 1rem; font-weight: 600; flex: 1;">${displayName}</h3>
+                        </div>
+                        <p style="margin: 0 0 0.5rem 0; font-size: 0.875rem; color: #6b7280; flex: 1;">${safeDescription}</p>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
+                            <span style="font-weight: 600; color: #059669; font-size: 1.1rem;">$${safePrice.toFixed(2)}</span>
+                            ${(item.modifiers && item.modifiers.length > 0) ? 
+                                '<span style="font-size: 0.75rem; background: #dbeafe; color: #1e40af; padding: 0.25rem 0.5rem; border-radius: 4px;">Customizable</span>' : 
+                                ''
+                            }
+                        </div>
+                    </div>
+                `;
+            });
+            
+            menuGrid.innerHTML = menuHTML;
+            console.log('Filtered menu rendered successfully');
+        }
+        
+        // Upload menu specifically for room service
+        function uploadRoomServiceMenu() {
+            console.log('Upload room service menu clicked');
+            // Create file input for menu upload
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json,.csv';
+            input.style.display = 'none';
+            
+            input.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        let menuData;
+                        if (file.name.endsWith('.json')) {
+                            menuData = JSON.parse(event.target.result);
+                        } else if (file.name.endsWith('.csv')) {
+                            // Parse CSV (basic implementation)
+                            const lines = event.target.result.split('\n');
+                            const headers = lines[0].split(',').map(h => h.trim());
+                            menuData = lines.slice(1).filter(line => line.trim()).map(line => {
+                                const values = line.split(',').map(v => v.trim());
+                                const item = {};
+                                headers.forEach((header, index) => {
+                                    item[header] = values[index] || '';
+                                });
+                                // Convert price to number
+                                if (item.price) {
+                                    item.price = parseFloat(item.price) || 0;
+                                }
+                                return item;
+                            });
+                        }
+                        
+                        if (menuData && Array.isArray(menuData)) {
+                            // Ensure all items have unique IDs
+                            menuData.forEach((item, index) => {
+                                if (!item.id) {
+                                    item.id = generateUniqueId();
+                                }
+                            });
+                            
+                            // Update room service menu
+                            roomServiceMenu = menuData;
+                            localStorage.setItem('roomServiceMenu', JSON.stringify(roomServiceMenu));
+                            
+                            // Re-render the menu
+                            renderRoomServiceMenu();
+                            showNotification('Room service menu uploaded successfully!', 'success');
+                        } else {
+                            throw new Error('Invalid menu format');
+                        }
+                    } catch (error) {
+                        console.error('Error parsing menu file:', error);
+                        showNotification('Error parsing menu file. Please check the format.', 'error');
+                    }
+                };
+                reader.readAsText(file);
+            });
+            
+            document.body.appendChild(input);
+            input.click();
+            document.body.removeChild(input);
+        }
+        
+        // Initialize room service menu from restaurant menu
+        function initializeFromRestaurantMenu() {
+            console.log('Initialize from restaurant menu clicked');
+            
+            if (!menuItems || menuItems.length === 0) {
+                showNotification('No restaurant menu available. Please upload a menu first.', 'warning');
+                return;
+            }
+            
+            // Copy restaurant menu to room service menu
+            roomServiceMenu = [...menuItems];
+            localStorage.setItem('roomServiceMenu', JSON.stringify(roomServiceMenu));
+            
+            // Re-render the menu
+            renderRoomServiceMenu();
+            showNotification('Room service menu initialized from restaurant menu!', 'success');
+        }
+
+        function updateRoomServiceCartDisplay() {
             const cartItems = document.getElementById('roomServiceCartItems');
             const subtotalElement = document.getElementById('roomServiceSubtotal');
             const serviceChargeElement = document.getElementById('roomServiceServiceCharge');
@@ -6150,15 +6539,38 @@
                         <h4 class="cart-item-name">${item.name}</h4>
                         <span class="cart-item-price">$${item.price.toFixed(2)}</span>
                     </div>
+                    ${item.modifiers && item.modifiers.length > 0 ? `
+                        <div class="cart-item-modifiers" style="padding: 0.5rem 0; border-top: 1px solid #e5e7eb; margin-top: 0.5rem;">
+                            <div style="font-size: 0.9rem; color: #4b5563;">
+                                ${item.modifiers.map(mod => `
+                                    <div class="modifier-group" style="margin-bottom: 6px;">
+                                        ${mod.group && mod.group !== 'New Modifier Group' ? `<div style="color: #6b7280; font-weight: 600; font-size: 0.8rem;">${mod.group}:</div>` : ''}
+                                        <div>
+                                            ${mod.selected.map(option => {
+                                                const optionObj = typeof option === 'string' ? {name: option} : option;
+                                                const priceText = optionObj.price ? 
+                                                    (optionObj.price > 0 ? ` (+$${optionObj.price.toFixed(2)})` : 
+                                                    ` (-$${Math.abs(optionObj.price).toFixed(2)})`) : '';
+                                                
+                                                return `<span style="background: #f3f4f6; padding: 2px 6px; border-radius: 4px; margin: 2px; display: inline-block; font-size: 0.8rem;">
+                                                    ${optionObj.name}${priceText}
+                                                </span>`;
+                                            }).join('')}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
                     <div class="cart-item-footer">
                         <div class="quantity-controls">
-                            <button onclick="updateRoomServiceQuantity('${item.id}', ${item.quantity - 1})" class="quantity-btn" ${item.quantity <= 1 ? 'disabled' : ''}>−</button>
+                            <button onclick="updateRoomServiceQuantity('${item.uniqueId || item.id}', ${item.quantity - 1})" class="quantity-btn" ${item.quantity <= 1 ? 'disabled' : ''}>−</button>
                             <span class="quantity-display">${item.quantity}</span>
-                            <button onclick="updateRoomServiceQuantity('${item.id}', ${item.quantity + 1})" class="quantity-btn">+</button>
+                            <button onclick="updateRoomServiceQuantity('${item.uniqueId || item.id}', ${item.quantity + 1})" class="quantity-btn">+</button>
                         </div>
                         <div class="cart-item-total">
                             <span class="total-price">$${(item.price * item.quantity).toFixed(2)}</span>
-                            <button onclick="removeFromRoomServiceCart('${item.id}')" class="remove-item-btn" title="Remove item">🗑️</button>
+                            <button onclick="removeFromRoomServiceCart('${item.uniqueId || item.id}')" class="remove-item-btn" title="Remove item">🗑️</button>
                         </div>
                     </div>
                 </div>
@@ -6169,10 +6581,11 @@
             if (taxElement) taxElement.textContent = `$${tax.toFixed(2)}`;
             if (totalElement) totalElement.textContent = `$${total.toFixed(2)}`;
         }        function removeFromRoomServiceCart(itemId) {
-            const index = roomServiceCart.findIndex(i => i.id === itemId);
+            const index = roomServiceCart.findIndex(i => i.uniqueId === itemId || i.id === itemId);
             if (index !== -1) {
                 roomServiceCart.splice(index, 1);
                 updateRoomServiceCartDisplay();
+                showNotification('Item removed from room service cart', 'info');
             }
         }
 
@@ -6182,7 +6595,7 @@
                 return;
             }
             
-            const index = roomServiceCart.findIndex(i => i.id === itemId);
+            const index = roomServiceCart.findIndex(i => i.uniqueId === itemId || i.id === itemId);
             if (index !== -1) {
                 roomServiceCart[index].quantity = newQuantity;
                 updateRoomServiceCartDisplay();
@@ -6232,14 +6645,100 @@
         }
 
         function initializeFromRestaurant() {
-            if (typeof HotelMode !== 'undefined') {
-                roomServiceMenu = HotelMode.initializeRoomServiceMenu();
+            console.log('=== INITIALIZE FROM RESTAURANT CLICKED ===');
+            console.log('Current menuItems length:', menuItems ? menuItems.length : 'undefined');
+            console.log('Current menuItems type:', typeof menuItems);
+            console.log('Current menuItems value:', menuItems);
+            
+            // Try to get menu items from all possible sources
+            let sourceMenuItems = [];
+            
+            // First try the global menuItems variable
+            if (menuItems && Array.isArray(menuItems) && menuItems.length > 0) {
+                sourceMenuItems = menuItems;
+                console.log('Using global menuItems:', sourceMenuItems.length);
             } else {
-                // Use main menu items as room service menu
-                roomServiceMenu = [...menuItems];
+                console.log('Global menuItems not available, trying localStorage...');
+                
+                // Try different storage keys
+                const storageKeys = ['menuItems', 'menuData'];
+                
+                // Try property-specific storage
+                try {
+                    const propertyContext = getPropertyContext();
+                    if (propertyContext && propertyContext.id) {
+                        storageKeys.unshift(`property_${propertyContext.id}_menu`);
+                    }
+                } catch (error) {
+                    console.error('Error getting property context:', error);
+                }
+                
+                for (const key of storageKeys) {
+                    console.log(`Trying storage key: ${key}`);
+                    const savedMenu = localStorage.getItem(key);
+                    
+                    if (savedMenu) {
+                        try {
+                            const parsedMenu = JSON.parse(savedMenu);
+                            console.log(`Found data in ${key}:`, parsedMenu);
+                            
+                            if (Array.isArray(parsedMenu)) {
+                                sourceMenuItems = parsedMenu;
+                                break;
+                            } else if (parsedMenu.items && Array.isArray(parsedMenu.items)) {
+                                sourceMenuItems = parsedMenu.items;
+                                break;
+                            }
+                        } catch (error) {
+                            console.error(`Error parsing ${key}:`, error);
+                        }
+                    }
+                }
             }
+            
+            if (sourceMenuItems.length === 0) {
+                console.error('No menu items found in any location');
+                showNotification('No menu available. Please upload a menu using the "Upload Menu" button first.', 'warning');
+                return;
+            }
+            
+            console.log(`Found ${sourceMenuItems.length} menu items to use`);
+            
+            // Debug: Check if source menu items have modifiers
+            console.log('Checking for modifiers in source menu items...');
+            const itemsWithModifiers = sourceMenuItems.filter(item => item.modifiers && item.modifiers.length > 0);
+            console.log(`Found ${itemsWithModifiers.length} items with modifiers`);
+            if (itemsWithModifiers.length > 0) {
+                console.log('Sample item with modifiers:', itemsWithModifiers[0]);
+            }
+            
+            // Initialize room service menu - FORCE USE OF RESTAURANT MENU
+            console.log('Forcing room service menu to use restaurant menu items...');
+            roomServiceMenu = [...sourceMenuItems];
+            console.log('Directly assigned sourceMenuItems to roomServiceMenu:', roomServiceMenu.length);
+            
+            // Debug: Check if room service menu items have modifiers after assignment
+            const rsItemsWithModifiers = roomServiceMenu.filter(item => item.modifiers && item.modifiers.length > 0);
+            console.log(`Room service menu has ${rsItemsWithModifiers.length} items with modifiers`);
+            if (rsItemsWithModifiers.length > 0) {
+                console.log('Sample room service item with modifiers:', rsItemsWithModifiers[0]);
+            }
+            
+            // Also try HotelMode if available, but don't let it override our menu
+            if (typeof HotelMode !== 'undefined') {
+                console.log('HotelMode is available, but using restaurant menu instead');
+                // Don't call HotelMode.initializeRoomServiceMenu() as it's returning empty
+            }
+            
+            // Update global menuItems if it was empty
+            if (!menuItems || menuItems.length === 0) {
+                menuItems = [...sourceMenuItems];
+                console.log('Updated global menuItems');
+            }
+            
+            console.log('Room service menu initialized with', roomServiceMenu.length, 'items');
             renderRoomServiceMenu();
-            showNotification('Room service menu initialized from restaurant menu!', 'success');
+            showNotification(`Room service menu initialized with ${roomServiceMenu.length} items!`, 'success');
         }
 
         function updateMenuSyncStatus() {
@@ -7647,14 +8146,20 @@
                 const itemName = item.name || item.Name || `Item ${index + 1}`;
                 const itemPrice = parseFloat(item.price || item.Price || 0);
                 const itemEmoji = item.emoji || item.Emoji || '🍽️';
+                const itemId = item.id || `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                
+                // Ensure item has an ID for proper handling
+                if (!item.id) {
+                    item.id = itemId;
+                }
                 
                 div.innerHTML = `
                     <div class="item-image">${itemEmoji}</div>
                     <div class="item-name">${itemName}</div>
                     <div class="item-price">$${itemPrice.toFixed(2)}</div>
                     <div class="item-actions">
-                        <button class="item-btn customize-btn" onclick="handleMenuItemClickByName('${itemName.replace(/'/g, "\\'")}', ${itemPrice})">Customize</button>
-                        <button class="item-btn details-btn" onclick="handleMenuItemClickByName('${itemName.replace(/'/g, "\\'")}', ${itemPrice})">Add</button>
+                        <button class="item-btn customize-btn" onclick="handleMenuItemClick('${itemId}', '${itemName.replace(/'/g, "\\'")}', ${itemPrice})">Customize</button>
+                        <button class="item-btn details-btn" onclick="handleMenuItemClick('${itemId}', '${itemName.replace(/'/g, "\\'")}', ${itemPrice})">Add</button>
                     </div>
                 `;
                 grid.appendChild(div);
