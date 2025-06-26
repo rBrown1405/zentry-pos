@@ -264,16 +264,18 @@ class UmbrellaAccountManager {
         try {
             const user = this.firebaseManager.getCurrentUser();
             if (!user) throw new Error('No authenticated user');
-            
             if (user.role !== 'super_admin' && user.role !== 'owner') {
                 throw new Error('Insufficient permissions to create a business');
             }
-            
-            // Generate a unique business code
-            const businessCode = this.generateUniqueCode('BUS');
-            
+            // Generate a business code and business ID using the company name
+            const cleanedName = (businessData.companyName || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+            const namePart = cleanedName.substring(0, 4) || 'BIZ';
+            const randomPart = this.generateUniqueCode('').replace(/[^A-Z0-9]/gi, '').replace(/^-/, ''); // 3 random chars
+            const businessId = `${namePart}-${randomPart}`; // e.g. ZENT-1A2
+            const businessCode = businessId;
+
             // Create the business document
-            const businessRef = await this.db.collection('businesses').add({
+            await this.db.collection('businesses').doc(businessId).set({
                 businessCode,
                 companyName: businessData.companyName,
                 businessType: businessData.businessType || 'restaurant',
@@ -290,16 +292,16 @@ class UmbrellaAccountManager {
                 isActive: true,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            
+
             // Update the user document to link them to this business if they're an owner
             if (user.role === 'owner') {
                 await this.db.collection('users').doc(user.uid).update({
-                    businessId: businessRef.id,
+                    businessId: businessId,
                     accessLevel: 'business'
                 });
             }
-            
-            return businessRef.id;
+
+            return businessId;
         } catch (error) {
             console.error('Error creating business:', error);
             throw error;
@@ -455,15 +457,15 @@ class UmbrellaAccountManager {
     }
 
     /**
-     * Generate a very short unique code for business/property
+     * Generate a minimal unique code for business/property
      * @param {string} prefix - Code prefix
      * @returns {string} - Generated code
      */
     generateUniqueCode(prefix) {
-        // Short: prefix + 4 random uppercase letters/digits
+        // Minimal: prefix + 3 random uppercase letters/digits
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         let code = '';
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < 3; i++) {
             code += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         return `${prefix}-${code}`;
