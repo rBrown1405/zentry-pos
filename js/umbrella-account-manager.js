@@ -455,14 +455,18 @@ class UmbrellaAccountManager {
     }
 
     /**
-     * Generate a unique code for business/property
+     * Generate a very short unique code for business/property
      * @param {string} prefix - Code prefix
      * @returns {string} - Generated code
      */
     generateUniqueCode(prefix) {
-        const timestamp = Date.now().toString(36).toUpperCase();
-        const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
-        return `${prefix}-${timestamp}${randomChars}`;
+        // Short: prefix + 4 random uppercase letters/digits
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let code = '';
+        for (let i = 0; i < 4; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return `${prefix}-${code}`;
     }
     
     /**
