@@ -582,6 +582,51 @@ class UmbrellaAccountManager {
             return false;
         }
     }
+
+    /**
+     * Export all umbrella account data and upload to Firebase Storage as JSON
+     * @param {string} [fileName] - Optional file name for the backup
+     * @param {string} [folder] - Optional folder in Firebase Storage
+     * @returns {Promise<string>} - Download URL of the uploaded file
+     */
+    async exportAndUploadAllData(fileName = null, folder = 'umbrella_backups') {
+        if (!this.currentBusiness) throw new Error('No current business selected');
+        const businessId = this.currentBusiness.id;
+        // Gather all business data
+        const businessDoc = await this.db.collection('businesses').doc(businessId).get();
+        const businessData = businessDoc.data();
+        // Get all properties for this business
+        const propertiesSnapshot = await this.db.collection('properties').where('business', '==', businessId).get();
+        const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Get all users for this business
+        const usersSnapshot = await this.db.collection('users').where('businessId', '==', businessId).get();
+        const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Get all menus for this business (if you have a menus collection)
+        let menus = [];
+        if (this.db.collection('menus')) {
+            const menusSnapshot = await this.db.collection('menus').where('business', '==', businessId).get();
+            menus = menusSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
+        const exportData = {
+            business: { id: businessDoc.id, ...businessData },
+            properties,
+            users,
+            menus
+        };
+        // Convert to JSON
+        const jsonString = JSON.stringify(exportData, null, 2);
+        // Prepare file name
+        const now = new Date();
+        const defaultFileName = `umbrella-backup-${businessId}-${now.toISOString().replace(/[:.]/g, '-')}.json`;
+        const uploadFileName = fileName || defaultFileName;
+        // Upload to Firebase Storage
+        const storage = window.firebaseServices.getStorage();
+        const storageRef = storage.ref().child(`${folder}/${uploadFileName}`);
+        const snapshot = await storageRef.putString(jsonString, 'raw', { contentType: 'application/json' });
+        // Get download URL
+        const downloadURL = await snapshot.ref.getDownloadURL();
+        return downloadURL;
+    }
 }
 
 // Create a global instance when Firebase is loaded
@@ -599,3 +644,80 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 1000);
 });
+
+// Add a button to trigger umbrella account backup/upload from the UI
+function addUmbrellaBackupButton() {
+    // Only add if not already present
+    if (document.getElementById('umbrella-backup-btn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'umbrella-backup-btn';
+    btn.textContent = 'Backup Umbrella Account Data';
+    btn.style.position = 'fixed';
+    btn.style.bottom = '24px';
+    btn.style.right = '24px';
+    btn.style.zIndex = 9999;
+    btn.style.background = '#1976d2';
+    btn.style.color = '#fff';
+    btn.style.border = 'none';
+    btn.style.padding = '12px 20px';
+    btn.style.borderRadius = '6px';
+    btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+    btn.style.fontSize = '16px';
+    btn.style.cursor = 'pointer';
+    btn.onclick = async () => {
+        btn.disabled = true;
+        btn.textContent = 'Backing up...';
+        try {
+            const url = await window.umbrellaManager.exportAndUploadAllData();
+            btn.textContent = 'Backup Complete!';
+            setTimeout(() => {
+                btn.textContent = 'Backup Umbrella Account Data';
+                btn.disabled = false;
+            }, 3000);
+            window.open(url, '_blank');
+        } catch (e) {
+            btn.textContent = 'Backup Failed';
+            setTimeout(() => {
+                btn.textContent = 'Backup Umbrella Account Data';
+                btn.disabled = false;
+            }, 3000);
+            alert('Backup failed: ' + e.message);
+        }
+    };
+    document.body.appendChild(btn);
+}
+
+// Notification helper
+function showBackupNotification(message, isSuccess = true, url = null) {
+    let notification = document.getElementById('backup-toast');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'backup-toast';
+        notification.style.position = 'fixed';
+        notification.style.bottom = '32px';
+        notification.style.left = '50%';
+        notification.style.transform = 'translateX(-50%)';
+        notification.style.background = isSuccess ? '#22c55e' : '#ef4444';
+        notification.style.color = '#fff';
+        notification.style.padding = '1rem 2rem';
+        notification.style.borderRadius = '8px';
+        notification.style.fontSize = '1.1rem';
+        notification.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+        notification.style.zIndex = 10000;
+        notification.style.display = 'flex';
+        notification.style.alignItems = 'center';
+        notification.style.gap = '1rem';
+        document.body.appendChild(notification);
+    }
+    notification.innerHTML = message + (url ? ` <a href="${url}" target="_blank" style="color:#fff;text-decoration:underline;">Download</a>` : '');
+    notification.style.background = isSuccess ? '#22c55e' : '#ef4444';
+    notification.style.display = 'flex';
+    setTimeout(() => { notification.style.display = 'none'; }, 6000);
+}
+
+// Add the button after umbrellaManager is initialized
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(addUmbrellaBackupButton, 2000);
+} else {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(addUmbrellaBackupButton, 2000));
+}

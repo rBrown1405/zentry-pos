@@ -361,6 +361,16 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Umbrella Account Backup</div>
+                        <div class="setting-description">Export and upload all umbrella account data to cloud storage</div>
+                    </div>
+                    <div class="setting-control">
+                        <button id="umbrella-backup-btn" class="settings-btn" style="background: #1976d2; color: #fff; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: 600;">☁️ Backup Umbrella Account Data</button>
+                    </div>
+                </div>
             </section>
 
             <!-- Tax & Pricing -->
@@ -1232,6 +1242,37 @@ Storage Used: 245 MB`);
                     toggle.classList.remove('active');
                 }
             });
+        });
+        
+        // Umbrella backup button logic
+        document.addEventListener('DOMContentLoaded', function() {
+            const backupBtn = document.getElementById('umbrella-backup-btn');
+            if (backupBtn) {
+                backupBtn.onclick = async () => {
+                    backupBtn.disabled = true;
+                    backupBtn.textContent = 'Backing up...';
+                    try {
+                        // Prompt for custom file name/folder (optional)
+                        let fileName = prompt('Enter a file name for the backup (or leave blank for default):');
+                        let folder = prompt('Enter a folder name in Firebase Storage (or leave blank for umbrella_backups):');
+                        if (fileName && !fileName.endsWith('.json')) fileName += '.json';
+                        const url = await window.umbrellaManager.exportAndUploadAllData(fileName || undefined, folder || undefined);
+                        backupBtn.textContent = 'Backup Complete!';
+                        showBackupNotification('Backup complete! Click to download.', true, url);
+                        setTimeout(() => {
+                            backupBtn.textContent = '☁️ Backup Umbrella Account Data';
+                            backupBtn.disabled = false;
+                        }, 3000);
+                    } catch (e) {
+                        backupBtn.textContent = 'Backup Failed';
+                        showBackupNotification('Backup failed: ' + e.message, false);
+                        setTimeout(() => {
+                            backupBtn.textContent = '☁️ Backup Umbrella Account Data';
+                            backupBtn.disabled = false;
+                        }, 3000);
+                    }
+                };
+            }
         });
     </script>
 </body>
