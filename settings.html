@@ -636,21 +636,49 @@
             showNotification(`${settingName} ${isActive ? 'enabled' : 'disabled'}`);
         }
 
-        function saveSettings() {
+        async function saveSettings() {
             // Collect all form values
             const settings = {
                 restaurantName: document.getElementById('restaurantName').value,
                 currency: document.getElementById('currency').value,
                 timezone: document.getElementById('timezone').value,
-                taxRate: document.getElementById('taxRate').value,
-                rounding: document.getElementById('rounding').value,
-                autoLogout: document.getElementById('autoLogout').value
+                taxRate: document.getElementById('taxRate') ? document.getElementById('taxRate').value : '',
+                rounding: document.getElementById('rounding') ? document.getElementById('rounding').value : '',
+                autoLogout: document.getElementById('autoLogout') ? document.getElementById('autoLogout').value : ''
             };
-            
             // Save to localStorage
             localStorage.setItem('posSettings', JSON.stringify(settings));
-            
-            showNotification('All settings saved successfully!');
+            // --- SYNC TO FIREBASE ---
+            if (window.umbrellaManager && window.umbrellaManager.currentBusiness) {
+                try {
+                    // Update business document
+                    const db = window.firebaseServices.getDb();
+                    const businessId = window.umbrellaManager.currentBusiness.id;
+                    await db.collection('businesses').doc(businessId).update({
+                        companyName: settings.restaurantName,
+                        currency: settings.currency,
+                        timezone: settings.timezone,
+                        // Add more fields as needed
+                    });
+                    // Update all properties for this business
+                    const propertiesSnapshot = await db.collection('properties').where('business', '==', businessId).get();
+                    const batch = db.batch();
+                    propertiesSnapshot.forEach(doc => {
+                        batch.update(doc.ref, {
+                            businessName: settings.restaurantName,
+                            currency: settings.currency,
+                            timezone: settings.timezone
+                            // Add more fields as needed
+                        });
+                    });
+                    await batch.commit();
+                    showNotification('All settings saved and synced to properties!');
+                } catch (err) {
+                    showNotification('Settings saved locally, but failed to sync to cloud: ' + err.message);
+                }
+            } else {
+                showNotification('All settings saved locally! (Not synced to cloud)');
+            }
         }
 
         function resetToDefaults() {
