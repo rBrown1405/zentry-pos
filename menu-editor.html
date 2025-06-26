@@ -767,6 +767,138 @@
                 text-align: center;
                 padding: 1rem;
             }
+        }        /* New modifier group styles */
+        .modifier-group {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .modifier-group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            gap: 1rem;
+        }
+        
+        .modifier-group-name {
+            flex: 1;
+            padding: 0.5rem;
+            border: 2px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        
+        .remove-group-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        .remove-group-btn:hover {
+            background: #dc2626;
+        }
+        
+        .modifier-group-settings {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .modifier-setting {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .modifier-type {
+            padding: 0.25rem 0.5rem;
+            border: 2px solid #d1d5db;
+            border-radius: 4px;
+        }
+        
+        .modifier-required {
+            margin: 0;
+        }
+        
+        .modifier-options {
+            margin-top: 1rem;
+        }
+        
+        .modifier-options label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .options-list {
+            margin-bottom: 1rem;
+        }
+        
+        .option-item {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            align-items: center;
+        }
+        
+        .option-input {
+            flex: 1;
+            padding: 0.5rem;
+            border: 2px solid #d1d5db;
+            border-radius: 4px;
+        }
+        
+        .remove-option-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        
+        .remove-option-btn:hover {
+            background: #dc2626;
+        }
+        
+        .add-option-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .add-option-btn:hover {
+            background: #059669;
         }
     </style>
 </head>
@@ -1636,55 +1768,6 @@
 
             if (currentEditingItem) {
                 // Update existing item
-                const index = menuItems.findIndex(item => item.id === currentEditingItem.id);
-                if (index !== -1) {
-                    menuItems[index] = formData;
-                }
-                showNotification(`${formData.name} updated successfully!`);
-            } else {
-                // Add new item
-                menuItems.push(formData);
-                showNotification(`${formData.name} added successfully!`);
-            }
-
-            saveMenuData();
-            renderMenuItems();
-            clearForm();
-        });
-
-        // Toggle bulk 86'd status
-        function toggleBulkEightySix() {
-            const today = getTodayName();
-            const allItems86d = menuItems.every(item => !isItemAvailableToday(item));
-            
-            menuItems.forEach(item => {
-                // Initialize dayAvailability if it doesn't exist
-                if (!item.dayAvailability) {
-                    item.dayAvailability = {
-                        monday: true,
-                        tuesday: true,
-                        wednesday: true,
-                        thursday: true,
-                        friday: true,
-                        saturday: true,
-                        sunday: true
-                    };
-                }
-                
-                // If all items are 86'd, make them all available. Otherwise, 86 them all
-                item.dayAvailability[today] = allItems86d;
-            });
-            
-            saveMenuData();
-            renderMenuItems();
-            
-            const status = allItems86d ? 'available' : '86\'d';
-            showNotification(`All items are now ${status} for today`);
-        }
-
-        // Modifier functions (basic placeholders)
-        function showModifiersPanel() {
-            showNotification('Modifier functionality coming soon!', 'warning');
         }
 
         function closeModifiersPanel() {
@@ -1692,12 +1775,84 @@
         }
 
         function saveModifiers() {
+            if (!currentEditingItem) return;
+            
+            const modifierGroups = [];
+            const groupElements = document.querySelectorAll('.modifier-group');
+            
+            groupElements.forEach(groupElement => {
+                const nameInput = groupElement.querySelector('.modifier-group-name');
+                const typeSelect = groupElement.querySelector('.modifier-type');
+                const requiredCheckbox = groupElement.querySelector('.modifier-required');
+                const optionInputs = groupElement.querySelectorAll('.option-input');
+                
+                const options = Array.from(optionInputs)
+                    .map(input => input.value.trim())
+                    .filter(value => value !== '');
+                
+                if (nameInput.value.trim() && options.length > 0) {
+                    modifierGroups.push({
+                        name: nameInput.value.trim(),
+                        type: typeSelect.value,
+                        required: requiredCheckbox.checked,
+                        options: options
+                    });
+                }
+            });
+            
+            // Update the current editing item
+            currentEditingItem.modifiers = modifierGroups;
+            
+            // Update in the main menuItems array
+            const itemIndex = menuItems.findIndex(item => item.id === currentEditingItem.id);
+            if (itemIndex !== -1) {
+                menuItems[itemIndex].modifiers = modifierGroups;
+            }
+            
+            // Save to localStorage
+            saveMenuData();
+            
             closeModifiersPanel();
-            showNotification('Modifiers saved!');
+            showNotification(`Modifiers saved for ${currentEditingItem.name}!`);
         }
 
         function addModifierGroup() {
-            showNotification('Add modifier group functionality coming soon!', 'warning');
+            addModifierGroupToUI();
+        }
+
+        function removeModifierGroup(groupIndex) {
+            const groupElement = document.querySelector(`[data-index="${groupIndex}"]`);
+            if (groupElement) {
+                groupElement.remove();
+            }
+        }
+
+        function addOption(groupIndex) {
+            const optionsList = document.getElementById(`options-${groupIndex}`);
+            const optionCount = optionsList.querySelectorAll('.option-item').length;
+            
+            const optionElement = document.createElement('div');
+            optionElement.className = 'option-item';
+            optionElement.innerHTML = `
+                <input type="text" class="option-input" placeholder="Option name">
+                <button type="button" class="remove-option-btn" onclick="removeOption(${groupIndex}, ${optionCount})">✕</button>
+            `;
+            
+            optionsList.appendChild(optionElement);
+        }
+
+        function removeOption(groupIndex, optionIndex) {
+            const optionsList = document.getElementById(`options-${groupIndex}`);
+            const optionItems = optionsList.querySelectorAll('.option-item');
+            
+            if (optionItems.length > 1 && optionItems[optionIndex]) {
+                optionItems[optionIndex].remove();
+            }
+        }
+
+        function updateModifierType(groupIndex, newType) {
+            // This function can be used to update UI based on modifier type if needed
+            console.log(`Updated modifier group ${groupIndex} to type: ${newType}`);
         }
 
         // Make functions globally accessible for onclick handlers
