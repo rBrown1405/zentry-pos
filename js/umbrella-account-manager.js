@@ -103,8 +103,13 @@ class UmbrellaAccountManager {
             id,
             ...businessData
         };
-        localStorage.setItem('currentBusiness', JSON.stringify(this.currentBusiness));
-        
+        // Only save to localStorage if Firebase connection is lost
+        if (!this.db || !this.firebaseManager || !this.firebaseManager.auth || !this.firebaseManager.auth.currentUser) {
+            localStorage.setItem('currentBusiness', JSON.stringify(this.currentBusiness));
+        } else {
+            // Remove any stale localStorage copy if connection is live
+            localStorage.removeItem('currentBusiness');
+        }
         // Trigger event for business change
         const event = new CustomEvent('businessChanged', { 
             detail: { business: this.currentBusiness } 
@@ -122,8 +127,13 @@ class UmbrellaAccountManager {
             id,
             ...propertyData
         };
-        localStorage.setItem('currentProperty', JSON.stringify(this.currentProperty));
-        
+        // Only save to localStorage if Firebase connection is lost
+        if (!this.db || !this.firebaseManager || !this.firebaseManager.auth || !this.firebaseManager.auth.currentUser) {
+            localStorage.setItem('currentProperty', JSON.stringify(this.currentProperty));
+        } else {
+            // Remove any stale localStorage copy if connection is live
+            localStorage.removeItem('currentProperty');
+        }
         // Trigger event for property change
         const event = new CustomEvent('propertyChanged', { 
             detail: { property: this.currentProperty } 
