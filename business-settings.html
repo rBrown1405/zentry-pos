@@ -592,9 +592,9 @@
 
         // Load current settings
         function loadSettings() {
-            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-            const businessSettings = JSON.parse(localStorage.getItem('businessSettings') || '{}');
-            
+            // Try to load the current business context from localStorage
+            const currentBusiness = JSON.parse(localStorage.getItem('currentBusiness') || '{}');
+            const businessSettings = Object.keys(currentBusiness).length > 0 ? currentBusiness : JSON.parse(localStorage.getItem('businessSettings') || '{}');
             // Load business information
             document.getElementById('businessName').value = businessSettings.name || '';
             document.getElementById('businessType').value = businessSettings.type || 'restaurant';
@@ -685,7 +685,12 @@
             };
             
             localStorage.setItem('businessSettings', JSON.stringify(settings));
-            
+            // Also update currentBusiness context if it exists
+            const currentBusiness = JSON.parse(localStorage.getItem('currentBusiness') || '{}');
+            if (currentBusiness && currentBusiness.id) {
+                const updatedBusiness = { ...currentBusiness, ...settings };
+                localStorage.setItem('currentBusiness', JSON.stringify(updatedBusiness));
+            }
             // Show success message
             alert('Settings saved successfully!');
         }

@@ -66,7 +66,7 @@
 
             <div class="menu-section">
                 <h3>Settings</h3>
-                <button onclick="navigateWithTransition('business-settings.html')" class="menu-button">
+                <button onclick="setCurrentBusinessAndNavigate()" class="menu-button">
                     <span class="icon">⚙️</span>
                     Business Settings
                 </button>
@@ -183,6 +183,17 @@
         function toggleProfileMenu() {
             const menu = document.getElementById('profileMenu');
             menu.classList.toggle('show');
+        }
+
+        function setCurrentBusinessAndNavigate() {
+            // Get the current business info from the dashboard context
+            const businessInfo = JSON.parse(localStorage.getItem('currentBusiness'));
+            if (businessInfo) {
+                // Set current business in localStorage (redundant but ensures freshness)
+                localStorage.setItem('currentBusiness', JSON.stringify(businessInfo));
+                // Optionally, set any other global context here
+            }
+            navigateWithTransition('business-settings.html');
         }
     </script>
 </body>
