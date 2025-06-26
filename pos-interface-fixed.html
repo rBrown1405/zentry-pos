@@ -5736,20 +5736,19 @@
         function initializeRoomService() {
             console.log('Initializing Room Service...');
             
-            // Check if HotelMode is available
-            if (typeof HotelMode === 'undefined') {
-                console.warn('HotelMode not available - room service features limited');
-                return;
-            }
-
-            // Load loyalty program information
-            loadLoyaltyProgram();
-            
-            // Load room service menu
+            // Load room service menu (works with or without HotelMode)
             loadRoomServiceMenu();
             
-            // Set up form validation
-            setupFormValidation();
+            // Check if HotelMode is available for advanced features
+            if (typeof HotelMode === 'undefined') {
+                console.warn('HotelMode not available - using basic room service features');
+            } else {
+                // Load loyalty program information
+                loadLoyaltyProgram();
+                
+                // Set up form validation
+                setupFormValidation();
+            }
             
             // Load tax rate from settings
             loadTaxRate();
@@ -5785,8 +5784,8 @@
 
         function loadRoomServiceMenu() {
             if (typeof HotelMode === 'undefined') {
-                // Fallback to restaurant menu if HotelMode not available
-                roomServiceMenu = [...restaurantMenu];
+                // Fallback to main menu items if HotelMode not available
+                roomServiceMenu = [...menuItems];
                 renderRoomServiceMenu();
                 return;
             }
@@ -6236,9 +6235,11 @@
             if (typeof HotelMode !== 'undefined') {
                 roomServiceMenu = HotelMode.initializeRoomServiceMenu();
             } else {
-                roomServiceMenu = [...restaurantMenu];
+                // Use main menu items as room service menu
+                roomServiceMenu = [...menuItems];
             }
             renderRoomServiceMenu();
+            showNotification('Room service menu initialized from restaurant menu!', 'success');
         }
 
         function updateMenuSyncStatus() {
