@@ -5,9 +5,21 @@
 class UmbrellaAccountManager {
     constructor(firebaseManager) {
         this.firebaseManager = firebaseManager;
-        this.db = window.firebaseServices.getDb();
-        this.currentBusiness = JSON.parse(localStorage.getItem('currentBusiness') || 'null');
-        this.currentProperty = JSON.parse(localStorage.getItem('currentProperty') || 'null');
+        // Defensive: check if firebaseServices is available
+        this.db = (window.firebaseServices && window.firebaseServices.getDb) ? window.firebaseServices.getDb() : null;
+        // Only use localStorage if Firebase is not available or user is not authenticated
+        this.currentBusiness = null;
+        this.currentProperty = null;
+        if (!this.db || !this.firebaseManager || !this.firebaseManager.auth || !this.firebaseManager.auth.currentUser) {
+            // Fallback: try to load from localStorage
+            try {
+                this.currentBusiness = JSON.parse(localStorage.getItem('currentBusiness') || 'null');
+                this.currentProperty = JSON.parse(localStorage.getItem('currentProperty') || 'null');
+            } catch (e) {
+                this.currentBusiness = null;
+                this.currentProperty = null;
+            }
+        }
     }
 
     /**
@@ -103,14 +115,18 @@ class UmbrellaAccountManager {
             id,
             ...businessData
         };
-        // Only save to localStorage if Firebase connection is lost
+        // Only save to localStorage if Firebase connection is lost or user is not authenticated
         if (!this.db || !this.firebaseManager || !this.firebaseManager.auth || !this.firebaseManager.auth.currentUser) {
-            localStorage.setItem('currentBusiness', JSON.stringify(this.currentBusiness));
+            try {
+                localStorage.setItem('currentBusiness', JSON.stringify(this.currentBusiness));
+            } catch (e) {
+                // Ignore quota errors
+            }
         } else {
             // Remove any stale localStorage copy if connection is live
             localStorage.removeItem('currentBusiness');
         }
-        // Trigger event for business change
+        // Always fire event
         const event = new CustomEvent('businessChanged', { 
             detail: { business: this.currentBusiness } 
         });
@@ -127,14 +143,18 @@ class UmbrellaAccountManager {
             id,
             ...propertyData
         };
-        // Only save to localStorage if Firebase connection is lost
+        // Only save to localStorage if Firebase connection is lost or user is not authenticated
         if (!this.db || !this.firebaseManager || !this.firebaseManager.auth || !this.firebaseManager.auth.currentUser) {
-            localStorage.setItem('currentProperty', JSON.stringify(this.currentProperty));
+            try {
+                localStorage.setItem('currentProperty', JSON.stringify(this.currentProperty));
+            } catch (e) {
+                // Ignore quota errors
+            }
         } else {
             // Remove any stale localStorage copy if connection is live
             localStorage.removeItem('currentProperty');
         }
-        // Trigger event for property change
+        // Always fire event
         const event = new CustomEvent('propertyChanged', { 
             detail: { property: this.currentProperty } 
         });
@@ -674,12 +694,15 @@ function addUmbrellaBackupButton() {
     btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
     btn.style.fontSize = '16px';
     btn.style.cursor = 'pointer';
+    btn.title = 'Export and backup all umbrella account data to the cloud';
     btn.onclick = async () => {
         btn.disabled = true;
         btn.textContent = 'Backing up...';
         try {
+            if (!window.umbrellaManager) throw new Error('Umbrella manager not initialized');
             const url = await window.umbrellaManager.exportAndUploadAllData();
             btn.textContent = 'Backup Complete!';
+            showBackupNotification('Backup complete.', true, url);
             setTimeout(() => {
                 btn.textContent = 'Backup Umbrella Account Data';
                 btn.disabled = false;
@@ -687,11 +710,11 @@ function addUmbrellaBackupButton() {
             window.open(url, '_blank');
         } catch (e) {
             btn.textContent = 'Backup Failed';
+            showBackupNotification('Backup failed: ' + (e && e.message ? e.message : e), false);
             setTimeout(() => {
                 btn.textContent = 'Backup Umbrella Account Data';
                 btn.disabled = false;
             }, 3000);
-            alert('Backup failed: ' + e.message);
         }
     };
     document.body.appendChild(btn);
@@ -722,7 +745,8 @@ function showBackupNotification(message, isSuccess = true, url = null) {
     notification.innerHTML = message + (url ? ` <a href="${url}" target="_blank" style="color:#fff;text-decoration:underline;">Download</a>` : '');
     notification.style.background = isSuccess ? '#22c55e' : '#ef4444';
     notification.style.display = 'flex';
-    setTimeout(() => { notification.style.display = 'none'; }, 6000);
+    clearTimeout(notification._hideTimeout);
+    notification._hideTimeout = setTimeout(() => { notification.style.display = 'none'; }, 6000);
 }
 
 // Add the button after umbrellaManager is initialized
