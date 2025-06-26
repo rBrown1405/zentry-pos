@@ -2918,7 +2918,7 @@
             }
 
             menuGrid.innerHTML = availableItems.map(item => `
-                <div class="menu-item" onclick="addToCart('${item.id}', '${item.name}', ${item.price})">
+                <div class="menu-item" onclick="handleMenuItemClick('${item.id}', '${item.name}', ${item.price})">
                     <div class="item-image">${item.emoji}</div>
                     <div class="item-name">${item.name}</div>
                     <div class="item-price">$${item.price.toFixed(2)}</div>
@@ -5427,7 +5427,7 @@
             }
             
             menuGrid.innerHTML = availableItems.map(item => `
-                <div class="menu-item" onclick="addToCart('${item.id}', '${item.name}', ${item.price})" title="${item.description || ''}">
+                <div class="menu-item" onclick="handleMenuItemClick('${item.id}', '${item.name}', ${item.price})" title="${item.description || ''}">
                     <div class="item-image">${item.emoji}</div>
                     <div class="item-name">${item.name}</div>
                     <div class="item-price">$${item.price.toFixed(2)}</div>
@@ -7402,8 +7402,8 @@
                     <div class="item-name">${itemName}</div>
                     <div class="item-price">$${itemPrice.toFixed(2)}</div>
                     <div class="item-actions">
-                        <button class="item-btn customize-btn">Customize</button>
-                        <button class="item-btn details-btn" onclick="addToCart('${itemName.replace(/'/g, "\\'")}', ${itemPrice})">Add</button>
+                        <button class="item-btn customize-btn" onclick="handleMenuItemClickByName('${itemName.replace(/'/g, "\\'")}', ${itemPrice})">Customize</button>
+                        <button class="item-btn details-btn" onclick="handleMenuItemClickByName('${itemName.replace(/'/g, "\\'")}', ${itemPrice})">Add</button>
                     </div>
                 `;
                 grid.appendChild(div);
