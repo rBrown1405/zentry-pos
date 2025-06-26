@@ -5821,7 +5821,7 @@
             }
             
             menuGrid.innerHTML = roomServiceMenu.map(item => `
-                <div class="menu-item" onclick="addToRoomServiceCart('${item.id}')">
+                <div class="menu-item" onclick="handleRoomServiceItemClick('${item.id}')">
                     <h4>${item.name}</h4>
                     <p class="description">${item.description || ''}</p>
                     <p class="price">$${item.price.toFixed(2)}</p>
@@ -5851,21 +5851,271 @@
             }
         }
 
+        // Handle room service menu item click - check for modifiers
+        function handleRoomServiceItemClick(itemId) {
+            const item = roomServiceMenu.find(i => i.id === itemId);
+            if (!item) {
+                showNotification(`Item not found`, 'error');
+                return;
+            }
+            
+            // Check if item has modifiers
+            if (item.modifiers && item.modifiers.length > 0) {
+                // Item has modifiers, show customization modal for room service
+                customizeRoomServiceItem(itemId);
+            } else {
+                // No modifiers, add directly to room service cart
+                addToRoomServiceCart(itemId);
+            }
+        }
+
+        // Customize room service item with modifiers
+        function customizeRoomServiceItem(itemId) {
+            // Find the menu item
+            const item = roomServiceMenu.find(i => i.id === itemId);
+            if (!item) {
+                showNotification(`Item not found`, 'error');
+                return;
+            }
+            
+            // Check if item has modifiers
+            if (!item.modifiers || item.modifiers.length === 0) {
+                showNotification(`No modifiers available for ${item.name}`, 'info');
+                return;
+            }
+            
+            // Create a modal with modifier options
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay active';
+            modal.id = 'roomServiceModifierModal';
+            
+            let modalContent = `
+                <div class="modal" style="max-width: 700px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Customize ${item.name} (Room Service)</h3>
+                        <button class="modal-close" onclick="closeRoomServiceModifierModal()">×</button>
+                    </div>
+                    <div class="modal-content">
+                        <form id="roomServiceModifiersForm">
+            `;
+            
+            // Add modifier groups to the form
+            item.modifiers.forEach((group, groupIndex) => {
+                // Add required marker if applicable
+                const requiredLabel = group.required ? '<span style="color: #dc2626; margin-left: 0.5rem;">*Required</span>' : '';
+                
+                modalContent += `
+                    <div class="modification-section">
+                        <h4 style="margin-bottom: 1rem; color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem;">
+                            ${group.name}${requiredLabel}
+                        </h4>
+                `;
+                
+                if (group.type === 'single') {
+                    // Radio buttons for single selection
+                    modalContent += `<div class="radio-group" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.5rem;">`;
+                    
+                    group.options.forEach((option, optionIndex) => {
+                        const optionObj = typeof option === 'object' 
+                            ? option 
+                            : { name: option, price: 0 };
+                        
+                        const priceDisplay = optionObj.price != 0 
+                            ? (optionObj.price > 0 ? ` (+$${optionObj.price.toFixed(2)})` : ` (-$${Math.abs(optionObj.price).toFixed(2)})`)
+                            : '';
+                        
+                        modalContent += `
+                            <label class="radio-option" style="display: flex; align-items: center; padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 4px;">
+                                <input type="radio" name="rs_modifier_${groupIndex}" value="${JSON.stringify(optionObj).replace(/"/g, '&quot;')}" ${optionObj.default ? 'checked' : ''}>
+                                <span style="margin-left: 0.5rem;">${optionObj.name}${priceDisplay}</span>
+                            </label>
+                        `;
+                    });
+                    modalContent += `</div>`;
+                } else {
+                    // Checkboxes for multiple selection
+                    modalContent += `<div class="checkbox-group" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.5rem;">`;
+                    
+                    group.options.forEach((option, optionIndex) => {
+                        const optionObj = typeof option === 'object' 
+                            ? option
+                            : { name: option, price: 0 };
+                        
+                        const priceDisplay = optionObj.price != 0 
+                            ? (optionObj.price > 0 ? ` (+$${optionObj.price.toFixed(2)})` : ` (-$${Math.abs(optionObj.price).toFixed(2)})`)
+                            : '';
+                        
+                        modalContent += `
+                            <label class="checkbox-option" style="display: flex; align-items: center; padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 4px;">
+                                <input type="checkbox" name="rs_modifier_${groupIndex}_${optionIndex}" value="${JSON.stringify(optionObj).replace(/"/g, '&quot;')}" ${optionObj.default ? 'checked' : ''}>
+                                <span style="margin-left: 0.5rem;">${optionObj.name}${priceDisplay}</span>
+                            </label>
+                        `;
+                    });
+                    modalContent += `</div>`;
+                }
+                
+                modalContent += `</div>`;
+            });
+            
+            modalContent += `
+                        </form>
+                    </div>
+                    <div class="modal-actions" style="padding: 1rem; display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid #e5e7eb;">
+                        <button type="button" class="modal-btn secondary" onclick="closeRoomServiceModifierModal()">Cancel</button>
+                        <button type="button" class="modal-btn primary" onclick="addToRoomServiceCartWithModifiers('${itemId}')">
+                            Add to Room Service Order
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            modal.innerHTML = modalContent;
+            document.body.appendChild(modal);
+        }
+
+        // Close room service modifier modal
+        function closeRoomServiceModifierModal() {
+            const modal = document.getElementById('roomServiceModifierModal');
+            if (modal) {
+                document.body.removeChild(modal);
+            }
+        }
+
+        // Add to room service cart with modifiers
+        function addToRoomServiceCartWithModifiers(itemId) {
+            const item = roomServiceMenu.find(i => i.id === itemId);
+            if (!item) return;
+            
+            // Check for required modifiers that haven't been selected
+            const missingRequired = [];
+            const form = document.getElementById('roomServiceModifiersForm');
+            
+            item.modifiers.forEach((group, groupIndex) => {
+                if (group.required) {
+                    if (group.type === 'single') {
+                        const selected = form.querySelector(`input[name="rs_modifier_${groupIndex}"]:checked`);
+                        if (!selected) {
+                            missingRequired.push(group.name);
+                        }
+                    } else {
+                        let hasSelection = false;
+                        group.options.forEach((option, optionIndex) => {
+                            const checkbox = form.querySelector(`input[name="rs_modifier_${groupIndex}_${optionIndex}"]:checked`);
+                            if (checkbox) hasSelection = true;
+                        });
+                        if (!hasSelection) {
+                            missingRequired.push(group.name);
+                        }
+                    }
+                }
+            });
+            
+            // Show error if required modifiers are missing
+            if (missingRequired.length > 0) {
+                showNotification(`Please select required options for: ${missingRequired.join(', ')}`, 'warning');
+                return;
+            }
+            
+            // Calculate price adjustments
+            let priceAdjustment = 0;
+            
+            // Collect selected modifiers
+            const selectedModifiers = [];
+            
+            item.modifiers.forEach((group, groupIndex) => {
+                const groupModifiers = {
+                    group: group.name,
+                    type: group.type,
+                    selected: []
+                };
+                
+                if (group.type === 'single') {
+                    const selected = form.querySelector(`input[name="rs_modifier_${groupIndex}"]:checked`);
+                    if (selected) {
+                        try {
+                            const optionObj = JSON.parse(selected.value);
+                            groupModifiers.selected.push(optionObj);
+                            if (optionObj.price) {
+                                priceAdjustment += parseFloat(optionObj.price);
+                            }
+                        } catch (e) {
+                            groupModifiers.selected.push({name: selected.value, price: 0});
+                        }
+                    }
+                } else {
+                    group.options.forEach((option, optionIndex) => {
+                        const checkbox = form.querySelector(`input[name="rs_modifier_${groupIndex}_${optionIndex}"]:checked`);
+                        if (checkbox) {
+                            try {
+                                const optionObj = JSON.parse(checkbox.value);
+                                groupModifiers.selected.push(optionObj);
+                                if (optionObj.price) {
+                                    priceAdjustment += parseFloat(optionObj.price);
+                                }
+                            } catch (e) {
+                                groupModifiers.selected.push({name: checkbox.value, price: 0});
+                            }
+                        }
+                    });
+                }
+                
+                if (groupModifiers.selected.length > 0) {
+                    selectedModifiers.push(groupModifiers);
+                }
+            });
+            
+            // Add to room service cart with modifiers
+            addToRoomServiceCartWithCustomization(itemId, selectedModifiers, priceAdjustment);
+            closeRoomServiceModifierModal();
+        }
+
+        // Add to room service cart with customization
+        function addToRoomServiceCartWithCustomization(itemId, modifiers = [], priceAdjustment = 0) {
+            const item = roomServiceMenu.find(i => i.id === itemId);
+            if (!item) return;
+            
+            // When modifiers are present, always add as a new item to keep separate modifications
+            const adjustedPrice = item.price + priceAdjustment;
+            
+            const cartItem = {
+                ...item,
+                price: adjustedPrice,
+                basePrice: item.price,
+                priceAdjustment: priceAdjustment,
+                quantity: 1,
+                modifiers: modifiers,
+                uniqueId: `rs_${itemId}_${Date.now()}` // Add unique identifier for modified items
+            };
+            
+            roomServiceCart.push(cartItem);
+            updateRoomServiceCartDisplay();
+            
+            // Show a more descriptive notification for customized items
+            const modifierText = modifiers.length > 0 ? ' (Customized)' : '';
+            const priceText = priceAdjustment !== 0 ? 
+                (priceAdjustment > 0 ? ` (+$${priceAdjustment.toFixed(2)})` : ` (-$${Math.abs(priceAdjustment).toFixed(2)})`) : '';
+                
+            showNotification(`${item.name}${modifierText}${priceText} added to room service cart!`);
+        }
+
         function addToRoomServiceCart(itemId) {
             const item = roomServiceMenu.find(i => i.id === itemId);
             if (!item) return;
             
-            const existingItem = roomServiceCart.find(i => i.id === itemId);
+            const existingItem = roomServiceCart.find(i => i.id === itemId && (!i.modifiers || i.modifiers.length === 0));
             if (existingItem) {
                 existingItem.quantity += 1;
             } else {
                 roomServiceCart.push({
                     ...item,
-                    quantity: 1
+                    quantity: 1,
+                    modifiers: []
                 });
             }
             
             updateRoomServiceCartDisplay();
+            showNotification(`${item.name} added to room service cart!`);
         }        function updateRoomServiceCartDisplay() {
             const cartItems = document.getElementById('roomServiceCartItems');
             const subtotalElement = document.getElementById('roomServiceSubtotal');
