@@ -1042,6 +1042,11 @@
             return null;
         }
 
+        // Generate unique ID for menu items
+        function generateUniqueId() {
+            return 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
         // Load menu data from property-specific storage
         function loadMenuData() {
             try {
@@ -1085,10 +1090,22 @@
                         }
                     }
                 }
+                // Ensure all items have unique IDs
+                menuItems = menuItems.map((item, index) => {
+                    if (!item.id) {
+                        item.id = generateUniqueId();
+                    }
+                    return item;
+                });
+                
+                // Save the updated menu items with IDs back to localStorage
+                saveMenuData();
+                
                 console.log('Final loaded menuItems:', menuItems);
                 console.log('Number of items loaded:', menuItems.length);
                 if (menuItems.length > 0) {
                     console.log('Sample item structure:', menuItems[0]);
+                    console.log('Sample item ID:', menuItems[0].id);
                 }
                 renderMenuItems();
             } catch (error) {
@@ -1097,6 +1114,15 @@
                 const savedMenu = localStorage.getItem('menuItems');
                 if (savedMenu) {
                     menuItems = JSON.parse(savedMenu);
+                    // Ensure all items have unique IDs
+                    menuItems = menuItems.map((item, index) => {
+                        if (!item.id) {
+                            item.id = generateUniqueId();
+                        }
+                        return item;
+                    });
+                    // Save the updated menu items with IDs back to localStorage
+                    saveMenuData();
                 }
                 renderMenuItems();
             }
@@ -1483,7 +1509,7 @@
 
             const newItem = {
                 ...item,
-                id: 'item_' + Date.now(),
+                id: generateUniqueId(),
                 name: item.name + ' (Copy)'
             };
 
@@ -1575,7 +1601,7 @@
             });
             
             const formData = {
-                id: currentEditingItem ? currentEditingItem.id : 'item_' + Date.now(),
+                id: currentEditingItem ? currentEditingItem.id : generateUniqueId(),
                 name: document.getElementById('itemName').value,
                 price: parseFloat(document.getElementById('itemPrice').value),
                 category: document.getElementById('itemCategory').value,
