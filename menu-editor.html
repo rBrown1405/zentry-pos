@@ -1173,6 +1173,22 @@
         // Render menu items list
         function renderMenuItems() {
             console.log('renderMenuItems called, menuItems:', menuItems);
+            
+            // Ensure all items have IDs before rendering
+            let idsAdded = 0;
+            menuItems = menuItems.map((item, index) => {
+                if (!item.id) {
+                    item.id = generateUniqueId();
+                    idsAdded++;
+                }
+                return item;
+            });
+            
+            if (idsAdded > 0) {
+                console.log(`Added ${idsAdded} IDs during render, saving...`);
+                saveMenuData();
+            }
+            
             const menuList = document.getElementById('menuItemsList');
             let filteredItems = menuItems;
 
@@ -1189,7 +1205,7 @@
                     item.description.toLowerCase().includes(searchTerm)
                 );
             }
-
+            
             if (filteredItems.length === 0) {
                 menuList.innerHTML = `
                     <div class="empty-state">
