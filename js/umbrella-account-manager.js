@@ -7,18 +7,12 @@ class UmbrellaAccountManager {
         this.firebaseManager = firebaseManager;
         // Defensive: check if firebaseServices is available
         this.db = (window.firebaseServices && window.firebaseServices.getDb) ? window.firebaseServices.getDb() : null;
-        // Only use localStorage if Firebase is not available or user is not authenticated
+        // Firebase only - no localStorage fallback
         this.currentBusiness = null;
         this.currentProperty = null;
-        if (!this.db || !this.firebaseManager || !this.firebaseManager.auth || !this.firebaseManager.auth.currentUser) {
-            // Fallback: try to load from localStorage
-            try {
-                this.currentBusiness = JSON.parse(localStorage.getItem('currentBusiness') || 'null');
-                this.currentProperty = JSON.parse(localStorage.getItem('currentProperty') || 'null');
-            } catch (e) {
-                this.currentBusiness = null;
-                this.currentProperty = null;
-            }
+        
+        if (!this.db || !this.firebaseManager) {
+            console.warn('Firebase services not available - UmbrellaAccountManager requires Firebase');
         }
     }
 
@@ -33,11 +27,9 @@ class UmbrellaAccountManager {
                 // Try to load user's business and property access
                 await this.loadUserBusinessAccess(user.uid);
             } else {
-                // Clear business and property data
+                // Clear business and property data - Firebase only
                 this.currentBusiness = null;
                 this.currentProperty = null;
-                localStorage.removeItem('currentBusiness');
-                localStorage.removeItem('currentProperty');
             }
         });
     }
@@ -106,7 +98,7 @@ class UmbrellaAccountManager {
     }
 
     /**
-     * Set the current business
+     * Set the current business - Firebase only, no localStorage
      * @param {string} id - Business ID
      * @param {Object} businessData - Business data
      */
@@ -115,17 +107,7 @@ class UmbrellaAccountManager {
             id,
             ...businessData
         };
-        // Only save to localStorage if Firebase connection is lost or user is not authenticated
-        if (!this.db || !this.firebaseManager || !this.firebaseManager.auth || !this.firebaseManager.auth.currentUser) {
-            try {
-                localStorage.setItem('currentBusiness', JSON.stringify(this.currentBusiness));
-            } catch (e) {
-                // Ignore quota errors
-            }
-        } else {
-            // Remove any stale localStorage copy if connection is live
-            localStorage.removeItem('currentBusiness');
-        }
+        
         // Always fire event
         const event = new CustomEvent('businessChanged', { 
             detail: { business: this.currentBusiness } 
@@ -134,7 +116,7 @@ class UmbrellaAccountManager {
     }
 
     /**
-     * Set the current property
+     * Set the current property - Firebase only, no localStorage
      * @param {string} id - Property ID
      * @param {Object} propertyData - Property data
      */
@@ -143,17 +125,7 @@ class UmbrellaAccountManager {
             id,
             ...propertyData
         };
-        // Only save to localStorage if Firebase connection is lost or user is not authenticated
-        if (!this.db || !this.firebaseManager || !this.firebaseManager.auth || !this.firebaseManager.auth.currentUser) {
-            try {
-                localStorage.setItem('currentProperty', JSON.stringify(this.currentProperty));
-            } catch (e) {
-                // Ignore quota errors
-            }
-        } else {
-            // Remove any stale localStorage copy if connection is live
-            localStorage.removeItem('currentProperty');
-        }
+        
         // Always fire event
         const event = new CustomEvent('propertyChanged', { 
             detail: { property: this.currentProperty } 

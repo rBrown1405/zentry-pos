@@ -156,7 +156,7 @@ async function handleRegistration(event) {
             rewardsProgram
         };
 
-        // Create umbrella business account using Firebase-backed system
+        // Create umbrella business account using Firebase-backed system only
         let result;
         
         if (window.umbrellaManager && window.firebaseManager) {
@@ -222,14 +222,14 @@ async function handleRegistration(event) {
                 
             } catch (firebaseError) {
                 console.error('Firebase business creation failed:', firebaseError);
-                // Fall back to localStorage method
-                console.warn('Falling back to localStorage-based MultiPropertyManager');
-                result = await MultiPropertyManager.createBusinessAccount(businessData);
+                alert('Failed to create business account: ' + firebaseError.message + '. Firebase is required for business registration.');
+                throw firebaseError;
             }
         } else {
-            // Fallback to localStorage-based MultiPropertyManager
-            console.warn('Firebase not available, falling back to localStorage-based MultiPropertyManager');
-            result = await MultiPropertyManager.createBusinessAccount(businessData);
+            // Firebase is required - no localStorage fallback
+            console.error('Firebase services not available');
+            alert('Firebase services are required for business registration. Please ensure you have an internet connection and reload the page.');
+            throw new Error('Firebase services not available');
         }        if (result.success) {
             try {
                 // Hide the registration form
@@ -258,9 +258,11 @@ async function handleRegistration(event) {
                 businessIdElement.textContent = result.businessId;
                 propertyCodeElement.textContent = result.connectionCode;
 
-                // Save the codes in localStorage for future reference
-                localStorage.setItem('businessId', result.businessId);
-                localStorage.setItem('connectionCode', result.connectionCode);
+                // Note: Codes are now stored in Firebase, not localStorage
+                console.log('Business created successfully:', {
+                    businessId: result.businessId,
+                    connectionCode: result.connectionCode
+                });
 
                 // Scroll to the success message
                 successMessage.scrollIntoView({ behavior: 'smooth' });

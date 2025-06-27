@@ -599,12 +599,12 @@
             event.target.classList.add('active');
         }
 
-        // Load current settings
+        // Load current settings - Firebase only, no localStorage
         async function loadSettings() {
             try {
                 let businessSettings = {};
                 
-                // Try to load from Firebase first if available
+                // Only load from Firebase - no localStorage fallback
                 if (window.firebaseServices && window.umbrellaManager && window.umbrellaManager.currentBusiness) {
                     try {
                         const db = window.firebaseServices.getDb();
@@ -646,22 +646,19 @@
                             
                             console.log('Loaded business settings from Firebase:', businessSettings);
                         } else {
-                            console.log('Business document not found in Firebase, falling back to localStorage');
-                            throw new Error('Business document not found');
+                            console.error('Business document not found in Firebase');
+                            alert('Business settings not found. Please ensure you are properly logged in and have access to this business.');
+                            return;
                         }
                     } catch (firebaseError) {
-                        console.warn('Failed to load from Firebase, falling back to localStorage:', firebaseError);
-                        
-                        // Fallback to localStorage
-                        const currentBusiness = JSON.parse(localStorage.getItem('currentBusiness') || '{}');
-                        businessSettings = Object.keys(currentBusiness).length > 0 ? currentBusiness : JSON.parse(localStorage.getItem('businessSettings') || '{}');
+                        console.error('Failed to load from Firebase:', firebaseError);
+                        alert('Failed to load business settings. Please check your internet connection and try again.');
+                        return;
                     }
                 } else {
-                    console.log('Firebase not available, loading from localStorage');
-                    
-                    // Fallback to localStorage
-                    const currentBusiness = JSON.parse(localStorage.getItem('currentBusiness') || '{}');
-                    businessSettings = Object.keys(currentBusiness).length > 0 ? currentBusiness : JSON.parse(localStorage.getItem('businessSettings') || '{}');
+                    console.error('Firebase not available or no current business');
+                    alert('Firebase services are not available. Please ensure you are logged in and reload the page.');
+                    return;
                 }
                 
                 // Load business information
@@ -759,10 +756,38 @@
                     updatedAt: new Date().toISOString()
                 };
                 
-                // Save to localStorage for backward compatibility
-                localStorage.setItem('businessSettings', JSON.stringify(settings));
+        // Save settings - Firebase only, no localStorage
+        async function saveSettings() {
+            try {
+                const settings = {
+                    name: document.getElementById('businessName').value,
+                    type: document.getElementById('businessType').value,
+                    address: document.getElementById('businessAddress').value,
+                    phone: document.getElementById('businessPhone').value,
+                    email: document.getElementById('businessEmail').value,
+                    website: document.getElementById('businessWebsite').value,
+                    primaryColor: document.getElementById('primaryColor').value,
+                    secondaryColor: document.getElementById('secondaryColor').value,
+                    logoText: document.getElementById('logoText').value,
+                    autoPrintReceipts: document.getElementById('autoPrintReceipts').checked,
+                    showTableNumbers: document.getElementById('showTableNumbers').checked,
+                    enableTips: document.getElementById('enableTips').checked,
+                    taxRate: parseFloat(document.getElementById('taxRate').value) || 0,
+                    currency: document.getElementById('currency').value,
+                    orderNotifications: document.getElementById('orderNotifications').checked,
+                    staffAlerts: document.getElementById('staffAlerts').checked,
+                    systemUpdates: document.getElementById('systemUpdates').checked,
+                    dailyReports: document.getElementById('dailyReports').checked,
+                    weeklySummaries: document.getElementById('weeklySummaries').checked,
+                    // Hotel settings
+                    hotelBrand: document.getElementById('hotelBrand').value,
+                    serviceCharge: parseFloat(document.getElementById('serviceCharge').value) || 18,
+                    deliveryTime: parseInt(document.getElementById('deliveryTime').value) || 30,
+                    hotelMode: document.getElementById('enableHotelMode').checked,
+                    updatedAt: new Date().toISOString()
+                };
                 
-                // Save to Firebase if available and user is authenticated
+                // Only save to Firebase - no localStorage
                 if (window.firebaseServices && window.umbrellaManager && window.umbrellaManager.currentBusiness) {
                     try {
                         const db = window.firebaseServices.getDb();
@@ -811,28 +836,19 @@
                         alert('Settings saved successfully to cloud database!');
                     } catch (firebaseError) {
                         console.error('Error saving to Firebase:', firebaseError);
-                        
-                        // Still update localStorage for offline functionality
-                        const currentBusiness = JSON.parse(localStorage.getItem('currentBusiness') || '{}');
-                        if (currentBusiness && currentBusiness.id) {
-                            const updatedBusiness = { ...currentBusiness, ...settings };
-                            localStorage.setItem('currentBusiness', JSON.stringify(updatedBusiness));
-                        }
-                        
-                        alert('Settings saved locally, but failed to sync to cloud. Please check your internet connection.');
+                        alert('Failed to save settings. Please check your internet connection and try again.');
+                        throw firebaseError;
                     }
                 } else {
-                    console.warn('Firebase not available or no current business, saving to localStorage only');
-                    
-                    // Fallback to localStorage only
-                    const currentBusiness = JSON.parse(localStorage.getItem('currentBusiness') || '{}');
-                    if (currentBusiness && currentBusiness.id) {
-                        const updatedBusiness = { ...currentBusiness, ...settings };
-                        localStorage.setItem('currentBusiness', JSON.stringify(updatedBusiness));
-                    }
-                    
-                    alert('Settings saved locally!');
+                    console.error('Firebase not available or no current business');
+                    alert('Cannot save settings: Firebase services are not available. Please ensure you are logged in and reload the page.');
+                    throw new Error('Firebase not available');
                 }
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                alert('Error saving settings: ' + error.message);
+            }
+        }
             } catch (error) {
                 console.error('Error saving settings:', error);
                 alert('Error saving settings: ' + error.message);
@@ -891,21 +907,51 @@
             }
         }
 
-        function updateMenuStatus() {
-            const roomServiceMenu = JSON.parse(localStorage.getItem('roomServiceMenu') || '[]');
-            const syncedItems = roomServiceMenu.filter(item => item.syncedFromRestaurant && !item.customized).length;
-            const customItems = roomServiceMenu.filter(item => item.customized || !item.syncedFromRestaurant).length;
-            
-            document.getElementById('totalMenuItems').textContent = roomServiceMenu.length;
-            document.getElementById('syncedItems').textContent = syncedItems;
-            document.getElementById('customItems').textContent = customItems;
-            
-            const lastUpdated = localStorage.getItem('roomServiceMenuLastUpdated');
-            if (lastUpdated) {
-                const date = new Date(lastUpdated);
-                document.getElementById('lastUpdated').textContent = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-            } else {
-                document.getElementById('lastUpdated').textContent = 'Never';
+        async function updateMenuStatus() {
+            try {
+                if (window.firebaseServices && window.umbrellaManager && window.umbrellaManager.currentBusiness) {
+                    const db = window.firebaseServices.getDb();
+                    const businessId = window.umbrellaManager.currentBusiness.id;
+                    
+                    // Get room service menu from Firebase
+                    const menuDoc = await db.collection('menus').doc(`${businessId}_room_service`).get();
+                    
+                    if (menuDoc.exists) {
+                        const menuData = menuDoc.data();
+                        const roomServiceMenu = menuData.items || [];
+                        const syncedItems = roomServiceMenu.filter(item => item.syncedFromRestaurant && !item.customized).length;
+                        const customItems = roomServiceMenu.filter(item => item.customized || !item.syncedFromRestaurant).length;
+                        
+                        document.getElementById('totalMenuItems').textContent = roomServiceMenu.length;
+                        document.getElementById('syncedItems').textContent = syncedItems;
+                        document.getElementById('customItems').textContent = customItems;
+                        
+                        if (menuData.lastUpdated) {
+                            const date = menuData.lastUpdated.toDate ? menuData.lastUpdated.toDate() : new Date(menuData.lastUpdated);
+                            document.getElementById('lastUpdated').textContent = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                        } else {
+                            document.getElementById('lastUpdated').textContent = 'Never';
+                        }
+                    } else {
+                        // No menu found
+                        document.getElementById('totalMenuItems').textContent = '0';
+                        document.getElementById('syncedItems').textContent = '0';
+                        document.getElementById('customItems').textContent = '0';
+                        document.getElementById('lastUpdated').textContent = 'Never';
+                    }
+                } else {
+                    console.warn('Firebase not available - cannot load menu status');
+                    document.getElementById('totalMenuItems').textContent = 'N/A';
+                    document.getElementById('syncedItems').textContent = 'N/A';
+                    document.getElementById('customItems').textContent = 'N/A';
+                    document.getElementById('lastUpdated').textContent = 'Firebase not available';
+                }
+            } catch (error) {
+                console.error('Error updating menu status:', error);
+                document.getElementById('totalMenuItems').textContent = 'Error';
+                document.getElementById('syncedItems').textContent = 'Error';
+                document.getElementById('customItems').textContent = 'Error';
+                document.getElementById('lastUpdated').textContent = 'Error loading';
             }
         }
 
@@ -940,70 +986,137 @@
             document.body.appendChild(modal);
         }
 
-        function syncWithRestaurantMenu() {
-            if (typeof HotelMode !== 'undefined') {
-                try {
-                    const restaurantMenu = JSON.parse(localStorage.getItem('menuItems') || '[]');
-                    const syncedMenu = HotelMode.syncMenuWithRestaurant(restaurantMenu);
-                    localStorage.setItem('roomServiceMenuLastUpdated', new Date().toISOString());
-                    updateMenuStatus();
-                    alert(`Successfully synced ${syncedMenu.length} items from restaurant menu!`);
-                } catch (error) {
-                    alert('Error syncing menu: ' + error.message);
+        async function syncWithRestaurantMenu() {
+            try {
+                if (!window.firebaseServices || !window.umbrellaManager || !window.umbrellaManager.currentBusiness) {
+                    alert('Firebase services not available. Cannot sync menu.');
+                    return;
                 }
-            } else {
-                // Fallback sync without HotelMode
-                const restaurantMenu = JSON.parse(localStorage.getItem('menuItems') || '[]');
+
+                const db = window.firebaseServices.getDb();
+                const businessId = window.umbrellaManager.currentBusiness.id;
+                
+                // Get restaurant menu from Firebase
+                const restaurantMenuDoc = await db.collection('menus').doc(`${businessId}_restaurant`).get();
+                
+                if (!restaurantMenuDoc.exists) {
+                    alert('No restaurant menu found to sync from. Please create a restaurant menu first.');
+                    return;
+                }
+
+                const restaurantMenuData = restaurantMenuDoc.data();
+                const restaurantMenu = restaurantMenuData.items || [];
+                
+                // Create room service menu by copying and modifying restaurant items
                 const roomServiceMenu = restaurantMenu.map(item => ({
                     ...item,
                     id: `rs_${item.id}_${Date.now()}`,
                     originalId: item.id,
                     syncedFromRestaurant: true,
-                    customized: false
+                    customized: false,
+                    category: item.category || 'Room Service'
                 }));
-                localStorage.setItem('roomServiceMenu', JSON.stringify(roomServiceMenu));
-                localStorage.setItem('roomServiceMenuLastUpdated', new Date().toISOString());
-                updateMenuStatus();
-                alert(`Successfully synced ${roomServiceMenu.length} items from restaurant menu!`);
+
+                // Save room service menu to Firebase
+                await db.collection('menus').doc(`${businessId}_room_service`).set({
+                    items: roomServiceMenu,
+                    businessId: businessId,
+                    menuType: 'room_service',
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                    syncedFromRestaurant: true
+                });
+
+                await updateMenuStatus();
+                alert(`Successfully synced ${roomServiceMenu.length} items from restaurant menu to Firebase!`);
+
+            } catch (error) {
+                console.error('Error syncing menu:', error);
+                alert('Error syncing menu: ' + error.message);
             }
         }
 
-        function exportRoomServiceMenu() {
-            const roomServiceMenu = JSON.parse(localStorage.getItem('roomServiceMenu') || '[]');
-            const dataStr = JSON.stringify(roomServiceMenu, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(dataBlob);
-            link.download = 'room-service-menu.json';
-            link.click();
-            
-            alert('Room service menu exported successfully!');
+        async function exportRoomServiceMenu() {
+            try {
+                if (!window.firebaseServices || !window.umbrellaManager || !window.umbrellaManager.currentBusiness) {
+                    alert('Firebase services not available. Cannot export menu.');
+                    return;
+                }
+
+                const db = window.firebaseServices.getDb();
+                const businessId = window.umbrellaManager.currentBusiness.id;
+                
+                const menuDoc = await db.collection('menus').doc(`${businessId}_room_service`).get();
+                
+                if (!menuDoc.exists) {
+                    alert('No room service menu found to export.');
+                    return;
+                }
+
+                const menuData = menuDoc.data();
+                const roomServiceMenu = menuData.items || [];
+                
+                const dataStr = JSON.stringify(roomServiceMenu, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = 'room-service-menu.json';
+                link.click();
+                
+                alert('Room service menu exported successfully!');
+
+            } catch (error) {
+                console.error('Error exporting menu:', error);
+                alert('Error exporting menu: ' + error.message);
+            }
         }
 
-        function importRoomServiceMenu() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
-            input.onchange = function(event) {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        try {
-                            const importedMenu = JSON.parse(e.target.result);
-                            localStorage.setItem('roomServiceMenu', JSON.stringify(importedMenu));
-                            localStorage.setItem('roomServiceMenuLastUpdated', new Date().toISOString());
-                            updateMenuStatus();
-                            alert(`Successfully imported ${importedMenu.length} menu items!`);
-                        } catch (error) {
-                            alert('Error importing menu: Invalid JSON file');
-                        }
-                    };
-                    reader.readAsText(file);
+        async function importRoomServiceMenu() {
+            try {
+                if (!window.firebaseServices || !window.umbrellaManager || !window.umbrellaManager.currentBusiness) {
+                    alert('Firebase services not available. Cannot import menu.');
+                    return;
                 }
-            };
-            input.click();
+
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.onchange = async function(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = async function(e) {
+                            try {
+                                const importedMenu = JSON.parse(e.target.result);
+                                
+                                const db = window.firebaseServices.getDb();
+                                const businessId = window.umbrellaManager.currentBusiness.id;
+                                
+                                // Save imported menu to Firebase
+                                await db.collection('menus').doc(`${businessId}_room_service`).set({
+                                    items: importedMenu,
+                                    businessId: businessId,
+                                    menuType: 'room_service',
+                                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                                    syncedFromRestaurant: false
+                                });
+
+                                await updateMenuStatus();
+                                alert(`Successfully imported ${importedMenu.length} menu items to Firebase!`);
+                            } catch (error) {
+                                console.error('Error importing menu:', error);
+                                alert('Error importing menu: Invalid JSON file or Firebase error - ' + error.message);
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                };
+                input.click();
+
+            } catch (error) {
+                console.error('Error setting up import:', error);
+                alert('Error setting up import: ' + error.message);
+            }
         }
 
         // Event listeners
