@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Business Dashboard - Macros POS</title>
     <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Firebase CDN Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Services Provider (must load before other scripts) -->
+    <script src="js/firebase-services.js"></script>
     
     <!-- Add required JavaScript dependencies -->
     <script src="js/api-manager.js"></script>
@@ -21,8 +30,6 @@
         });
     </script>
     <script src="business-dashboard.js" defer></script>
-</head>
-<body>
     <nav class="dashboard-nav">
         <div class="nav-left">
             <div class="logo">M</div>

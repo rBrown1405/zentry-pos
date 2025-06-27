@@ -500,15 +500,22 @@ class FirebaseInitializer {
     }
   }
 
-  // Check if Firebase services are ready
+  // Check if Firebase services are ready using the new provider
   checkFirebaseServices() {
     try {
-      if (!window.firebaseServices) {
-        return { ready: false, reason: 'firebaseServices not available' };
+      // Check if Firebase provider is available
+      if (!window.firebaseProvider) {
+        return { ready: false, reason: 'firebaseProvider not available' };
       }
 
-      if (!window.firebaseServices.getAuth || !window.firebaseServices.getDb) {
-        return { ready: false, reason: 'required service methods not available' };
+      // Check if provider is initialized
+      if (!window.firebaseProvider.isReady()) {
+        return { ready: false, reason: 'firebaseProvider not initialized' };
+      }
+
+      // Check if services are available
+      if (!window.firebaseServices) {
+        return { ready: false, reason: 'firebaseServices not available' };
       }
 
       const auth = window.firebaseServices.getAuth();
@@ -581,6 +588,8 @@ class FirebaseInitializer {
           const errorMsg = `❌ Firebase services not available after ${(this.maxAttempts * this.attemptInterval) / 1000} seconds`;
           console.error(errorMsg);
           console.log('🔍 Debug info:', {
+            firebaseProvider: !!window.firebaseProvider,
+            providerReady: window.firebaseProvider ? window.firebaseProvider.isReady() : false,
             firebaseServices: !!window.firebaseServices,
             getAuth: !!(window.firebaseServices && window.firebaseServices.getAuth),
             getDb: !!(window.firebaseServices && window.firebaseServices.getDb),
@@ -599,14 +608,24 @@ class FirebaseInitializer {
 // Create global Firebase initializer
 window.firebaseInitializer = new FirebaseInitializer();
 
-// Start initialization when DOM is ready
-document.addEventListener('DOMContentLoaded', async () => {
-  try {
-    console.log('🚀 Starting Firebase Manager initialization...');
-    await window.firebaseInitializer.initializeFirebaseManager();
-  } catch (error) {
+// Start initialization when Firebase services are ready
+const startFirebaseManagerInit = () => {
+  console.log('🚀 Starting Firebase Manager initialization...');
+  window.firebaseInitializer.initializeFirebaseManager().catch(error => {
     console.error('💥 Failed to initialize Firebase Manager:', error);
-    // Dispatch error event for debugging
     window.dispatchEvent(new CustomEvent('firebaseManagerError', { detail: error }));
-  }
+  });
+};
+
+// Listen for Firebase services ready event
+window.addEventListener('firebaseServicesReady', startFirebaseManagerInit);
+
+// Also try to start if services are already ready
+document.addEventListener('DOMContentLoaded', () => {
+  // Small delay to ensure Firebase services provider has had time to initialize
+  setTimeout(() => {
+    if (window.firebaseProvider && window.firebaseProvider.isReady()) {
+      startFirebaseManagerInit();
+    }
+  }, 100);
 });

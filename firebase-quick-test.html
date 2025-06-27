@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔥 Firebase Quick Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .log {
+            background: #000;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔥 Firebase Services Quick Test</h1>
+    
+    <button onclick="testFirebaseAvailability()">Test Firebase Availability</button>
+    <button onclick="clearLog()">Clear Log</button>
+    
+    <div id="log" class="log">
+Firebase test started...
+Waiting for Firebase services...
+    </div>
+
+    <!-- Firebase CDN Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="js/firebase-config.js"></script>
+    
+    <script>
+        const log = document.getElementById('log');
+        
+        function logMessage(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            log.textContent += `[${timestamp}] ${message}\n`;
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function clearLog() {
+            log.textContent = 'Firebase test restarted...\n';
+        }
+        
+        function testFirebaseAvailability() {
+            logMessage('🔍 Testing Firebase availability...');
+            
+            // Test 1: Check if Firebase is loaded
+            if (typeof firebase === 'undefined') {
+                logMessage('❌ Firebase CDN not loaded');
+                return;
+            } else {
+                logMessage('✅ Firebase CDN loaded');
+            }
+            
+            // Test 2: Check if window.firebaseServices exists
+            if (!window.firebaseServices) {
+                logMessage('❌ window.firebaseServices not available');
+                return;
+            } else {
+                logMessage('✅ window.firebaseServices available');
+            }
+            
+            // Test 3: Check individual services
+            const auth = window.firebaseServices.getAuth();
+            const db = window.firebaseServices.getDb();
+            const storage = window.firebaseServices.getStorage();
+            
+            logMessage(`Auth service: ${auth ? '✅ Available' : '❌ Not available'}`);
+            logMessage(`Firestore service: ${db ? '✅ Available' : '❌ Not available'}`);
+            logMessage(`Storage service: ${storage ? '✅ Available' : '⚠️ Optional (not available)'}`);
+            
+            // Test 4: Check initialization status
+            const isInitialized = window.firebaseServices.isInitialized();
+            logMessage(`Initialization status: ${isInitialized ? '✅ Initialized' : '❌ Not initialized'}`);
+            
+            if (isInitialized) {
+                logMessage('🎉 Firebase services are fully ready!');
+            } else {
+                logMessage('⚠️ Firebase services not fully initialized');
+            }
+        }
+        
+        // Listen for Firebase services ready event
+        window.addEventListener('firebaseServicesReady', () => {
+            logMessage('🎉 Firebase services ready event received');
+            testFirebaseAvailability();
+        });
+        
+        // Auto-test after 2 seconds
+        setTimeout(() => {
+            logMessage('⏰ Auto-testing after 2 seconds...');
+            testFirebaseAvailability();
+        }, 2000);
+        
+        // Monitor Firebase object loading
+        let firebaseCheckInterval = setInterval(() => {
+            if (typeof firebase !== 'undefined') {
+                logMessage('📡 Firebase CDN scripts loaded');
+                clearInterval(firebaseCheckInterval);
+            }
+        }, 100);
+    </script>
+</body>
+</html>

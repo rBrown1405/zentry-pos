@@ -16,7 +16,10 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase using compat mode
+console.log('🔥 Firebase config script loading...');
+
 const app = firebase.initializeApp(firebaseConfig);
+console.log('✅ Firebase app initialized');
 
 // Initialize Firebase services
 let auth, db, storage;
@@ -24,7 +27,7 @@ let auth, db, storage;
 function initializeFirebase() {
   return new Promise((resolve, reject) => {
     try {
-      console.log('🔥 Starting Firebase initialization...');
+      console.log('🔥 Starting Firebase services initialization...');
       
       // Initialize Firebase services with timeout protection
       const initTimeout = setTimeout(() => {
@@ -34,6 +37,8 @@ function initializeFirebase() {
       // Initialize core services
       auth = firebase.auth();
       db = firebase.firestore();
+      
+      console.log('✅ Auth and Firestore initialized');
       
       // Storage is optional - only initialize if available
       try {
@@ -105,126 +110,42 @@ async function initializeFirebaseWithRetry() {
 initializeFirebaseWithRetry()
   .then(() => {
     console.log('✅ Firebase configuration script loaded successfully');
+    
+    // Expose Firebase services to window AFTER successful initialization
+    window.firebaseServices = {
+      getApp: () => app,
+      getAuth: () => {
+        if (!auth) {
+          console.warn('🚫 Firebase Auth not initialized');
+          return null;
+        }
+        return auth;
+      },
+      getDb: () => {
+        if (!db) {
+          console.warn('🚫 Firestore not initialized');
+          return null;
+        }
+        return db;
+      },
+      getStorage: () => {
+        if (!storage) {
+          console.warn('🚫 Firebase Storage not available');
+          return null;
+        }
+        return storage;
+      },
+      // Add initialization check method
+      isInitialized: () => {
+        return !!(auth && db);
+      }
+    };
+    
+    console.log('🎉 Firebase services exposed to window.firebaseServices');
+    
+    // Dispatch ready event
+    window.dispatchEvent(new CustomEvent('firebaseServicesReady'));
   })
   .catch((error) => {
     console.error('💥 Failed to initialize Firebase:', error);
   });
-
-// Enhanced Firebase initialization with better error handling and timing
-let initializationAttempts = 0;
-const maxInitAttempts = 3;
-
-function initializeFirebase() {
-  return new Promise((resolve, reject) => {
-    try {
-      initializationAttempts++;
-      console.log(`🔥 Starting Firebase initialization (attempt ${initializationAttempts})...`);
-      
-      // Initialize Firebase services with timeout protection
-      const initTimeout = setTimeout(() => {
-        reject(new Error('Firebase initialization timeout after 5 seconds'));
-      }, 5000);
-
-      // Initialize core services
-      auth = firebase.auth();
-      db = firebase.firestore();
-      
-      // Storage is optional - only initialize if available
-      try {
-        storage = firebase.storage();
-        console.log('✅ Firebase Storage initialized');
-      } catch (storageError) {
-        console.warn('⚠️ Firebase Storage not available:', storageError.message);
-        storage = null;
-      }
-      
-      console.log('✅ Firebase core services initialized');
-      
-      // Clear timeout since initialization succeeded
-      clearTimeout(initTimeout);
-      
-      // Enable offline persistence for Firestore (optional but recommended for POS systems)
-      db.enablePersistence({ synchronizeTabs: true })
-        .then(() => {
-          console.log('✅ Firestore offline persistence enabled');
-          resolve();
-        })
-        .catch((err) => {
-          if (err.code === 'failed-precondition') {
-            console.warn('⚠️ Multiple tabs open, persistence can only be enabled in one tab at a time.');
-          } else if (err.code === 'unimplemented') {
-            console.warn('⚠️ The current browser does not support all of the features required to enable persistence');
-          } else {
-            console.warn('⚠️ Persistence error:', err);
-          }
-          // Don't let persistence errors block initialization
-          resolve();
-        });
-        
-    } catch (error) {
-      console.error('❌ Error initializing Firebase:', error);
-      reject(error);
-    }
-  });
-}
-
-// Retry mechanism for Firebase initialization
-async function initializeFirebaseWithRetry() {
-  while (initializationAttempts < maxInitAttempts) {
-    try {
-      await initializeFirebase();
-      console.log('🎉 Firebase initialized successfully');
-      return;
-    } catch (error) {
-      console.error(`❌ Firebase initialization attempt ${initializationAttempts} failed:`, error);
-      
-      if (initializationAttempts < maxInitAttempts) {
-        const delay = initializationAttempts * 1000; // Increasing delay
-        console.log(`⏳ Retrying in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      } else {
-        console.error('💥 Firebase initialization failed after all attempts');
-        throw error;
-      }
-    }
-  }
-}
-
-// Initialize Firebase when the script loads
-initializeFirebaseWithRetry()
-  .then(() => {
-    console.log('✅ Firebase configuration script loaded successfully');
-  })
-  .catch((error) => {
-    console.error('💥 Failed to initialize Firebase:', error);
-  });
-
-// Export Firebase services with better error handling
-window.firebaseServices = {
-  getApp: () => app,
-  getAuth: () => {
-    if (!auth) {
-      console.warn('Firebase Auth not initialized');
-      return null;
-    }
-    return auth;
-  },
-  getDb: () => {
-    if (!db) {
-      console.warn('Firestore not initialized');
-      return null;
-    }
-    return db;
-  },
-  getStorage: () => {
-    if (!storage) {
-      console.warn('Firebase Storage not available');
-      return null;
-    }
-    return storage;
-  },
-  // Add initialization check method
-  isInitialized: () => {
-    return !!(auth && db);
-  }
-};
