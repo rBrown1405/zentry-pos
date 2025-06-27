@@ -668,6 +668,9 @@
                 <span>🛎️</span>
                 <span>Room Service</span>
                 <span id="loyaltyProgramName">Hotel Loyalty Program</span>
+                <span id="firebaseStatus" style="margin-left: auto; font-size: 0.75rem; opacity: 0.8;">
+                    ⚡ Connecting...
+                </span>
             </div>
             <p style="margin: 0; opacity: 0.9;">Professional in-room dining service</p>
         </div>
@@ -760,9 +763,303 @@
         </div>
     </div>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    
     <!-- Scripts -->
     <script src="hotel-mode.js"></script>
     <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAl5d3kJsCYGJ_PpkLhvYYQr9cQq9kuAVE",
+            authDomain: "zentry-pos-b737b.firebaseapp.com",
+            projectId: "zentry-pos-b737b",
+            storageBucket: "zentry-pos-b737b.firebasestorage.app",
+            messagingSenderId: "67930798018",
+            appId: "1:67930798018:web:9fdc2413f766731c7d485b",
+            measurementId: "G-7W2PYQ63T4"
+        };
+
+        // Initialize Firebase
+        let db = null;
+        let auth = null;
+        let isFirebaseConnected = false;
+
+        function initializeFirebase() {
+            try {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                db = firebase.firestore();
+                auth = firebase.auth();
+                isFirebaseConnected = true;
+                console.log('🔥 Firebase initialized successfully');
+                
+                // Test connection
+                testFirebaseConnection();
+            } catch (error) {
+                console.error('Firebase initialization failed:', error);
+                isFirebaseConnected = false;
+                showNotification('Firebase connection failed - using local storage', 'warning');
+                updateFirebaseStatus('failed');
+            }
+        }
+
+        function updateFirebaseStatus(status) {
+            const statusElement = document.getElementById('firebaseStatus');
+            if (!statusElement) return;
+            
+            switch(status) {
+                case 'connected':
+                    statusElement.innerHTML = '☁️ Cloud Connected';
+                    statusElement.style.color = '#10b981';
+                    break;
+                case 'offline':
+                    statusElement.innerHTML = '💾 Local Storage';
+                    statusElement.style.color = '#f59e0b';
+                    break;
+                case 'failed':
+                    statusElement.innerHTML = '⚠️ Connection Failed';
+                    statusElement.style.color = '#ef4444';
+                    break;
+                default:
+                    statusElement.innerHTML = '⚡ Connecting...';
+                    statusElement.style.color = '#6b7280';
+            }
+        }
+
+        function testFirebaseConnection() {
+            if (!db) return;
+            
+            // Try to read from Firestore to test connection
+            db.collection('test').limit(1).get()
+                .then(() => {                console.log('✅ Firebase connection verified');
+                showNotification('Connected to Firebase cloud storage', 'success');
+                updateFirebaseStatus('connected');
+            })
+            .catch((error) => {
+                console.error('Firebase connection test failed:', error);
+                isFirebaseConnected = false;
+                showNotification('Firebase offline - using local storage', 'warning');
+                updateFirebaseStatus('offline');
+            });
+        }
+
+        // Firebase CRUD Operations for Room Service
+        async function saveOrderToFirebase(orderData) {
+            if (!isFirebaseConnected || !db) {
+                return saveOrderToLocalStorage(orderData);
+            }
+
+            try {
+                const docRef = await db.collection('roomServiceOrders').add({
+                    ...orderData,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                console.log('Order saved to Firebase with ID:', docRef.id);
+                return { ...orderData, firebaseId: docRef.id };
+            } catch (error) {
+                console.error('Error saving to Firebase:', error);
+                // Fallback to local storage
+                return saveOrderToLocalStorage(orderData);
+            }
+        }
+
+        async function loadOrdersFromFirebase() {
+            if (!isFirebaseConnected || !db) {
+                return loadOrdersFromLocalStorage();
+            }
+
+            try {
+                const snapshot = await db.collection('roomServiceOrders')
+                    .orderBy('createdAt', 'desc')
+                    .limit(50)
+                    .get();
+                
+                const orders = [];
+                snapshot.forEach(doc => {
+                    orders.push({
+                        firebaseId: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                console.log('Loaded', orders.length, 'orders from Firebase');
+                return orders;
+            } catch (error) {
+                console.error('Error loading from Firebase:', error);
+                return loadOrdersFromLocalStorage();
+            }
+        }
+
+        async function updateOrderStatusInFirebase(orderId, status) {
+            if (!isFirebaseConnected || !db) {
+                return updateOrderStatusInLocalStorage(orderId, status);
+            }
+
+            try {
+                await db.collection('roomServiceOrders').doc(orderId).update({
+                    status: status,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                console.log('Order status updated in Firebase');
+                return true;
+            } catch (error) {
+                console.error('Error updating in Firebase:', error);
+                return updateOrderStatusInLocalStorage(orderId, status);
+            }
+        }
+
+        async function saveMenuToFirebase(menuData) {
+            if (!isFirebaseConnected || !db) {
+                return saveMenuToLocalStorage(menuData);
+            }
+
+            try {
+                await db.collection('roomServiceMenus').doc('current').set({
+                    menu: menuData,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                console.log('Menu saved to Firebase');
+                return true;
+            } catch (error) {
+                console.error('Error saving menu to Firebase:', error);
+                return saveMenuToLocalStorage(menuData);
+            }
+        }
+
+        async function loadMenuFromFirebase() {
+            if (!isFirebaseConnected || !db) {
+                return loadMenuFromLocalStorage();
+            }
+
+            try {
+                const doc = await db.collection('roomServiceMenus').doc('current').get();
+                
+                if (doc.exists) {
+                    const data = doc.data();
+                    console.log('Menu loaded from Firebase');
+                    return data.menu || [];
+                } else {
+                    console.log('No menu found in Firebase');
+                    return [];
+                }
+            } catch (error) {
+                console.error('Error loading menu from Firebase:', error);
+                return loadMenuFromLocalStorage();
+            }
+        }
+
+        // Local Storage Fallback Functions
+        function saveOrderToLocalStorage(orderData) {
+            try {
+                const orders = JSON.parse(localStorage.getItem('roomServiceOrders') || '[]');
+                orders.unshift(orderData);
+                // Keep only last 100 orders
+                if (orders.length > 100) {
+                    orders.splice(100);
+                }
+                localStorage.setItem('roomServiceOrders', JSON.stringify(orders));
+                console.log('Order saved to local storage');
+                return orderData;
+            } catch (error) {
+                console.error('Error saving to local storage:', error);
+                return null;
+            }
+        }
+
+        function loadOrdersFromLocalStorage() {
+            try {
+                return JSON.parse(localStorage.getItem('roomServiceOrders') || '[]');
+            } catch (error) {
+                console.error('Error loading from local storage:', error);
+                return [];
+            }
+        }
+
+        function updateOrderStatusInLocalStorage(orderId, status) {
+            try {
+                const orders = JSON.parse(localStorage.getItem('roomServiceOrders') || '[]');
+                const orderIndex = orders.findIndex(order => order.id === orderId);
+                
+                if (orderIndex !== -1) {
+                    orders[orderIndex].status = status;
+                    orders[orderIndex].updatedAt = new Date().toISOString();
+                    localStorage.setItem('roomServiceOrders', JSON.stringify(orders));
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Error updating local storage:', error);
+                return false;
+            }
+        }
+
+        function saveMenuToLocalStorage(menuData) {
+            try {
+                localStorage.setItem('roomServiceMenu', JSON.stringify(menuData));
+                return true;
+            } catch (error) {
+                console.error('Error saving menu to local storage:', error);
+                return false;
+            }
+        }
+
+        function loadMenuFromLocalStorage() {
+            try {
+                return JSON.parse(localStorage.getItem('roomServiceMenu') || '[]');
+            } catch (error) {
+                console.error('Error loading menu from local storage:', error);
+                return [];
+            }
+        }
+
+        // Real-time Firebase listeners
+        function setupFirebaseListeners() {
+            if (!isFirebaseConnected || !db) return;
+
+            // Listen for menu updates
+            db.collection('roomServiceMenus').doc('current')
+                .onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        if (data.menu) {
+                            roomServiceMenu = data.menu;
+                            renderRoomServiceMenu();
+                            console.log('Menu updated from Firebase');
+                        }
+                    }
+                }, (error) => {
+                    console.error('Error listening to menu updates:', error);
+                });
+
+            // Listen for order updates (for kitchen staff interface)
+            db.collection('roomServiceOrders')
+                .where('status', 'in', ['pending', 'preparing'])
+                .onSnapshot((snapshot) => {
+                    const pendingOrders = [];
+                    snapshot.forEach(doc => {
+                        pendingOrders.push({
+                            firebaseId: doc.id,
+                            ...doc.data()
+                        });
+                    });
+                    
+                    // Update UI with pending orders if we have a display for them
+                    if (typeof updatePendingOrdersDisplay === 'function') {
+                        updatePendingOrdersDisplay(pendingOrders);
+                    }
+                }, (error) => {
+                    console.error('Error listening to order updates:', error);
+                });
+        }
+
         // Room Service POS JavaScript
         let roomServiceCart = [];
         let roomServiceMenu = [];
@@ -789,6 +1086,9 @@
         // Initialize Room Service POS
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🛎️ Initializing Room Service POS');
+            
+            // Initialize Firebase first
+            initializeFirebase();
             
             // Check if hotel mode is active
             if (!HotelMode.isHotelModeActive()) {
@@ -837,17 +1137,40 @@
             });
         }
 
-        function loadRoomServiceMenu() {
-            // Get room service menu from HotelMode
-            roomServiceMenu = HotelMode.getRoomServiceMenu();
-            
-            if (roomServiceMenu.length === 0) {
-                // Initialize if empty
-                roomServiceMenu = HotelMode.initializeRoomServiceMenu();
+        async function loadRoomServiceMenu() {
+            // Try to load from Firebase first, then fallback to HotelMode
+            try {
+                const firebaseMenu = await loadMenuFromFirebase();
+                if (firebaseMenu && firebaseMenu.length > 0) {
+                    roomServiceMenu = firebaseMenu;
+                    console.log('Menu loaded from Firebase');
+                } else {
+                    // Fallback to HotelMode
+                    roomServiceMenu = HotelMode.getRoomServiceMenu();
+                    
+                    if (roomServiceMenu.length === 0) {
+                        roomServiceMenu = HotelMode.initializeRoomServiceMenu();
+                    }
+                    
+                    // Save to Firebase for future use
+                    if (roomServiceMenu.length > 0) {
+                        await saveMenuToFirebase(roomServiceMenu);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading menu:', error);
+                // Fallback to HotelMode
+                roomServiceMenu = HotelMode.getRoomServiceMenu();
+                if (roomServiceMenu.length === 0) {
+                    roomServiceMenu = HotelMode.initializeRoomServiceMenu();
+                }
             }
             
             renderRoomServiceMenu();
             updateMenuSyncStatus();
+            
+            // Set up real-time listeners after initial load
+            setupFirebaseListeners();
         }
 
         function renderRoomServiceMenu() {
@@ -1042,7 +1365,7 @@
             }
         }
 
-        function processRoomServiceOrder() {
+        async function processRoomServiceOrder() {
             const guestName = document.getElementById('guestName').value.trim();
             const roomNumber = document.getElementById('roomNumber').value.trim();
             const loyaltyStatus = document.getElementById('loyaltyStatus').value;
@@ -1077,28 +1400,37 @@
                 serviceCharge,
                 total,
                 timestamp: new Date().toISOString(),
-                status: 'pending'
+                status: 'pending',
+                orderType: 'room-service'
             };
 
-            // Process through HotelMode
-            const processedOrder = HotelMode.processRoomServiceOrder(orderData);
-            
-            if (processedOrder) {
-                showNotification('Room service order sent to kitchen!', 'success');
+            try {
+                // Save to Firebase (with local storage fallback)
+                const savedOrder = await saveOrderToFirebase(orderData);
                 
-                // Clear cart and form
-                roomServiceCart = [];
-                updateCartDisplay();
-                document.getElementById('guestName').value = '';
-                document.getElementById('roomNumber').value = '';
-                document.getElementById('loyaltyStatus').value = '';
-                document.getElementById('specialInstructions').value = '';
+                // Process through HotelMode
+                const processedOrder = HotelMode.processRoomServiceOrder(orderData);
                 
-                // Show order confirmation
-                setTimeout(() => {
-                    alert(`Order confirmed for ${guestName}\nRoom: ${roomNumber}\nEstimated delivery: 30 minutes\nOrder ID: ${processedOrder.id}`);
-                }, 1000);
-            } else {
+                if (savedOrder && processedOrder) {
+                    showNotification('Room service order sent to kitchen!', 'success');
+                    
+                    // Clear cart and form
+                    roomServiceCart = [];
+                    updateCartDisplay();
+                    document.getElementById('guestName').value = '';
+                    document.getElementById('roomNumber').value = '';
+                    document.getElementById('loyaltyStatus').value = '';
+                    document.getElementById('specialInstructions').value = '';
+                    
+                    // Show order confirmation
+                    setTimeout(() => {
+                        alert(`Order confirmed for ${guestName}\nRoom: ${roomNumber}\nEstimated delivery: 30 minutes\nOrder ID: ${processedOrder.id}\n${isFirebaseConnected ? 'Saved to cloud storage' : 'Saved locally'}`);
+                    }, 1000);
+                } else {
+                    showNotification('Error processing order. Please try again.', 'error');
+                }
+            } catch (error) {
+                console.error('Error processing order:', error);
                 showNotification('Error processing order. Please try again.', 'error');
             }
         }
