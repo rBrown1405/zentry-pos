@@ -4,11 +4,30 @@
  */
 class FirebaseManager {
   constructor() {
-    // Get Firebase services
+    // Verify Firebase services are available
+    if (!window.firebaseServices) {
+      throw new Error('Firebase services not available');
+    }
+    
+    // Get Firebase services with validation
     this.app = window.firebaseServices.getApp();
     this.auth = window.firebaseServices.getAuth();
     this.db = window.firebaseServices.getDb();
-    this.storage = window.firebaseServices.getStorage();
+    this.storage = window.firebaseServices.getStorage(); // Can be null
+    
+    // Validate essential services
+    if (!this.auth) {
+      throw new Error('Firebase Auth not initialized');
+    }
+    if (!this.db) {
+      throw new Error('Firestore not initialized');
+    }
+    
+    console.log('FirebaseManager initialized with services:', {
+      auth: !!this.auth,
+      db: !!this.db,
+      storage: !!this.storage
+    });
     
     // User information
     this.user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -463,31 +482,131 @@ class FirebaseManager {
   }
 }
 
-// Create global instance after Firebase services are available
-document.addEventListener('DOMContentLoaded', () => {
-  // Wait for Firebase services to be available
-  function waitForFirebaseServices(callback, attempts = 0) {
-    if (window.firebaseServices && 
-        window.firebaseServices.getAuth && 
-        window.firebaseServices.getDb && 
-        window.firebaseServices.getStorage) {
-      try {
-        console.log('Firebase services available, creating Firebase Manager...');
-        window.firebaseManager = new FirebaseManager();
-        console.log('Firebase Manager created successfully');
-        callback();
-      } catch (error) {
-        console.error('Error creating Firebase Manager:', error);
-      }
-    } else if (attempts < 50) { // Wait up to 5 seconds
-      setTimeout(() => waitForFirebaseServices(callback, attempts + 1), 100);
+// Enhanced Firebase Manager initialization with better error handling
+class FirebaseInitializer {
+  constructor() {
+    this.maxAttempts = 150; // 15 seconds max wait time
+    this.attemptInterval = 100; // 100ms between attempts
+    this.initialized = false;
+    this.callbacks = [];
+  }
+
+  // Add callback to be executed when Firebase Manager is ready
+  onReady(callback) {
+    if (this.initialized && window.firebaseManager) {
+      callback();
     } else {
-      console.error('Firebase services not available after 5 seconds');
+      this.callbacks.push(callback);
     }
   }
-  
-  waitForFirebaseServices(() => {
-    // Dispatch event to notify other scripts
-    window.dispatchEvent(new CustomEvent('firebaseManagerReady'));
-  });
+
+  // Check if Firebase services are ready
+  checkFirebaseServices() {
+    try {
+      if (!window.firebaseServices) {
+        return { ready: false, reason: 'firebaseServices not available' };
+      }
+
+      if (!window.firebaseServices.getAuth || !window.firebaseServices.getDb) {
+        return { ready: false, reason: 'required service methods not available' };
+      }
+
+      const auth = window.firebaseServices.getAuth();
+      const db = window.firebaseServices.getDb();
+
+      if (!auth || !db) {
+        return { ready: false, reason: 'auth or db services not initialized' };
+      }
+
+      // Additional check to ensure services are actually working
+      if (typeof auth.onAuthStateChanged !== 'function' || typeof db.collection !== 'function') {
+        return { ready: false, reason: 'services not properly initialized' };
+      }
+
+      return { ready: true };
+    } catch (error) {
+      return { ready: false, reason: `error checking services: ${error.message}` };
+    }
+  }
+
+  // Initialize Firebase Manager with retry logic
+  async initializeFirebaseManager() {
+    return new Promise((resolve, reject) => {
+      let attempts = 0;
+
+      const attemptInit = () => {
+        attempts++;
+        const status = this.checkFirebaseServices();
+
+        if (status.ready) {
+          try {
+            console.log('✅ Firebase services ready, creating Firebase Manager...');
+            window.firebaseManager = new FirebaseManager();
+            this.initialized = true;
+            
+            // Execute all pending callbacks
+            this.callbacks.forEach(callback => {
+              try {
+                callback();
+              } catch (error) {
+                console.error('Error in Firebase ready callback:', error);
+              }
+            });
+            this.callbacks = [];
+
+            console.log('🎉 Firebase Manager created and ready');
+            window.dispatchEvent(new CustomEvent('firebaseManagerReady'));
+            resolve();
+            return;
+          } catch (error) {
+            console.error('❌ Error creating Firebase Manager:', error);
+            if (attempts < this.maxAttempts) {
+              setTimeout(attemptInit, this.attemptInterval);
+            } else {
+              reject(new Error(`Failed to create Firebase Manager after ${attempts} attempts: ${error.message}`));
+            }
+            return;
+          }
+        }
+
+        // Not ready yet
+        if (attempts < this.maxAttempts) {
+          // Log progress every 2 seconds
+          if (attempts % 20 === 0) {
+            const secondsWaited = (attempts * this.attemptInterval) / 1000;
+            console.log(`⏳ Waiting for Firebase services... (${secondsWaited}s) - ${status.reason}`);
+          }
+          setTimeout(attemptInit, this.attemptInterval);
+        } else {
+          const errorMsg = `❌ Firebase services not available after ${(this.maxAttempts * this.attemptInterval) / 1000} seconds`;
+          console.error(errorMsg);
+          console.log('🔍 Debug info:', {
+            firebaseServices: !!window.firebaseServices,
+            getAuth: !!(window.firebaseServices && window.firebaseServices.getAuth),
+            getDb: !!(window.firebaseServices && window.firebaseServices.getDb),
+            getStorage: !!(window.firebaseServices && window.firebaseServices.getStorage),
+            lastCheckReason: status.reason
+          });
+          reject(new Error(errorMsg));
+        }
+      };
+
+      attemptInit();
+    });
+  }
+}
+
+// Create global Firebase initializer
+window.firebaseInitializer = new FirebaseInitializer();
+
+// Start initialization when DOM is ready
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    console.log('🚀 Starting Firebase Manager initialization...');
+    await window.firebaseInitializer.initializeFirebaseManager();
+  } catch (error) {
+    console.error('💥 Failed to initialize Firebase Manager:', error);
+    // Dispatch error event for debugging
+    window.dispatchEvent(new CustomEvent('firebaseManagerError', { detail: error }));
+  }
 });

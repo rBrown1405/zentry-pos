@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection Code Test & Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .results {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #007bff; }
+        .warning { color: #ffc107; }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Connection Code Test & Generator</h1>
+        <p>Test and create connection codes for staff registration</p>
+
+        <!-- Test Existing Code -->
+        <div class="test-section">
+            <h3>🔍 Test Connection Code</h3>
+            <input type="text" id="testCode" placeholder="Enter connection code (e.g., 1234 or ABC123)" maxlength="6">
+            <button onclick="testConnectionCode()">Test Code</button>
+            <div id="testResults" class="results">
+                Enter a connection code to test if it exists...
+            </div>
+        </div>
+
+        <!-- Generate New Codes -->
+        <div class="test-section">
+            <h3>🎲 Generate Test Connection Codes</h3>
+            <button onclick="generateTestBusiness()">Create Test Business & Property</button>
+            <button onclick="generateMultipleCodes()">Generate 5 Test Codes</button>
+            <div id="generateResults" class="results">
+                Click "Create Test Business & Property" to generate a test connection code...
+            </div>
+        </div>
+
+        <!-- Firebase Status -->
+        <div class="test-section">
+            <h3>🔥 Firebase Status</h3>
+            <button onclick="checkFirebaseStatus()">Check Firebase Connection</button>
+            <div id="firebaseResults" class="results">
+                Click "Check Firebase Connection" to verify Firebase status...
+            </div>
+        </div>
+
+        <!-- Quick Fix -->
+        <div class="test-section">
+            <h3>⚡ Quick Fix for Your Code (459344)</h3>
+            <button onclick="createTestPropertyForCode()">Create Property with Code 459344</button>
+            <button onclick="testSpecificCode()">Test Code 459344</button>
+            <div id="quickFixResults" class="results">
+                Click to create a test property with your connection code...
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-manager.js"></script>
+    <script src="js/umbrella-account-manager.js"></script>
+    <script src="multi-property-manager.js"></script>
+
+    <script>
+        let isFirebaseReady = false;
+
+        // Wait for Firebase to initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await waitForFirebase();
+        });
+
+        async function waitForFirebase() {
+            return new Promise((resolve) => {
+                const checkFirebase = () => {
+                    if (window.firebaseServices && window.umbrellaManager) {
+                        isFirebaseReady = true;
+                        document.getElementById('firebaseResults').innerHTML = '<span class="success">✅ Firebase services initialized and ready</span>';
+                        resolve();
+                    } else {
+                        setTimeout(checkFirebase, 100);
+                    }
+                };
+                checkFirebase();
+            });
+        }
+
+        async function testConnectionCode() {
+            const code = document.getElementById('testCode').value.trim();
+            const resultsDiv = document.getElementById('testResults');
+            
+            if (!code) {
+                resultsDiv.innerHTML = '<span class="warning">⚠️ Please enter a connection code</span>';
+                return;
+            }
+
+            resultsDiv.innerHTML = '<span class="info">🔄 Testing connection code: ' + code + '</span>';
+
+            try {
+                // Test 4-digit code with Firebase
+                if (code.length === 4 && /^\d{4}$/.test(code)) {
+                    if (isFirebaseReady) {
+                        const property = await findPropertyByConnectionCode(code);
+                        if (property) {
+                            resultsDiv.innerHTML += '<br><span class="success">✅ Found property in Firebase!</span>';
+                            resultsDiv.innerHTML += '<br><span class="info">📋 Property ID: ' + property.id + '</span>';
+                            resultsDiv.innerHTML += '<br><span class="info">🏢 Business: ' + property.businessName + '</span>';
+                            return;
+                        } else {
+                            resultsDiv.innerHTML += '<br><span class="warning">⚠️ No property found in Firebase for code: ' + code + '</span>';
+                        }
+                    } else {
+                        resultsDiv.innerHTML += '<br><span class="warning">⚠️ Firebase not ready, cannot test 4-digit codes</span>';
+                    }
+                }
+
+                // Test legacy 6-character code
+                if (code.length === 6 && window.MultiPropertyManager) {
+                    const validation = window.MultiPropertyManager.validatePropertyConnectionCode(code.toUpperCase());
+                    if (validation.valid) {
+                        resultsDiv.innerHTML += '<br><span class="success">✅ Valid legacy connection code!</span>';
+                        resultsDiv.innerHTML += '<br><span class="info">🏢 Business: ' + validation.businessName + '</span>';
+                        return;
+                    } else {
+                        resultsDiv.innerHTML += '<br><span class="warning">⚠️ Invalid legacy connection code</span>';
+                    }
+                }
+
+                resultsDiv.innerHTML += '<br><span class="error">❌ Connection code not found in any system</span>';
+                resultsDiv.innerHTML += '<br><span class="info">💡 Try creating a test property with this code using the buttons below</span>';
+
+            } catch (error) {
+                resultsDiv.innerHTML += '<br><span class="error">❌ Error testing code: ' + error.message + '</span>';
+            }
+        }
+
+        async function generateTestBusiness() {
+            const resultsDiv = document.getElementById('generateResults');
+            resultsDiv.innerHTML = '<span class="info">🔄 Creating test business and property...</span>';
+
+            try {
+                if (!isFirebaseReady) {
+                    throw new Error('Firebase not ready');
+                }
+
+                // Create test business
+                const businessData = {
+                    companyName: 'Test Restaurant ' + Date.now(),
+                    businessType: 'restaurant',
+                    companyEmail: 'test@example.com',
+                    companyPhone: '555-0123'
+                };
+
+                const businessId = await window.umbrellaManager.createBusiness(businessData);
+                resultsDiv.innerHTML += '<br><span class="success">✅ Created test business: ' + businessId + '</span>';
+
+                // Create test property
+                const propertyData = {
+                    propertyName: 'Main Location',
+                    address: { street: '123 Test St', city: 'Test City' }
+                };
+
+                const propertyId = await window.umbrellaManager.createProperty(businessId, propertyData);
+                resultsDiv.innerHTML += '<br><span class="success">✅ Created test property: ' + propertyId + '</span>';
+
+                // Get the connection code
+                const db = window.firebaseServices.getDb();
+                const propertyDoc = await db.collection('properties').doc(propertyId).get();
+                const connectionCode = propertyDoc.data().connectionCode;
+
+                resultsDiv.innerHTML += '<br><span class="success">🎯 Connection Code: <strong>' + connectionCode + '</strong></span>';
+                resultsDiv.innerHTML += '<br><span class="info">💡 You can now use this code for staff registration!</span>';
+
+            } catch (error) {
+                resultsDiv.innerHTML += '<br><span class="error">❌ Error creating test business: ' + error.message + '</span>';
+            }
+        }
+
+        async function generateMultipleCodes() {
+            const resultsDiv = document.getElementById('generateResults');
+            resultsDiv.innerHTML = '<span class="info">🔄 Generating 5 test connection codes...</span>';
+
+            try {
+                if (!window.umbrellaManager) {
+                    throw new Error('Umbrella manager not available');
+                }
+
+                for (let i = 0; i < 5; i++) {
+                    const code = await window.umbrellaManager.generateSimpleConnectionCode();
+                    resultsDiv.innerHTML += '<br><span class="success">' + (i + 1) + '. Generated code: <strong>' + code + '</strong></span>';
+                }
+
+                resultsDiv.innerHTML += '<br><span class="info">💡 These are just generated codes. To make them valid, create properties with these codes.</span>';
+
+            } catch (error) {
+                resultsDiv.innerHTML += '<br><span class="error">❌ Error generating codes: ' + error.message + '</span>';
+            }
+        }
+
+        async function checkFirebaseStatus() {
+            const resultsDiv = document.getElementById('firebaseResults');
+            resultsDiv.innerHTML = '<span class="info">🔄 Checking Firebase status...</span>';
+
+            try {
+                // Check Firebase services
+                if (window.firebaseServices) {
+                    resultsDiv.innerHTML += '<br><span class="success">✅ Firebase services available</span>';
+                    
+                    const auth = window.firebaseServices.getAuth();
+                    const db = window.firebaseServices.getDb();
+                    
+                    if (auth) {
+                        resultsDiv.innerHTML += '<br><span class="success">✅ Firebase Auth initialized</span>';
+                        const user = auth.currentUser;
+                        if (user) {
+                            resultsDiv.innerHTML += '<br><span class="info">👤 Logged in as: ' + user.email + '</span>';
+                        } else {
+                            resultsDiv.innerHTML += '<br><span class="warning">⚠️ Not logged in</span>';
+                        }
+                    }
+                    
+                    if (db) {
+                        resultsDiv.innerHTML += '<br><span class="success">✅ Firestore initialized</span>';
+                    }
+                } else {
+                    resultsDiv.innerHTML += '<br><span class="error">❌ Firebase services not available</span>';
+                }
+
+                // Check umbrella manager
+                if (window.umbrellaManager) {
+                    resultsDiv.innerHTML += '<br><span class="success">✅ Umbrella Account Manager available</span>';
+                } else {
+                    resultsDiv.innerHTML += '<br><span class="warning">⚠️ Umbrella Account Manager not available</span>';
+                }
+
+                // Check multi-property manager
+                if (window.MultiPropertyManager) {
+                    resultsDiv.innerHTML += '<br><span class="success">✅ Multi Property Manager available</span>';
+                } else {
+                    resultsDiv.innerHTML += '<br><span class="warning">⚠️ Multi Property Manager not available</span>';
+                }
+
+            } catch (error) {
+                resultsDiv.innerHTML += '<br><span class="error">❌ Error checking Firebase: ' + error.message + '</span>';
+            }
+        }
+
+        async function createTestPropertyForCode() {
+            const resultsDiv = document.getElementById('quickFixResults');
+            resultsDiv.innerHTML = '<span class="info">🔄 Creating property with connection code 459344...</span>';
+
+            try {
+                if (!isFirebaseReady) {
+                    throw new Error('Firebase not ready');
+                }
+
+                // First check if a property with this code already exists
+                const existing = await findPropertyByConnectionCode('4593');
+                if (existing) {
+                    resultsDiv.innerHTML += '<br><span class="success">✅ Property with similar code already exists!</span>';
+                    resultsDiv.innerHTML += '<br><span class="info">Use connection code: <strong>4593</strong></span>';
+                    return;
+                }
+
+                // Create a test business first
+                const businessData = {
+                    companyName: 'Test Business for Staff',
+                    businessType: 'restaurant',
+                    companyEmail: 'staff-test@example.com',
+                    companyPhone: '555-0199'
+                };
+
+                const businessId = await window.umbrellaManager.createBusiness(businessData);
+                resultsDiv.innerHTML += '<br><span class="success">✅ Created test business: ' + businessId + '</span>';
+
+                // Manually create property with specific connection code
+                const db = window.firebaseServices.getDb();
+                const propertyRef = db.collection('properties').doc();
+                
+                await propertyRef.set({
+                    propertyName: 'Staff Test Location',
+                    business: businessId,
+                    connectionCode: '4593', // Using 4-digit version
+                    address: { street: '123 Staff Test St', city: 'Test City' },
+                    isActive: true,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                resultsDiv.innerHTML += '<br><span class="success">✅ Created property with connection code: <strong>4593</strong></span>';
+                resultsDiv.innerHTML += '<br><span class="info">💡 Now you can use code <strong>4593</strong> for staff registration!</span>';
+                resultsDiv.innerHTML += '<br><span class="warning">📝 Note: Using 4-digit version (4593) instead of 6-digit (459344)</span>';
+
+            } catch (error) {
+                resultsDiv.innerHTML += '<br><span class="error">❌ Error creating property: ' + error.message + '</span>';
+                
+                // Fallback: create in localStorage for legacy system
+                try {
+                    if (window.MultiPropertyManager) {
+                        const testAccount = {
+                            businessName: 'Test Business for Staff',
+                            ownerName: 'Test Owner',
+                            email: 'staff-test@example.com',
+                            phone: '555-0199',
+                            propertyName: 'Staff Test Location',
+                            businessType: 'restaurant'
+                        };
+
+                        // Override the connection code generation
+                        const originalGenerate = window.MultiPropertyManager.generateConnectionCode;
+                        window.MultiPropertyManager.generateConnectionCode = () => '459344';
+                        
+                        const result = window.MultiPropertyManager.createBusinessAccount(testAccount);
+                        
+                        // Restore original function
+                        window.MultiPropertyManager.generateConnectionCode = originalGenerate;
+
+                        if (result.success) {
+                            resultsDiv.innerHTML += '<br><span class="success">✅ Created legacy account with code: <strong>459344</strong></span>';
+                            resultsDiv.innerHTML += '<br><span class="info">💡 You can now use this code for staff registration!</span>';
+                        }
+                    }
+                } catch (fallbackError) {
+                    resultsDiv.innerHTML += '<br><span class="error">❌ Fallback also failed: ' + fallbackError.message + '</span>';
+                }
+            }
+        }
+
+        async function testSpecificCode() {
+            const resultsDiv = document.getElementById('quickFixResults');
+            resultsDiv.innerHTML = '<span class="info">🔄 Testing connection code 459344...</span>';
+
+            // Test various formats
+            const codesToTest = ['4593', '459344'];
+            
+            for (const code of codesToTest) {
+                try {
+                    if (code.length === 4 && isFirebaseReady) {
+                        const property = await findPropertyByConnectionCode(code);
+                        if (property) {
+                            resultsDiv.innerHTML += '<br><span class="success">✅ Found Firebase property for code: <strong>' + code + '</strong></span>';
+                            continue;
+                        }
+                    }
+
+                    if (code.length === 6 && window.MultiPropertyManager) {
+                        const validation = window.MultiPropertyManager.validatePropertyConnectionCode(code);
+                        if (validation.valid) {
+                            resultsDiv.innerHTML += '<br><span class="success">✅ Found legacy property for code: <strong>' + code + '</strong></span>';
+                            continue;
+                        }
+                    }
+
+                    resultsDiv.innerHTML += '<br><span class="warning">⚠️ No property found for code: ' + code + '</span>';
+                } catch (error) {
+                    resultsDiv.innerHTML += '<br><span class="error">❌ Error testing ' + code + ': ' + error.message + '</span>';
+                }
+            }
+        }
+
+        // Helper function
+        async function findPropertyByConnectionCode(connectionCode) {
+            if (!window.firebaseServices || !window.firebaseServices.getDb()) {
+                return null;
+            }
+            
+            try {
+                const db = window.firebaseServices.getDb();
+                const propertiesRef = await db.collection('properties')
+                    .where('connectionCode', '==', connectionCode)
+                    .limit(1)
+                    .get();
+                    
+                if (!propertiesRef.empty) {
+                    const propertyDoc = propertiesRef.docs[0];
+                    const propertyData = propertyDoc.data();
+                    
+                    // Get business information
+                    let businessName = 'Business Found';
+                    if (propertyData.business) {
+                        try {
+                            const businessDoc = await db.collection('businesses').doc(propertyData.business).get();
+                            if (businessDoc.exists) {
+                                businessName = businessDoc.data().companyName || businessName;
+                            }
+                        } catch (e) {
+                            console.warn('Could not fetch business name:', e);
+                        }
+                    }
+                    
+                    return {
+                        id: propertyDoc.id,
+                        businessName: businessName,
+                        ...propertyData
+                    };
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('Error finding property by connection code:', error);
+                return null;
+            }
+        }
+    </script>
+</body>
+</html>

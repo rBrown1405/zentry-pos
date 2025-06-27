@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Initialization Debug</title>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        .log {
+            background: #000;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            border: 1px solid #333;
+        }
+        .success { color: #00ff00; }
+        .error { color: #ff0000; }
+        .warning { color: #ffaa00; }
+        .info { color: #00aaff; }
+        button {
+            background: #333;
+            color: #00ff00;
+            border: 1px solid #555;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        button:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔥 Firebase Initialization Debug</h1>
+    
+    <button onclick="checkFirebaseStatus()">Check Firebase Status</button>
+    <button onclick="testFirebaseManager()">Test Firebase Manager</button>
+    <button onclick="clearLogs()">Clear Logs</button>
+    
+    <div id="logs" class="log">
+        Firebase initialization debug started...
+        Waiting for Firebase services...
+    </div>
+
+    <!-- Firebase Scripts in correct order -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Don't include storage to test without it -->
+    <!-- <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script> -->
+    
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-manager.js"></script>
+
+    <script>
+        const logs = document.getElementById('logs');
+        
+        // Override console methods to capture logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            logs.innerHTML += `<span class="${type}">${logEntry}</span>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addLog(args.join(' '), 'success');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addLog('ERROR: ' + args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addLog('WARNING: ' + args.join(' '), 'warning');
+        };
+        
+        // Check Firebase status periodically
+        let checkInterval;
+        
+        function startMonitoring() {
+            checkInterval = setInterval(() => {
+                if (window.firebaseServices) {
+                    addLog('Firebase services detected!', 'success');
+                    if (window.firebaseManager) {
+                        addLog('Firebase Manager created successfully!', 'success');
+                        clearInterval(checkInterval);
+                    }
+                }
+            }, 500);
+        }
+        
+        function checkFirebaseStatus() {
+            addLog('\n=== Firebase Status Check ===', 'info');
+            
+            // Check if Firebase is loaded
+            if (typeof firebase !== 'undefined') {
+                addLog('✅ Firebase SDK loaded', 'success');
+            } else {
+                addLog('❌ Firebase SDK not loaded', 'error');
+                return;
+            }
+            
+            // Check Firebase services
+            if (window.firebaseServices) {
+                addLog('✅ Firebase services object exists', 'success');
+                
+                const auth = window.firebaseServices.getAuth();
+                const db = window.firebaseServices.getDb();
+                const storage = window.firebaseServices.getStorage();
+                const isInit = window.firebaseServices.isInitialized();
+                
+                addLog(`Auth: ${auth ? '✅' : '❌'}`, auth ? 'success' : 'error');
+                addLog(`Firestore: ${db ? '✅' : '❌'}`, db ? 'success' : 'error');
+                addLog(`Storage: ${storage ? '✅' : '❌ (optional)'}`, storage ? 'success' : 'warning');
+                addLog(`Initialized: ${isInit ? '✅' : '❌'}`, isInit ? 'success' : 'error');
+            } else {
+                addLog('❌ Firebase services object not found', 'error');
+            }
+            
+            // Check Firebase Manager
+            if (window.firebaseManager) {
+                addLog('✅ Firebase Manager exists', 'success');
+                addLog(`Manager Auth: ${window.firebaseManager.auth ? '✅' : '❌'}`, 
+                       window.firebaseManager.auth ? 'success' : 'error');
+                addLog(`Manager DB: ${window.firebaseManager.db ? '✅' : '❌'}`, 
+                       window.firebaseManager.db ? 'success' : 'error');
+            } else {
+                addLog('❌ Firebase Manager not found', 'error');
+            }
+        }
+        
+        function testFirebaseManager() {
+            addLog('\n=== Testing Firebase Manager ===', 'info');
+            
+            if (!window.firebaseManager) {
+                addLog('❌ Firebase Manager not available', 'error');
+                return;
+            }
+            
+            try {
+                // Test basic methods
+                const isAuth = window.firebaseManager.isAuthenticated();
+                addLog(`Authentication check: ${isAuth ? 'User logged in' : 'Not logged in'}`, 'info');
+                
+                const user = window.firebaseManager.getCurrentUser();
+                addLog(`Current user: ${user ? user.email || 'User object exists' : 'None'}`, 'info');
+                
+                addLog('✅ Firebase Manager basic methods working', 'success');
+                
+            } catch (error) {
+                addLog(`❌ Error testing Firebase Manager: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearLogs() {
+            logs.innerHTML = 'Logs cleared...\n';
+        }
+        
+        // Start monitoring
+        document.addEventListener('DOMContentLoaded', () => {
+            addLog('DOM loaded, starting Firebase monitoring...', 'info');
+            startMonitoring();
+            
+            // Listen for Firebase Manager ready event
+            window.addEventListener('firebaseManagerReady', () => {
+                addLog('🎉 Firebase Manager ready event fired!', 'success');
+                checkFirebaseStatus();
+            });
+        });
+        
+        // Add periodic status checks
+        setTimeout(() => {
+            addLog('\n=== 5 Second Status Check ===', 'info');
+            checkFirebaseStatus();
+        }, 5000);
+        
+        setTimeout(() => {
+            addLog('\n=== 10 Second Status Check ===', 'info');
+            checkFirebaseStatus();
+        }, 10000);
+    </script>
+</body>
+</html>
