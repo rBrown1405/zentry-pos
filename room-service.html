@@ -312,74 +312,157 @@
         
         .print-modal {
             background-color: white;
-            border-radius: 12px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 800px;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 900px;
+            max-height: 95vh;
             padding: 0;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
         
         .print-modal-header {
             background: linear-gradient(135deg, #4f46e5, #7c3aed);
             color: white;
-            padding: 20px;
+            padding: 24px 32px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 2px solid #000;
+            border-bottom: none;
+            flex-shrink: 0;
         }
         
         .print-modal-title {
-            font-size: 1.5rem;
-            font-weight: bold;
+            font-size: 2rem;
+            font-weight: 700;
             margin: 0;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+            color: white;
+        }
+
+        .print-modal-title span {
+            font-size: 2.2rem;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 24px;
+            cursor: pointer;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: scale(1.05);
         }
         
         .print-modal-content {
-            padding: 20px;
+            padding: 32px;
+            flex: 1;
+            overflow-y: auto;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         .print-modal-actions {
-            padding: 15px 20px;
-            background: #f8fafc;
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            padding: 20px 32px;
             display: flex;
             justify-content: flex-end;
-            gap: 10px;
-            border-top: 1px solid #e5e7eb;
+            gap: 16px;
+            border-top: 1px solid #e2e8f0;
+            flex-shrink: 0;
         }
         
         .print-modal-button {
-            padding: 10px 15px;
-            border-radius: 6px;
-            font-weight: bold;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
             cursor: pointer;
-            border: 2px solid #000;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         
         .print-button {
-            background: #059669;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
             color: white;
+        }
+
+        .print-button:hover {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
         
         .cancel-button {
-            background: white;
-            color: #1f2937;
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+        }
+
+        .cancel-button:hover {
+            background: linear-gradient(135deg, #4b5563, #374151);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
         
         .guest-info-section {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f9fafb;
-            border-radius: 6px;
-            border: 1px solid #e5e7eb;
+            margin-bottom: 32px;
+            padding: 24px;
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .guest-info-section h2 {
+            margin: 0 0 20px 0;
+            color: #1e293b;
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .guest-info-section h2:before {
+            content: "👤";
+            font-size: 1.3rem;
         }
         
         .order-items-section {
-            margin-bottom: 20px;
+            margin-bottom: 32px;
+        }
+
+        .order-items-section h2 {
+            margin: 0 0 20px 0;
+            color: #1e293b;
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .order-items-section h2:before {
+            content: "🛒";
+            font-size: 1.3rem;
         }
         
         .order-item {
@@ -394,19 +477,46 @@
         }
         
         .order-totals {
-            padding: 15px;
-            background: #f9fafb;
-            border-radius: 6px;
-            border: 1px solid #e5e7eb;
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            padding: 24px;
+            border-radius: 12px;
+            border: 2px solid #f59e0b;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .special-instructions-section {
+            margin-top: 24px;
+            padding: 20px;
+            background: linear-gradient(135deg, #fffbeb, #fef3c7);
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+        }
+
+        .special-instructions-section h3 {
+            margin: 0 0 12px 0;
+            color: #92400e;
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .special-instructions-section h3:before {
+            content: "📝";
+            font-size: 1.1rem;
         }
         
         .print-loyalty-badge {
             display: inline-block;
-            padding: 5px 10px;
-            background: #4f46e5;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
             color: white;
-            border-radius: 4px;
-            margin-left: 10px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         /* Print-specific styles */
@@ -430,6 +540,8 @@
                 border: none;
                 border-radius: 0;
                 box-shadow: none;
+                background: white;
+                overflow: visible;
             }
             
             .print-modal-header,
@@ -443,8 +555,29 @@
                 left: 0;
                 top: 0;
                 width: 100%;
-                padding: 15px;
-                font-size: 14pt;
+                padding: 1cm;
+                font-size: 12pt;
+                overflow: visible;
+            }
+            
+            .guest-info-section, .order-items-section, .order-totals, .special-instructions-section {
+                break-inside: avoid;
+                margin-bottom: 20pt;
+            }
+
+            .guest-info-section {
+                background: #f9f9f9 !important;
+                border: 1px solid #000;
+            }
+
+            .order-totals {
+                background: #f5f5f5 !important;
+                border: 2px solid #000;
+            }
+
+            .special-instructions-section {
+                background: #fffacd !important;
+                border: 1px solid #000;
             }
             
             .guest-info-section h2,
@@ -1031,56 +1164,56 @@
                     </div>
                     <div class="print-modal-content">
                         <div class="guest-info-section">
-                            <h2 style="font-size: 24px; margin-bottom: 15px;">Guest Information</h2>
-                            <table style="width: 100%; border-collapse: collapse; font-size: 18px;">
+                            <h2>Guest Information</h2>
+                            <table style="width: 100%; border-collapse: collapse; font-size: 1.1rem;">
                                 <tr>
-                                    <td style="padding: 8px 0; font-weight: bold; width: 150px;">Guest Name:</td>
-                                    <td style="padding: 8px 0; font-size: 22px;">${guestName}</td>
+                                    <td style="padding: 12px 0; font-weight: 600; width: 160px; color: #374151;">Guest Name:</td>
+                                    <td style="padding: 12px 0; font-size: 1.2rem; color: #111827;">${guestName}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 8px 0; font-weight: bold;">Room Number:</td>
-                                    <td style="padding: 8px 0; font-size: 22px;">${roomNumber}</td>
+                                    <td style="padding: 12px 0; font-weight: 600; color: #374151;">Room Number:</td>
+                                    <td style="padding: 12px 0; font-size: 1.2rem; color: #111827;">${roomNumber}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 8px 0; font-weight: bold;">Loyalty Status:</td>
-                                    <td style="padding: 8px 0;">
+                                    <td style="padding: 12px 0; font-weight: 600; color: #374151;">Loyalty Status:</td>
+                                    <td style="padding: 12px 0;">
                                         ${loyaltyStatusText !== 'None' ? 
                                             `<span class="print-loyalty-badge">${loyaltyStatusText}</span>` : 
-                                            'None'}
+                                            '<span style="color: #6b7280;">None</span>'}
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 8px 0; font-weight: bold;">Order Time:</td>
-                                    <td style="padding: 8px 0;">${currentTime}</td>
+                                    <td style="padding: 12px 0; font-weight: 600; color: #374151;">Order Time:</td>
+                                    <td style="padding: 12px 0; color: #111827;">${currentTime}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 8px 0; font-weight: bold;">Order ID:</td>
-                                    <td style="padding: 8px 0;">${orderId}</td>
+                                    <td style="padding: 12px 0; font-weight: 600; color: #374151;">Order ID:</td>
+                                    <td style="padding: 12px 0; color: #111827; font-family: monospace;">${orderId}</td>
                                 </tr>
                             </table>
                         </div>
                         
                         <div class="order-items-section">
-                            <h2 style="font-size: 24px; margin-bottom: 15px;">Order Items</h2>
-                            <table style="width: 100%; border-collapse: collapse; font-size: 18px;">
+                            <h2>Order Items</h2>
+                            <table style="width: 100%; border-collapse: collapse; font-size: 1rem; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                                 <thead>
-                                    <tr style="background: #f3f4f6; text-align: left;">
-                                        <th style="padding: 10px; border-bottom: 1px solid #e5e7eb;">Item</th>
-                                        <th style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: center;">Qty</th>
-                                        <th style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right;">Price</th>
-                                        <th style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right;">Total</th>
+                                    <tr style="background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white;">
+                                        <th style="padding: 16px 12px; text-align: left; font-weight: 600;">Item</th>
+                                        <th style="padding: 16px 12px; text-align: center; font-weight: 600; width: 80px;">Qty</th>
+                                        <th style="padding: 16px 12px; text-align: right; font-weight: 600; width: 100px;">Price</th>
+                                        <th style="padding: 16px 12px; text-align: right; font-weight: 600; width: 120px;">Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${roomServiceCart.map(item => `
-                                        <tr>
-                                            <td style="padding: 12px 10px; border-bottom: 1px solid #e5e7eb;">
-                                                <div style="font-size: 20px;">${item.name}</div>
-                                                ${item.description ? `<div style="color: #6b7280; font-size: 16px;">${item.description}</div>` : ''}
+                                    ${roomServiceCart.map((item, index) => `
+                                        <tr style="background: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'}; border-bottom: 1px solid #e5e7eb;">
+                                            <td style="padding: 16px 12px;">
+                                                <div style="font-size: 1.1rem; font-weight: 600; color: #111827; margin-bottom: 4px;">${item.name}</div>
+                                                ${item.description ? `<div style="color: #6b7280; font-size: 0.9rem; line-height: 1.4;">${item.description}</div>` : ''}
                                             </td>
-                                            <td style="padding: 12px 10px; border-bottom: 1px solid #e5e7eb; text-align: center; font-size: 20px;">${item.quantity}</td>
-                                            <td style="padding: 12px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 20px;">$${parseFloat(item.price || 0).toFixed(2)}</td>
-                                            <td style="padding: 12px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 20px; font-weight: 600;">$${(parseFloat(item.price || 0) * item.quantity).toFixed(2)}</td>
+                                            <td style="padding: 16px 12px; text-align: center; font-size: 1.1rem; font-weight: 600; color: #374151;">${item.quantity}</td>
+                                            <td style="padding: 16px 12px; text-align: right; font-size: 1.1rem; color: #374151;">$${parseFloat(item.price || 0).toFixed(2)}</td>
+                                            <td style="padding: 16px 12px; text-align: right; font-size: 1.1rem; font-weight: 700; color: #111827;">$${(parseFloat(item.price || 0) * item.quantity).toFixed(2)}</td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
@@ -1088,30 +1221,30 @@
                         </div>
 
                         <div class="order-totals">
-                            <table style="width: 100%; border-collapse: collapse; font-size: 18px;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 1.1rem;">
                                 <tr>
-                                    <td style="padding: 8px 0; text-align: right;">Subtotal:</td>
-                                    <td style="padding: 8px 0; text-align: right; width: 150px;">$${subtotal.toFixed(2)}</td>
+                                    <td style="padding: 10px 0; text-align: right; color: #374151;">Subtotal:</td>
+                                    <td style="padding: 10px 0; text-align: right; width: 150px; font-weight: 600; color: #111827;">$${subtotal.toFixed(2)}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 8px 0; text-align: right;">Service Charge (${(serviceChargeRate * 100).toFixed(0)}%):</td>
-                                    <td style="padding: 8px 0; text-align: right;">$${serviceCharge.toFixed(2)}</td>
+                                    <td style="padding: 10px 0; text-align: right; color: #374151;">Service Charge (${(serviceChargeRate * 100).toFixed(0)}%):</td>
+                                    <td style="padding: 10px 0; text-align: right; font-weight: 600; color: #111827;">$${serviceCharge.toFixed(2)}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 8px 0; text-align: right;">Tax (${(taxRate * 100).toFixed(1)}%):</td>
-                                    <td style="padding: 8px 0; text-align: right;">$${tax.toFixed(2)}</td>
+                                    <td style="padding: 10px 0; text-align: right; color: #374151;">Tax (${(taxRate * 100).toFixed(1)}%):</td>
+                                    <td style="padding: 10px 0; text-align: right; font-weight: 600; color: #111827;">$${tax.toFixed(2)}</td>
                                 </tr>
-                                <tr style="font-weight: bold; font-size: 22px;">
-                                    <td style="padding: 12px 0; text-align: right; border-top: 2px solid #000;">Total:</td>
-                                    <td style="padding: 12px 0; text-align: right; border-top: 2px solid #000;">$${total.toFixed(2)}</td>
+                                <tr style="border-top: 3px solid #f59e0b; margin-top: 8px;">
+                                    <td style="padding: 16px 0 0 0; text-align: right; font-size: 1.3rem; font-weight: 700; color: #92400e;">Total:</td>
+                                    <td style="padding: 16px 0 0 0; text-align: right; font-size: 1.3rem; font-weight: 700; color: #92400e;">$${total.toFixed(2)}</td>
                                 </tr>
                             </table>
                         </div>
 
                         ${document.getElementById('specialInstructions').value.trim() ? `
-                        <div class="special-instructions-section" style="margin-top: 20px;">
-                            <h3 style="font-size: 20px; margin-bottom: 10px;">Special Instructions</h3>
-                            <div style="padding: 12px; background: #fffbeb; border: 1px solid #fbbf24; border-radius: 6px; font-size: 18px;">
+                        <div class="special-instructions-section">
+                            <h3>Special Instructions</h3>
+                            <div style="padding: 16px; background: white; border-radius: 8px; font-size: 1rem; line-height: 1.6; color: #374151; border: 1px solid #f59e0b;">
                                 ${document.getElementById('specialInstructions').value.trim()}
                             </div>
                         </div>
@@ -1120,7 +1253,7 @@
                     <div class="print-modal-actions">
                         <button class="print-modal-button cancel-button" onclick="closePrintModal()">Cancel</button>
                         <button class="print-modal-button print-button" onclick="printOrderDetails()">
-                            <span style="display: flex; align-items: center; gap: 5px;"><span>🖨️</span> Print Order</span>
+                            <span>🖨️</span> Print Order
                         </button>
                     </div>
                 </div>
