@@ -1,5 +1,23 @@
-// Business Registration Handler - Updated for Multi-Property System
-document.addEventListener('DOMContentLoaded', () => {
+// Business Registration Handler - Updated for Firebase Integration
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize Firebase services and Umbrella Manager
+    try {
+        if (window.firebaseServices) {
+            await window.firebaseServices.initialize();
+            if (window.FirebaseManager) {
+                window.firebaseManager = new window.FirebaseManager();
+                await window.firebaseManager.initialize();
+                
+                if (window.UmbrellaAccountManager) {
+                    window.umbrellaManager = new window.UmbrellaAccountManager(window.firebaseManager);
+                    await window.umbrellaManager.initialize();
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('Firebase initialization failed, will use localStorage fallback:', error);
+    }
+    
     // Populate country dropdown
     populateCountries();
     
@@ -138,8 +156,81 @@ async function handleRegistration(event) {
             rewardsProgram
         };
 
-        // Create umbrella business account using new multi-property system
-        const result = await MultiPropertyManager.createBusinessAccount(businessData);        if (result.success) {
+        // Create umbrella business account using Firebase-backed system
+        let result;
+        
+        if (window.umbrellaManager && window.firebaseManager) {
+            // Use Firebase-backed UmbrellaAccountManager
+            console.log('Creating business with Firebase-backed UmbrellaAccountManager');
+            
+            try {
+                // First, check if we need to create an owner account
+                let ownerUser = window.firebaseManager.getCurrentUser();
+                
+                if (!ownerUser) {
+                    // Create owner account first
+                    console.log('No authenticated user found, creating owner account');
+                    
+                    // Generate a temporary password for the owner (they can change it later)
+                    const tempPassword = 'temp' + Math.random().toString(36).substr(2, 9);
+                    
+                    // Create the owner user account
+                    const userCredential = await window.firebaseManager.auth.createUserWithEmailAndPassword(
+                        businessData.email, 
+                        tempPassword
+                    );
+                    
+                    // Update user profile
+                    await userCredential.user.updateProfile({
+                        displayName: businessData.ownerName
+                    });
+                    
+                    // Create user document in Firestore with owner role
+                    await window.firebaseManager.db.collection('users').doc(userCredential.user.uid).set({
+                        username: businessData.email.split('@')[0],
+                        email: businessData.email,
+                        firstName: businessData.ownerName.split(' ')[0] || '',
+                        lastName: businessData.ownerName.split(' ').slice(1).join(' ') || '',
+                        role: 'owner',
+                        accessLevel: 'business',
+                        isActive: true,
+                        tempPassword: tempPassword, // Store temp password so user can see it
+                        mustChangePassword: true,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    
+                    console.log('Owner account created successfully');
+                    
+                    // Wait a bit for auth state to update
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Re-initialize umbrella manager to pick up the new user
+                    await window.umbrellaManager.initialize();
+                }
+                
+                // Now create the business account
+                result = await window.umbrellaManager.createBusinessAccount(businessData);
+                
+                // Add temp password info to result if we created a new user
+                if (!ownerUser && result.success) {
+                    const currentUserDoc = await window.firebaseManager.db.collection('users').doc(window.firebaseManager.getCurrentUser().uid).get();
+                    if (currentUserDoc.exists && currentUserDoc.data().tempPassword) {
+                        result.tempPassword = currentUserDoc.data().tempPassword;
+                        result.message += ` Your temporary password is: ${result.tempPassword}. Please change it after logging in.`;
+                    }
+                }
+                
+            } catch (firebaseError) {
+                console.error('Firebase business creation failed:', firebaseError);
+                // Fall back to localStorage method
+                console.warn('Falling back to localStorage-based MultiPropertyManager');
+                result = await MultiPropertyManager.createBusinessAccount(businessData);
+            }
+        } else {
+            // Fallback to localStorage-based MultiPropertyManager
+            console.warn('Firebase not available, falling back to localStorage-based MultiPropertyManager');
+            result = await MultiPropertyManager.createBusinessAccount(businessData);
+        }        if (result.success) {
             try {
                 // Hide the registration form
                 const registrationForm = document.querySelector('.registration-form');

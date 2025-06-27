@@ -793,6 +793,460 @@ class UmbrellaAccountManager {
             throw error;
         }
     }
+
+    /**
+     * Create a complete business account with initial property (compatible with MultiPropertyManager)
+     * This method creates both a business and its first property in one operation
+     * @param {Object} businessData - Business data including property information
+     * @returns {Promise<Object>} - Object with success, businessId, connectionCode, and message
+     */
+    async createBusinessAccount(businessData) {
+        try {
+            // Check if user is authenticated
+            const user = this.firebaseManager.getCurrentUser();
+            if (!user) {
+                console.warn('No authenticated user - falling back to localStorage method');
+                throw new Error('Firebase authentication required');
+            }
+
+            // Validate required fields
+            if (!businessData.businessName || !businessData.ownerName || !businessData.email) {
+                return {
+                    success: false,
+                    message: 'Missing required fields: businessName, ownerName, email'
+                };
+            }
+
+            // For registration flow, temporarily treat the current user as having permission
+            // We'll override the role check in createBusiness for this specific case
+            const originalCreateBusiness = this.createBusiness.bind(this);
+            this.createBusiness = async (businessData) => {
+                // Generate a simple, memorable business ID (e.g., ZEN123, MAC456)
+                const businessId = await this.generateSimpleBusinessId(businessData.companyName);
+                const businessCode = businessId;
+
+                console.log(`Creating business with ID: ${businessId}`);
+
+                // Create the business document
+                await this.db.collection('businesses').doc(businessId).set({
+                    businessCode,
+                    businessId,
+                    companyName: businessData.companyName,
+                    businessType: businessData.businessType || 'restaurant',
+                    owner: user.uid,
+                    companyEmail: businessData.companyEmail,
+                    companyPhone: businessData.companyPhone || '',
+                    address: businessData.address || {},
+                    settings: businessData.settings || {
+                        requireApprovalForNewStaff: true,
+                        taxRate: 0,
+                        currency: 'USD'
+                    },
+                    properties: [],
+                    isActive: true,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                console.log(`Business created successfully with ID: ${businessId}`);
+
+                // Update the user document to link them to this business and set as owner
+                await this.db.collection('users').doc(user.uid).update({
+                    businessId: businessId,
+                    accessLevel: 'business',
+                    role: 'owner' // Ensure they're set as owner
+                });
+                
+                console.log(`User linked to business: ${businessId}`);
+
+                return businessId;
+            };
+
+            // Create the business
+            const businessId = await this.createBusiness({
+                companyName: businessData.businessName,
+                businessType: businessData.businessType || 'restaurant',
+                companyEmail: businessData.email,
+                companyPhone: businessData.phone || '',
+                address: businessData.address || '',
+                settings: {
+                    requireApprovalForNewStaff: true,
+                    taxRate: 0,
+                    currency: 'USD'
+                }
+            });
+
+            // Restore original createBusiness method
+            this.createBusiness = originalCreateBusiness;
+
+            // Create the first property if property data is provided
+            let connectionCode = null;
+            if (businessData.propertyName) {
+                const propertyId = await this.createProperty(businessId, {
+                    propertyName: businessData.propertyName,
+                    address: {
+                        street: businessData.address || '',
+                        country: businessData.country || '',
+                        state: businessData.state || ''
+                    },
+                    settings: {
+                        tables: [],
+                        sections: []
+                    }
+                });
+
+                // Get the connection code from the created property
+                const propertyDoc = await this.db.collection('properties').doc(propertyId).get();
+                if (propertyDoc.exists) {
+                    connectionCode = propertyDoc.data().connectionCode;
+                }
+            }
+
+            return {
+                success: true,
+                businessId: businessId,
+                connectionCode: connectionCode || 'N/A',
+                message: 'Business account created successfully'
+            };
+
+        } catch (error) {
+            console.error('Error creating business account:', error);
+            return {
+                success: false,
+                message: 'Failed to create business account: ' + error.message
+            };
+        }
+    }
+
+    /**
+     * Generate a simple, memorable business ID
+     * @param {string} companyName - Company name for ID generation
+     * @returns {Promise<string>} - Generated business ID
+     */
+    async generateSimpleBusinessId(companyName) {
+        // Create a simple 6-character ID: 3 letters from company name + 3 numbers
+        const cleanedName = (companyName || '').replace(/[^A-Z]/gi, '').toUpperCase();
+        const namePart = cleanedName.substring(0, 3).padEnd(3, 'X'); // Always 3 characters
+        
+        // Generate 3-digit number (100-999)
+        let attempts = 0;
+        let businessId;
+        
+        do {
+            const numberPart = Math.floor(100 + Math.random() * 900); // 100-999
+            businessId = `${namePart}${numberPart}`; // e.g., ZEN123, MAC456, etc.
+            attempts++;
+            
+            // Check if this ID already exists in Firebase
+            const existingDoc = await this.db.collection('businesses').doc(businessId).get();
+            if (!existingDoc.exists) {
+                break; // ID is unique
+            }
+        } while (attempts < 50); // Try up to 50 times
+        
+        if (attempts >= 50) {
+            throw new Error('Unable to generate unique business ID');
+        }
+        
+        return businessId;
+    }
+
+    /**
+     * Generate a simple connection code for properties
+     * @returns {Promise<string>} - Generated connection code
+     */
+    async generateSimpleConnectionCode() {
+        // Generate a simple 4-digit connection code (1000-9999)
+        let attempts = 0;
+        let connectionCode;
+        
+        do {
+            connectionCode = Math.floor(1000 + Math.random() * 9000).toString(); // 1000-9999
+            attempts++;
+            
+            // Check if this connection code already exists in Firebase
+            const existingProperty = await this.db.collection('properties')
+                .where('connectionCode', '==', connectionCode)
+                .limit(1)
+                .get();
+                
+            if (existingProperty.empty) {
+                break; // Code is unique
+            }
+        } while (attempts < 50); // Try up to 50 times
+        
+        if (attempts >= 50) {
+            throw new Error('Unable to generate unique connection code');
+        }
+        
+        return connectionCode;
+    }
+
+    /**
+     * Generate a minimal unique code for business/property (legacy method)
+     * @param {string} prefix - Code prefix
+     * @returns {string} - Generated code
+     */
+    generateUniqueCode(prefix) {
+        // Minimal: prefix + 3 random uppercase letters/digits
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let code = '';
+        for (let i = 0; i < 3; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return `${prefix}-${code}`;
+    }
+    
+    /**
+     * Connect to a property using a connection code
+     * @param {string} connectionCode - Property connection code
+     * @returns {Promise<boolean>} - Success status
+     */
+    async connectToPropertyByCode(connectionCode) {
+        try {
+            const user = this.firebaseManager.getCurrentUser();
+            if (!user) throw new Error('No authenticated user');
+            
+            // Search for property with this connection code
+            const propertiesRef = await this.db.collection('properties')
+                .where('connectionCode', '==', connectionCode)
+                .limit(1)
+                .get();
+                
+            if (propertiesRef.empty) {
+                throw new Error('Invalid connection code');
+            }
+            
+            const propertyDoc = propertiesRef.docs[0];
+            const propertyData = propertyDoc.data();
+            
+            // Get the business this property belongs to
+            const businessDoc = await this.db.collection('businesses').doc(propertyData.business).get();
+            
+            if (!businessDoc.exists) {
+                throw new Error('Associated business not found');
+            }
+            
+            const businessData = businessDoc.data();
+            
+            // Update user's access to include this property and business
+            await this.db.collection('users').doc(user.uid).update({
+                businessId: propertyData.business,
+                propertyAccess: firebase.firestore.FieldValue.arrayUnion(propertyDoc.id)
+            });
+            
+            // Set as current property and business
+            this.setCurrentBusiness(propertyData.business, businessData);
+            this.setCurrentProperty(propertyDoc.id, propertyData);
+            
+            return true;
+        } catch (error) {
+            console.error('Error connecting to property:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Switch the current property
+     * @param {string} propertyId - Property ID to switch to
+     * @returns {Promise<boolean>} - Success status
+     */
+    async switchProperty(propertyId) {
+        try {
+            const propertyDoc = await this.db.collection('properties').doc(propertyId).get();
+            
+            if (!propertyDoc.exists) {
+                throw new Error('Property not found');
+            }
+            
+            const propertyData = propertyDoc.data();
+            
+            // Verify user has access to this property
+            const user = this.firebaseManager.getCurrentUser();
+            if (!user) throw new Error('No authenticated user');
+            
+            if (user.role !== 'super_admin') {
+                const userDoc = await this.db.collection('users').doc(user.uid).get();
+                const userData = userDoc.data();
+                
+                if (!userData.propertyAccess || !userData.propertyAccess.includes(propertyId)) {
+                    throw new Error('User does not have access to this property');
+                }
+            }
+            
+            // Set as current property
+            this.setCurrentProperty(propertyId, propertyData);
+            
+            return true;
+        } catch (error) {
+            console.error('Error switching property:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Switch the current business and default to its main property
+     * @param {string} businessId - Business ID to switch to
+     * @returns {Promise<boolean>} - Success status
+     */
+    async switchBusiness(businessId) {
+        try {
+            const businessDoc = await this.db.collection('businesses').doc(businessId).get();
+            
+            if (!businessDoc.exists) {
+                throw new Error('Business not found');
+            }
+            
+            const businessData = businessDoc.data();
+            
+            // Verify user has access to this business
+            const user = this.firebaseManager.getCurrentUser();
+            if (!user) throw new Error('No authenticated user');
+            
+            if (user.role !== 'super_admin') {
+                const userDoc = await this.db.collection('users').doc(user.uid).get();
+                const userData = userDoc.data();
+                
+                if (userData.businessId !== businessId) {
+                    throw new Error('User does not have access to this business');
+                }
+            }
+            
+            // Set as current business
+            this.setCurrentBusiness(businessId, businessData);
+            
+            // Find and set the main property
+            const propertiesRef = await this.db.collection('properties')
+                .where('business', '==', businessId)
+                .where('isMainProperty', '==', true)
+                .limit(1)
+                .get();
+                
+            if (!propertiesRef.empty) {
+                const mainPropertyDoc = propertiesRef.docs[0];
+                this.setCurrentProperty(mainPropertyDoc.id, mainPropertyDoc.data());
+            } else {
+                // If no main property, try to get any property
+                const anyPropertyRef = await this.db.collection('properties')
+                    .where('business', '==', businessId)
+                    .limit(1)
+                    .get();
+                    
+                if (!anyPropertyRef.empty) {
+                    const propertyDoc = anyPropertyRef.docs[0];
+                    this.setCurrentProperty(propertyDoc.id, propertyDoc.data());
+                }
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('Error switching business:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Export all umbrella account data and upload to Firebase Storage as JSON
+     * @param {string} [fileName] - Optional file name for the backup
+     * @param {string} [folder] - Optional folder in Firebase Storage
+     * @returns {Promise<string>} - Download URL of the uploaded file
+     */
+    async exportAndUploadAllData(fileName = null, folder = 'umbrella_backups') {
+        try {
+            console.log('Starting umbrella account backup...');
+            
+            // Check prerequisites
+            if (!this.currentBusiness) {
+                throw new Error('No current business selected');
+            }
+            
+            if (!this.db) {
+                throw new Error('Firebase database not initialized');
+            }
+            
+            // Check if Firebase storage is available
+            const storage = window.firebaseServices?.getStorage();
+            if (!storage) {
+                throw new Error('Firebase Storage not initialized');
+            }
+            
+            // Check authentication
+            const currentUser = this.firebaseManager?.getCurrentUser();
+            if (!currentUser) {
+                throw new Error('User not authenticated');
+            }
+            
+            console.log('Prerequisites check passed, gathering business data...');
+            
+            const businessId = this.currentBusiness.id;
+            
+            // Gather all business data
+            const businessDoc = await this.db.collection('businesses').doc(businessId).get();
+            if (!businessDoc.exists) {
+                throw new Error('Business document not found');
+            }
+            const businessData = businessDoc.data();
+            
+            console.log('Business data gathered, fetching properties...');
+            
+            // Get all properties for this business
+            const propertiesSnapshot = await this.db.collection('properties').where('business', '==', businessId).get();
+            const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            console.log('Properties gathered, fetching users...');
+            
+            // Get all users for this business
+            const usersSnapshot = await this.db.collection('users').where('businessId', '==', businessId).get();
+            const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            console.log('Users gathered, fetching menus...');
+            
+            // Get all menus for this business (if you have a menus collection)
+            let menus = [];
+            try {
+                const menusSnapshot = await this.db.collection('menus').where('business', '==', businessId).get();
+                menus = menusSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            } catch (menuError) {
+                console.warn('No menus collection or error fetching menus:', menuError.message);
+            }
+            
+            console.log('Data gathering complete, preparing export...');
+            
+            const exportData = {
+                exportedAt: new Date().toISOString(),
+                exportedBy: currentUser.uid,
+                business: { id: businessDoc.id, ...businessData },
+                properties,
+                users,
+                menus
+            };
+            
+            // Convert to JSON
+            const jsonString = JSON.stringify(exportData, null, 2);
+            
+            // Prepare file name
+            const now = new Date();
+            const defaultFileName = `umbrella-backup-${businessId}-${now.toISOString().replace(/[:.]/g, '-')}.json`;
+            const uploadFileName = fileName || defaultFileName;
+            
+            console.log(`Uploading backup file: ${uploadFileName}`);
+            
+            // Upload to Firebase Storage
+            const storageRef = storage.ref().child(`${folder}/${uploadFileName}`);
+            const snapshot = await storageRef.putString(jsonString, 'raw', { contentType: 'application/json' });
+            
+            console.log('File uploaded successfully, getting download URL...');
+            
+            // Get download URL
+            const downloadURL = await snapshot.ref.getDownloadURL();
+            
+            console.log('Backup complete! Download URL:', downloadURL);
+            
+            return downloadURL;
+        } catch (error) {
+            console.error('Backup failed:', error);
+            throw error;
+        }
+    }
 }
 
 // Create a global instance when Firebase is loaded

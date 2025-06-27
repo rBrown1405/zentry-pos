@@ -6,6 +6,15 @@
     <title>Macros POS - Business Settings</title>
     <link rel="stylesheet" href="styles.css">
     <script src="hotel-mode.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-services.js"></script>
+    <script src="js/firebase-manager.js"></script>
+    <script src="js/umbrella-account-manager.js"></script>
     <style>
         .business-settings-container {
             max-width: 1200px;
@@ -591,58 +600,123 @@
         }
 
         // Load current settings
-        function loadSettings() {
-            // Try to load the current business context from localStorage
-            const currentBusiness = JSON.parse(localStorage.getItem('currentBusiness') || '{}');
-            const businessSettings = Object.keys(currentBusiness).length > 0 ? currentBusiness : JSON.parse(localStorage.getItem('businessSettings') || '{}');
-            // Load business information
-            document.getElementById('businessName').value = businessSettings.name || '';
-            document.getElementById('businessType').value = businessSettings.type || 'restaurant';
-            document.getElementById('businessAddress').value = businessSettings.address || '';
-            document.getElementById('businessPhone').value = businessSettings.phone || '';
-            document.getElementById('businessEmail').value = businessSettings.email || '';
-            document.getElementById('businessWebsite').value = businessSettings.website || '';
-            
-            // Load theme settings
-            document.getElementById('primaryColor').value = businessSettings.primaryColor || '#007bff';
-            document.getElementById('secondaryColor').value = businessSettings.secondaryColor || '#6c757d';
-            document.getElementById('logoText').value = businessSettings.logoText || 'M';
-            
-            // Load POS settings
-            document.getElementById('autoPrintReceipts').checked = businessSettings.autoPrintReceipts || false;
-            document.getElementById('showTableNumbers').checked = businessSettings.showTableNumbers !== false;
-            document.getElementById('enableTips').checked = businessSettings.enableTips !== false;
-            document.getElementById('taxRate').value = businessSettings.taxRate || '';
-            document.getElementById('currency').value = businessSettings.currency || 'USD';
-            
-            // Load notification settings
-            document.getElementById('orderNotifications').checked = businessSettings.orderNotifications !== false;
-            document.getElementById('staffAlerts').checked = businessSettings.staffAlerts !== false;
-            document.getElementById('systemUpdates').checked = businessSettings.systemUpdates || false;
-            document.getElementById('dailyReports').checked = businessSettings.dailyReports || false;
-            document.getElementById('weeklySummaries').checked = businessSettings.weeklySummaries || false;
-            
-            // Load hotel settings
-            document.getElementById('hotelBrand').value = businessSettings.hotelBrand || 'independent';
-            document.getElementById('serviceCharge').value = businessSettings.serviceCharge || 18;
-            document.getElementById('deliveryTime').value = businessSettings.deliveryTime || 30;
-            document.getElementById('enableHotelMode').checked = businessSettings.hotelMode || false;
-            
-            // Show/hide hotel tab based on business type
-            const hotelTab = document.getElementById('hotelTab');
-            if (businessSettings.type === 'hotel') {
-                hotelTab.style.display = 'inline-block';
-            } else {
-                hotelTab.style.display = 'none';
+        async function loadSettings() {
+            try {
+                let businessSettings = {};
+                
+                // Try to load from Firebase first if available
+                if (window.firebaseServices && window.umbrellaManager && window.umbrellaManager.currentBusiness) {
+                    try {
+                        const db = window.firebaseServices.getDb();
+                        const businessId = window.umbrellaManager.currentBusiness.id;
+                        
+                        console.log('Loading business settings from Firebase for business:', businessId);
+                        
+                        const businessDoc = await db.collection('businesses').doc(businessId).get();
+                        
+                        if (businessDoc.exists) {
+                            const businessData = businessDoc.data();
+                            
+                            // Map Firebase data to settings format
+                            businessSettings = {
+                                name: businessData.companyName || '',
+                                type: businessData.businessType || 'restaurant',
+                                address: businessData.address?.full || '',
+                                phone: businessData.companyPhone || '',
+                                email: businessData.companyEmail || '',
+                                website: businessData.address?.website || '',
+                                primaryColor: businessData.settings?.primaryColor || '#007bff',
+                                secondaryColor: businessData.settings?.secondaryColor || '#6c757d',
+                                logoText: businessData.settings?.logoText || 'M',
+                                autoPrintReceipts: businessData.settings?.autoPrintReceipts || false,
+                                showTableNumbers: businessData.settings?.showTableNumbers !== false,
+                                enableTips: businessData.settings?.enableTips !== false,
+                                taxRate: businessData.settings?.taxRate || 0,
+                                currency: businessData.settings?.currency || 'USD',
+                                orderNotifications: businessData.settings?.orderNotifications !== false,
+                                staffAlerts: businessData.settings?.staffAlerts !== false,
+                                systemUpdates: businessData.settings?.systemUpdates || false,
+                                dailyReports: businessData.settings?.dailyReports || false,
+                                weeklySummaries: businessData.settings?.weeklySummaries || false,
+                                hotelBrand: businessData.settings?.hotelBrand || 'independent',
+                                serviceCharge: businessData.settings?.serviceCharge || 18,
+                                deliveryTime: businessData.settings?.deliveryTime || 30,
+                                hotelMode: businessData.settings?.hotelMode || false
+                            };
+                            
+                            console.log('Loaded business settings from Firebase:', businessSettings);
+                        } else {
+                            console.log('Business document not found in Firebase, falling back to localStorage');
+                            throw new Error('Business document not found');
+                        }
+                    } catch (firebaseError) {
+                        console.warn('Failed to load from Firebase, falling back to localStorage:', firebaseError);
+                        
+                        // Fallback to localStorage
+                        const currentBusiness = JSON.parse(localStorage.getItem('currentBusiness') || '{}');
+                        businessSettings = Object.keys(currentBusiness).length > 0 ? currentBusiness : JSON.parse(localStorage.getItem('businessSettings') || '{}');
+                    }
+                } else {
+                    console.log('Firebase not available, loading from localStorage');
+                    
+                    // Fallback to localStorage
+                    const currentBusiness = JSON.parse(localStorage.getItem('currentBusiness') || '{}');
+                    businessSettings = Object.keys(currentBusiness).length > 0 ? currentBusiness : JSON.parse(localStorage.getItem('businessSettings') || '{}');
+                }
+                
+                // Load business information
+                document.getElementById('businessName').value = businessSettings.name || '';
+                document.getElementById('businessType').value = businessSettings.type || 'restaurant';
+                document.getElementById('businessAddress').value = businessSettings.address || '';
+                document.getElementById('businessPhone').value = businessSettings.phone || '';
+                document.getElementById('businessEmail').value = businessSettings.email || '';
+                document.getElementById('businessWebsite').value = businessSettings.website || '';
+                
+                // Load theme settings
+                document.getElementById('primaryColor').value = businessSettings.primaryColor || '#007bff';
+                document.getElementById('secondaryColor').value = businessSettings.secondaryColor || '#6c757d';
+                document.getElementById('logoText').value = businessSettings.logoText || 'M';
+                
+                // Load POS settings
+                document.getElementById('autoPrintReceipts').checked = businessSettings.autoPrintReceipts || false;
+                document.getElementById('showTableNumbers').checked = businessSettings.showTableNumbers !== false;
+                document.getElementById('enableTips').checked = businessSettings.enableTips !== false;
+                document.getElementById('taxRate').value = businessSettings.taxRate || '';
+                document.getElementById('currency').value = businessSettings.currency || 'USD';
+                
+                // Load notification settings
+                document.getElementById('orderNotifications').checked = businessSettings.orderNotifications !== false;
+                document.getElementById('staffAlerts').checked = businessSettings.staffAlerts !== false;
+                document.getElementById('systemUpdates').checked = businessSettings.systemUpdates || false;
+                document.getElementById('dailyReports').checked = businessSettings.dailyReports || false;
+                document.getElementById('weeklySummaries').checked = businessSettings.weeklySummaries || false;
+                
+                // Load hotel settings
+                document.getElementById('hotelBrand').value = businessSettings.hotelBrand || 'independent';
+                document.getElementById('serviceCharge').value = businessSettings.serviceCharge || 18;
+                document.getElementById('deliveryTime').value = businessSettings.deliveryTime || 30;
+                document.getElementById('enableHotelMode').checked = businessSettings.hotelMode || false;
+                
+                // Show/hide hotel tab based on business type
+                const hotelTab = document.getElementById('hotelTab');
+                if (businessSettings.type === 'hotel') {
+                    hotelTab.style.display = 'inline-block';
+                } else {
+                    hotelTab.style.display = 'none';
+                }
+                
+                // Update loyalty program based on brand
+                updateLoyaltyProgram();
+                
+                // Update room service menu status
+                updateMenuStatus();
+                
+                updateThemePreview();
+                
+            } catch (error) {
+                console.error('Error loading settings:', error);
+                alert('Error loading settings: ' + error.message);
             }
-            
-            // Update loyalty program based on brand
-            updateLoyaltyProgram();
-            
-            // Update room service menu status
-            updateMenuStatus();
-            
-            updateThemePreview();
         }
 
         // Update theme preview
@@ -655,44 +729,114 @@
         }
 
         // Save settings
-        function saveSettings() {
-            const settings = {
-                name: document.getElementById('businessName').value,
-                type: document.getElementById('businessType').value,
-                address: document.getElementById('businessAddress').value,
-                phone: document.getElementById('businessPhone').value,
-                email: document.getElementById('businessEmail').value,
-                website: document.getElementById('businessWebsite').value,
-                primaryColor: document.getElementById('primaryColor').value,
-                secondaryColor: document.getElementById('secondaryColor').value,
-                logoText: document.getElementById('logoText').value,
-                autoPrintReceipts: document.getElementById('autoPrintReceipts').checked,
-                showTableNumbers: document.getElementById('showTableNumbers').checked,
-                enableTips: document.getElementById('enableTips').checked,
-                taxRate: parseFloat(document.getElementById('taxRate').value) || 0,
-                currency: document.getElementById('currency').value,
-                orderNotifications: document.getElementById('orderNotifications').checked,
-                staffAlerts: document.getElementById('staffAlerts').checked,
-                systemUpdates: document.getElementById('systemUpdates').checked,
-                dailyReports: document.getElementById('dailyReports').checked,
-                weeklySummaries: document.getElementById('weeklySummaries').checked,
-                // Hotel settings
-                hotelBrand: document.getElementById('hotelBrand').value,
-                serviceCharge: parseFloat(document.getElementById('serviceCharge').value) || 18,
-                deliveryTime: parseInt(document.getElementById('deliveryTime').value) || 30,
-                hotelMode: document.getElementById('enableHotelMode').checked,
-                updatedAt: new Date().toISOString()
-            };
-            
-            localStorage.setItem('businessSettings', JSON.stringify(settings));
-            // Also update currentBusiness context if it exists
-            const currentBusiness = JSON.parse(localStorage.getItem('currentBusiness') || '{}');
-            if (currentBusiness && currentBusiness.id) {
-                const updatedBusiness = { ...currentBusiness, ...settings };
-                localStorage.setItem('currentBusiness', JSON.stringify(updatedBusiness));
+        async function saveSettings() {
+            try {
+                const settings = {
+                    name: document.getElementById('businessName').value,
+                    type: document.getElementById('businessType').value,
+                    address: document.getElementById('businessAddress').value,
+                    phone: document.getElementById('businessPhone').value,
+                    email: document.getElementById('businessEmail').value,
+                    website: document.getElementById('businessWebsite').value,
+                    primaryColor: document.getElementById('primaryColor').value,
+                    secondaryColor: document.getElementById('secondaryColor').value,
+                    logoText: document.getElementById('logoText').value,
+                    autoPrintReceipts: document.getElementById('autoPrintReceipts').checked,
+                    showTableNumbers: document.getElementById('showTableNumbers').checked,
+                    enableTips: document.getElementById('enableTips').checked,
+                    taxRate: parseFloat(document.getElementById('taxRate').value) || 0,
+                    currency: document.getElementById('currency').value,
+                    orderNotifications: document.getElementById('orderNotifications').checked,
+                    staffAlerts: document.getElementById('staffAlerts').checked,
+                    systemUpdates: document.getElementById('systemUpdates').checked,
+                    dailyReports: document.getElementById('dailyReports').checked,
+                    weeklySummaries: document.getElementById('weeklySummaries').checked,
+                    // Hotel settings
+                    hotelBrand: document.getElementById('hotelBrand').value,
+                    serviceCharge: parseFloat(document.getElementById('serviceCharge').value) || 18,
+                    deliveryTime: parseInt(document.getElementById('deliveryTime').value) || 30,
+                    hotelMode: document.getElementById('enableHotelMode').checked,
+                    updatedAt: new Date().toISOString()
+                };
+                
+                // Save to localStorage for backward compatibility
+                localStorage.setItem('businessSettings', JSON.stringify(settings));
+                
+                // Save to Firebase if available and user is authenticated
+                if (window.firebaseServices && window.umbrellaManager && window.umbrellaManager.currentBusiness) {
+                    try {
+                        const db = window.firebaseServices.getDb();
+                        const businessId = window.umbrellaManager.currentBusiness.id;
+                        
+                        console.log('Saving business settings to Firebase for business:', businessId);
+                        
+                        // Update business document with settings
+                        await db.collection('businesses').doc(businessId).update({
+                            companyName: settings.name,
+                            businessType: settings.type,
+                            companyEmail: settings.email,
+                            companyPhone: settings.phone,
+                            address: {
+                                full: settings.address,
+                                website: settings.website
+                            },
+                            settings: {
+                                primaryColor: settings.primaryColor,
+                                secondaryColor: settings.secondaryColor,
+                                logoText: settings.logoText,
+                                autoPrintReceipts: settings.autoPrintReceipts,
+                                showTableNumbers: settings.showTableNumbers,
+                                enableTips: settings.enableTips,
+                                taxRate: settings.taxRate,
+                                currency: settings.currency,
+                                orderNotifications: settings.orderNotifications,
+                                staffAlerts: settings.staffAlerts,
+                                systemUpdates: settings.systemUpdates,
+                                dailyReports: settings.dailyReports,
+                                weeklySummaries: settings.weeklySummaries,
+                                hotelBrand: settings.hotelBrand,
+                                serviceCharge: settings.serviceCharge,
+                                deliveryTime: settings.deliveryTime,
+                                hotelMode: settings.hotelMode
+                            },
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        
+                        console.log('Business settings saved to Firebase successfully');
+                        
+                        // Update the current business context
+                        const updatedBusiness = { ...window.umbrellaManager.currentBusiness, ...settings };
+                        window.umbrellaManager.setCurrentBusiness(businessId, updatedBusiness);
+                        
+                        alert('Settings saved successfully to cloud database!');
+                    } catch (firebaseError) {
+                        console.error('Error saving to Firebase:', firebaseError);
+                        
+                        // Still update localStorage for offline functionality
+                        const currentBusiness = JSON.parse(localStorage.getItem('currentBusiness') || '{}');
+                        if (currentBusiness && currentBusiness.id) {
+                            const updatedBusiness = { ...currentBusiness, ...settings };
+                            localStorage.setItem('currentBusiness', JSON.stringify(updatedBusiness));
+                        }
+                        
+                        alert('Settings saved locally, but failed to sync to cloud. Please check your internet connection.');
+                    }
+                } else {
+                    console.warn('Firebase not available or no current business, saving to localStorage only');
+                    
+                    // Fallback to localStorage only
+                    const currentBusiness = JSON.parse(localStorage.getItem('currentBusiness') || '{}');
+                    if (currentBusiness && currentBusiness.id) {
+                        const updatedBusiness = { ...currentBusiness, ...settings };
+                        localStorage.setItem('currentBusiness', JSON.stringify(updatedBusiness));
+                    }
+                    
+                    alert('Settings saved locally!');
+                }
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                alert('Error saving settings: ' + error.message);
             }
-            // Show success message
-            alert('Settings saved successfully!');
         }
 
         // Cancel changes
@@ -863,7 +1007,25 @@
         }
 
         // Event listeners
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Initialize Firebase services and Umbrella Manager
+            try {
+                if (window.firebaseServices) {
+                    await window.firebaseServices.initialize();
+                    if (window.FirebaseManager) {
+                        window.firebaseManager = new window.FirebaseManager();
+                        await window.firebaseManager.initialize();
+                        
+                        if (window.UmbrellaAccountManager) {
+                            window.umbrellaManager = new window.UmbrellaAccountManager(window.firebaseManager);
+                            await window.umbrellaManager.initialize();
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('Firebase initialization failed:', error);
+            }
+            
             loadSettings();
             
             // Update theme preview when colors change

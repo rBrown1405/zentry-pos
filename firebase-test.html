@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Business Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Firebase Business & Property Test</h1>
+        <p>This page tests the Firebase integration for business and property creation/retrieval.</p>
+
+        <div class="test-section">
+            <h3>1. Initialize Firebase Services</h3>
+            <button onclick="initializeFirebase()">Initialize Firebase</button>
+            <div id="firebaseResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Create Test Owner Account</h3>
+            <button onclick="createTestOwner()">Create Test Owner</button>
+            <div id="ownerResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Create Test Business</h3>
+            <button onclick="createTestBusiness()">Create Test Business</button>
+            <div id="businessResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. List All Businesses (Super Admin View)</h3>
+            <button onclick="listAllBusinesses()">List All Businesses</button>
+            <div id="listResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. Test Business Settings Save/Load</h3>
+            <button onclick="testBusinessSettings()">Test Settings</button>
+            <div id="settingsResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-services.js"></script>
+    <script src="js/firebase-manager.js"></script>
+    <script src="js/umbrella-account-manager.js"></script>
+
+    <script>
+        let firebaseManager;
+        let umbrellaManager;
+
+        function showResult(elementId, message, isError = false, isSuccess = false) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = 'result';
+            if (isError) element.className += ' error';
+            if (isSuccess) element.className += ' success';
+            element.innerHTML = `<pre>${message}</pre>`;
+        }
+
+        async function initializeFirebase() {
+            try {
+                showResult('firebaseResult', 'Initializing Firebase services...', false, false);
+                
+                if (window.firebaseServices) {
+                    await window.firebaseServices.initialize();
+                    firebaseManager = new window.FirebaseManager();
+                    await firebaseManager.initialize();
+                    
+                    umbrellaManager = new window.UmbrellaAccountManager(firebaseManager);
+                    await umbrellaManager.initialize();
+                    
+                    showResult('firebaseResult', 'Firebase services initialized successfully!\n✓ FirebaseManager ready\n✓ UmbrellaAccountManager ready', false, true);
+                } else {
+                    throw new Error('Firebase services not available');
+                }
+            } catch (error) {
+                showResult('firebaseResult', `Error initializing Firebase: ${error.message}`, true);
+            }
+        }
+
+        async function createTestOwner() {
+            try {
+                if (!firebaseManager) {
+                    throw new Error('Firebase not initialized. Please initialize first.');
+                }
+
+                showResult('ownerResult', 'Creating test owner account...', false, false);
+
+                const testEmail = `testowner${Date.now()}@example.com`;
+                const testPassword = 'TestPassword123!';
+                
+                // Create the owner user account
+                const userCredential = await firebaseManager.auth.createUserWithEmailAndPassword(
+                    testEmail, 
+                    testPassword
+                );
+                
+                // Update user profile
+                await userCredential.user.updateProfile({
+                    displayName: 'Test Owner'
+                });
+                
+                // Create user document in Firestore with owner role
+                await firebaseManager.db.collection('users').doc(userCredential.user.uid).set({
+                    username: testEmail.split('@')[0],
+                    email: testEmail,
+                    firstName: 'Test',
+                    lastName: 'Owner',
+                    role: 'owner',
+                    accessLevel: 'business',
+                    isActive: true,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                showResult('ownerResult', `Test owner created successfully!\nEmail: ${testEmail}\nPassword: ${testPassword}\nUID: ${userCredential.user.uid}`, false, true);
+                
+            } catch (error) {
+                showResult('ownerResult', `Error creating test owner: ${error.message}`, true);
+            }
+        }
+
+        async function createTestBusiness() {
+            try {
+                if (!umbrellaManager) {
+                    throw new Error('Umbrella Manager not initialized. Please initialize first.');
+                }
+
+                const currentUser = firebaseManager.getCurrentUser();
+                if (!currentUser) {
+                    throw new Error('No authenticated user. Please create and login as test owner first.');
+                }
+
+                showResult('businessResult', 'Creating test business...', false, false);
+
+                const businessData = {
+                    businessName: `Test Business ${Date.now()}`,
+                    ownerName: 'Test Owner',
+                    email: currentUser.email,
+                    phone: '(555) 123-4567',
+                    propertyName: 'Main Location',
+                    businessType: 'restaurant',
+                    address: '123 Test Street',
+                    country: 'united-states',
+                    state: 'california'
+                };
+
+                const result = await umbrellaManager.createBusinessAccount(businessData);
+                
+                if (result.success) {
+                    showResult('businessResult', `Business created successfully!\nBusiness ID: ${result.businessId}\nConnection Code: ${result.connectionCode}\nMessage: ${result.message}`, false, true);
+                } else {
+                    showResult('businessResult', `Failed to create business: ${result.message}`, true);
+                }
+                
+            } catch (error) {
+                showResult('businessResult', `Error creating test business: ${error.message}`, true);
+            }
+        }
+
+        async function listAllBusinesses() {
+            try {
+                if (!umbrellaManager) {
+                    throw new Error('Umbrella Manager not initialized. Please initialize first.');
+                }
+
+                showResult('listResult', 'Fetching all businesses...', false, false);
+
+                const businesses = await umbrellaManager.getAvailableBusinesses();
+                
+                if (businesses.length === 0) {
+                    showResult('listResult', 'No businesses found. Create a business first.', false, false);
+                } else {
+                    let output = `Found ${businesses.length} business(es):\n\n`;
+                    businesses.forEach((business, index) => {
+                        output += `${index + 1}. ${business.companyName || business.businessName}\n`;
+                        output += `   ID: ${business.id}\n`;
+                        output += `   Type: ${business.businessType}\n`;
+                        output += `   Email: ${business.companyEmail}\n`;
+                        output += `   Properties: ${(business.properties || []).length}\n\n`;
+                    });
+                    showResult('listResult', output, false, true);
+                }
+                
+            } catch (error) {
+                showResult('listResult', `Error listing businesses: ${error.message}`, true);
+            }
+        }
+
+        async function testBusinessSettings() {
+            try {
+                if (!umbrellaManager || !firebaseManager) {
+                    throw new Error('Services not initialized. Please initialize first.');
+                }
+
+                showResult('settingsResult', 'Testing business settings save/load...', false, false);
+
+                const currentUser = firebaseManager.getCurrentUser();
+                if (!currentUser || !umbrellaManager.currentBusiness) {
+                    throw new Error('No current business. Please create a business first.');
+                }
+
+                const businessId = umbrellaManager.currentBusiness.id;
+                const db = firebaseManager.db;
+
+                // Test settings
+                const testSettings = {
+                    businessName: 'Updated Test Business',
+                    businessType: 'cafe',
+                    primaryColor: '#ff6b6b',
+                    secondaryColor: '#4ecdc4',
+                    taxRate: 8.75,
+                    currency: 'USD',
+                    hotelMode: false,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                // Save settings to Firebase
+                await db.collection('businesses').doc(businessId).update(testSettings);
+                
+                // Load settings back
+                const businessDoc = await db.collection('businesses').doc(businessId).get();
+                
+                if (businessDoc.exists) {
+                    const loadedSettings = businessDoc.data();
+                    showResult('settingsResult', `Settings save/load test successful!\n\nSaved settings:\n${JSON.stringify(testSettings, null, 2)}\n\nLoaded settings:\n${JSON.stringify(loadedSettings, null, 2)}`, false, true);
+                } else {
+                    throw new Error('Business document not found after save');
+                }
+                
+            } catch (error) {
+                showResult('settingsResult', `Error testing settings: ${error.message}`, true);
+            }
+        }
+
+        // Auto-initialize Firebase on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeFirebase();
+        });
+    </script>
+</body>
+</html>
