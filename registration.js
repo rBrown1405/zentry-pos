@@ -1,22 +1,50 @@
 // Business Registration Handler - Updated for Firebase Integration
 document.addEventListener('DOMContentLoaded', async () => {
-    // Initialize Firebase services and Umbrella Manager
+    console.log('🔥 Business Registration page loading...');
+    
+    // Wait for Firebase services to be available
+    let firebaseReady = false;
+    let maxWaitTime = 10000; // 10 seconds
+    let checkInterval = 100; // Check every 100ms
+    let elapsed = 0;
+    
+    while (!firebaseReady && elapsed < maxWaitTime) {
+        if (window.firebaseServices && window.firebaseServices.isInitialized()) {
+            firebaseReady = true;
+            break;
+        }
+        await new Promise(resolve => setTimeout(resolve, checkInterval));
+        elapsed += checkInterval;
+    }
+    
+    if (!firebaseReady) {
+        console.error('❌ Firebase services failed to initialize within timeout');
+        showError('Firebase connection failed. Please check your internet connection and reload the page.');
+        return;
+    }
+    
+    // Initialize managers
     try {
-        if (window.firebaseServices) {
-            await window.firebaseServices.initialize();
-            if (window.FirebaseManager) {
-                window.firebaseManager = new window.FirebaseManager();
-                await window.firebaseManager.initialize();
-                
-                if (window.UmbrellaAccountManager) {
-                    window.umbrellaManager = new window.UmbrellaAccountManager(window.firebaseManager);
-                    await window.umbrellaManager.initialize();
-                }
+        console.log('🔥 Initializing Firebase Manager...');
+        if (window.FirebaseManager) {
+            window.firebaseManager = new window.FirebaseManager();
+            await window.firebaseManager.initialize();
+            console.log('✅ Firebase Manager initialized');
+            
+            if (window.UmbrellaAccountManager) {
+                console.log('🔥 Initializing Umbrella Account Manager...');
+                window.umbrellaManager = new window.UmbrellaAccountManager(window.firebaseManager);
+                await window.umbrellaManager.initialize();
+                console.log('✅ Umbrella Account Manager initialized');
             }
         }
     } catch (error) {
-        console.warn('Firebase initialization failed, will use localStorage fallback:', error);
+        console.error('❌ Manager initialization failed:', error);
+        showError('Failed to initialize account management system. Please reload the page and try again.');
+        return;
     }
+    
+    console.log('✅ Business Registration page ready');
     
     // Populate country dropdown
     populateCountries();
@@ -27,6 +55,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         form.addEventListener('submit', handleRegistration);
     }
 });
+
+function showError(message) {
+    // Create or update error display
+    let errorDiv = document.getElementById('firebase-error');
+    if (!errorDiv) {
+        errorDiv = document.createElement('div');
+        errorDiv.id = 'firebase-error';
+        errorDiv.style.cssText = `
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px;
+            font-weight: 500;
+            text-align: center;
+        `;
+        
+        const container = document.querySelector('.registration-container');
+        if (container) {
+            container.insertBefore(errorDiv, container.firstChild);
+        }
+    }
+    errorDiv.textContent = message;
+}
 
 function populateCountries() {
     const countrySelect = document.getElementById('country');
@@ -117,11 +170,19 @@ function updateRewardsProgram() {
 async function handleRegistration(event) {
     event.preventDefault();
 
+    // Clear any previous errors
+    const errorDiv = document.getElementById('firebase-error');
+    if (errorDiv) {
+        errorDiv.remove();
+    }
+
     // Get company information
     const companyName = document.getElementById('companyName').value;
     const ownerName = document.getElementById('ownerName').value;
     const companyEmail = document.getElementById('companyEmail').value;
-    const companyPhone = document.getElementById('companyPhone').value;    // Get property information
+    const companyPhone = document.getElementById('companyPhone').value;
+
+    // Get property information
     const propertyName = document.getElementById('propertyName').value;
     const businessType = document.getElementById('businessType').value;
     const address = document.getElementById('address').value;
@@ -134,12 +195,29 @@ async function handleRegistration(event) {
     if (businessType === 'hotel') {
         hotelBrand = document.getElementById('hotelBrand').value;
         rewardsProgram = document.getElementById('rewardsProgram').value;
-    }    try {
+    }
+
+    try {
         // Show loading state
         const submitButton = event.target.querySelector('.submit-button');
         const originalContent = submitButton.innerHTML;
         submitButton.innerHTML = '<span class="button-text">Creating Account...</span><span class="button-icon">⏳</span>';
         submitButton.disabled = true;
+
+        // Verify Firebase services are ready
+        if (!window.firebaseServices || !window.firebaseServices.isInitialized()) {
+            throw new Error('Firebase services are not ready. Please reload the page and try again.');
+        }
+
+        if (!window.firebaseManager) {
+            throw new Error('Firebase manager is not initialized. Please reload the page and try again.');
+        }
+
+        if (!window.umbrellaManager) {
+            throw new Error('Account manager is not initialized. Please reload the page and try again.');
+        }
+
+        console.log('🔥 Starting business registration...');
 
         // Prepare business data
         const businessData = {
@@ -156,48 +234,46 @@ async function handleRegistration(event) {
             rewardsProgram
         };
 
-        // Create umbrella business account using Firebase-backed system only
+        // Create umbrella business account using Firebase-backed system
         let result;
         
-        if (window.umbrellaManager && window.firebaseManager) {
-            // Use Firebase-backed UmbrellaAccountManager
-            console.log('Creating business with Firebase-backed UmbrellaAccountManager');
+        console.log('Creating business with Firebase-backed UmbrellaAccountManager');
+        
+        try {
+            // First, check if we need to create an owner account
+            let ownerUser = window.firebaseManager.getCurrentUser();
             
-            try {
-                // First, check if we need to create an owner account
-                let ownerUser = window.firebaseManager.getCurrentUser();
+            if (!ownerUser) {
+                // Create owner account first
+                console.log('No authenticated user found, creating owner account');
                 
-                if (!ownerUser) {
-                    // Create owner account first
-                    console.log('No authenticated user found, creating owner account');
-                    
-                    // Generate a temporary password for the owner (they can change it later)
-                    const tempPassword = 'temp' + Math.random().toString(36).substr(2, 9);
-                    
-                    // Create the owner user account
-                    const userCredential = await window.firebaseManager.auth.createUserWithEmailAndPassword(
-                        businessData.email, 
-                        tempPassword
-                    );
-                    
-                    // Update user profile
-                    await userCredential.user.updateProfile({
-                        displayName: businessData.ownerName
-                    });
-                    
-                    // Create user document in Firestore with owner role
-                    await window.firebaseManager.db.collection('users').doc(userCredential.user.uid).set({
-                        username: businessData.email.split('@')[0],
-                        email: businessData.email,
-                        firstName: businessData.ownerName.split(' ')[0] || '',
-                        lastName: businessData.ownerName.split(' ').slice(1).join(' ') || '',
-                        role: 'owner',
-                        accessLevel: 'business',
-                        isActive: true,
-                        tempPassword: tempPassword, // Store temp password so user can see it
-                        mustChangePassword: true,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                // Generate a temporary password for the owner (they can change it later)
+                const tempPassword = 'temp' + Math.random().toString(36).substr(2, 9);
+                
+                // Create the owner user account
+                const userCredential = await window.firebaseManager.auth.createUserWithEmailAndPassword(
+                    businessData.email, 
+                    tempPassword
+                );
+                
+                // Update user profile
+                await userCredential.user.updateProfile({
+                    displayName: businessData.ownerName
+                });
+                
+                // Create user document in Firestore with owner role
+                await window.firebaseManager.db.collection('users').doc(userCredential.user.uid).set({
+                    username: businessData.email.split('@')[0],
+                    email: businessData.email,
+                    firstName: businessData.ownerName.split(' ')[0] || '',
+                    lastName: businessData.ownerName.split(' ').slice(1).join(' ') || '',
+                    role: 'owner',
+                    accessLevel: 'business',
+                    isActive: true,
+                    tempPassword: tempPassword, // Store temp password so user can see it
+                    mustChangePassword: true,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
                     
                     console.log('Owner account created successfully');
                     
@@ -220,17 +296,20 @@ async function handleRegistration(event) {
                     }
                 }
                 
-            } catch (firebaseError) {
-                console.error('Firebase business creation failed:', firebaseError);
-                alert('Failed to create business account: ' + firebaseError.message + '. Firebase is required for business registration.');
-                throw firebaseError;
+        } catch (firebaseError) {
+            console.error('Firebase business creation failed:', firebaseError);
+            alert('Failed to create business account: ' + firebaseError.message);
+            
+            // Reset button state
+            const submitButton = document.querySelector('.submit-button');
+            if (submitButton) {
+                submitButton.innerHTML = originalContent;
+                submitButton.disabled = false;
             }
-        } else {
-            // Firebase is required - no localStorage fallback
-            console.error('Firebase services not available');
-            alert('Firebase services are required for business registration. Please ensure you have an internet connection and reload the page.');
-            throw new Error('Firebase services not available');
-        }        if (result.success) {
+            return;
+        }
+
+        if (result.success) {
             try {
                 // Hide the registration form
                 const registrationForm = document.querySelector('.registration-form');

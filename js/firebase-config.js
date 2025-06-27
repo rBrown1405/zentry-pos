@@ -1,8 +1,3 @@
-// Import the functions you need from the SDKs you need
-// import { initializeApp } from "firebase/app";
-// import { getAnalytics } from "firebase/analytics";
-// Note: Using compat mode for better compatibility with existing code
-
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
@@ -18,8 +13,21 @@ const firebaseConfig = {
 // Initialize Firebase using compat mode
 console.log('🔥 Firebase config script loading...');
 
-const app = firebase.initializeApp(firebaseConfig);
-console.log('✅ Firebase app initialized');
+// Check if Firebase is available
+if (typeof firebase === 'undefined') {
+  console.error('❌ Firebase SDK not loaded! Make sure Firebase scripts are included before firebase-config.js');
+} else {
+  try {
+    const app = firebase.initializeApp(firebaseConfig);
+    console.log('✅ Firebase app initialized successfully');
+    
+    // Make app available globally
+    window.firebaseApp = app;
+    
+  } catch (error) {
+    console.error('❌ Failed to initialize Firebase app:', error);
+  }
+}
 
 // Initialize Firebase services
 let auth, db, storage;

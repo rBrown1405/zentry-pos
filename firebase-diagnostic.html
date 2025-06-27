@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Connection Diagnostic</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .test-item {
+            margin: 15px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .success { background: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .warning { background: #fff3cd; border-color: #ffeaa7; color: #856404; }
+        .info { background: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Firebase Connection Diagnostic</h1>
+        <p>This tool will help diagnose Firebase connectivity issues.</p>
+
+        <div class="test-item" id="firebaseSDKTest">
+            <h3>1. Firebase SDK Loading</h3>
+            <div id="sdkResult">Checking...</div>
+        </div>
+
+        <div class="test-item" id="firebaseConfigTest">
+            <h3>2. Firebase Configuration</h3>
+            <div id="configResult">Checking...</div>
+        </div>
+
+        <div class="test-item" id="firebaseServicesTest">
+            <h3>3. Firebase Services</h3>
+            <div id="servicesResult">Checking...</div>
+        </div>
+
+        <div class="test-item" id="firestoreTest">
+            <h3>4. Firestore Connection</h3>
+            <div id="firestoreResult">Waiting for previous tests...</div>
+            <button onclick="testFirestore()" id="testFirestoreBtn" disabled>Test Firestore</button>
+        </div>
+
+        <div class="test-item" id="authTest">
+            <h3>5. Firebase Auth</h3>
+            <div id="authResult">Waiting for previous tests...</div>
+            <button onclick="testAuth()" id="testAuthBtn" disabled>Test Auth</button>
+        </div>
+
+        <div class="test-item">
+            <h3>6. Console Log</h3>
+            <button onclick="exportLogs()">Export Console Logs</button>
+            <pre id="consoleLog"></pre>
+        </div>
+
+        <button onclick="runAllTests()">🔄 Run All Tests</button>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-services.js"></script>
+
+    <script>
+        const logs = [];
+        
+        // Capture console logs
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+        
+        console.log = function(...args) {
+            logs.push({type: 'log', message: args.join(' '), timestamp: new Date().toISOString()});
+            originalConsoleLog.apply(console, args);
+            updateConsoleDisplay();
+        };
+        
+        console.error = function(...args) {
+            logs.push({type: 'error', message: args.join(' '), timestamp: new Date().toISOString()});
+            originalConsoleError.apply(console, args);
+            updateConsoleDisplay();
+        };
+        
+        console.warn = function(...args) {
+            logs.push({type: 'warn', message: args.join(' '), timestamp: new Date().toISOString()});
+            originalConsoleWarn.apply(console, args);
+            updateConsoleDisplay();
+        };
+
+        function updateConsoleDisplay() {
+            const consoleLog = document.getElementById('consoleLog');
+            consoleLog.textContent = logs.slice(-10).map(log => 
+                `[${log.timestamp}] ${log.type.toUpperCase()}: ${log.message}`
+            ).join('\n');
+        }
+
+        function setTestResult(elementId, success, message) {
+            const element = document.getElementById(elementId);
+            element.className = `test-item ${success ? 'success' : 'error'}`;
+            element.querySelector('div').innerHTML = success ? 
+                `✅ ${message}` : `❌ ${message}`;
+        }
+
+        function setTestWarning(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.className = 'test-item warning';
+            element.querySelector('div').innerHTML = `⚠️ ${message}`;
+        }
+
+        function setTestInfo(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.className = 'test-item info';
+            element.querySelector('div').innerHTML = `ℹ️ ${message}`;
+        }
+
+        function testFirebaseSDK() {
+            console.log('Testing Firebase SDK...');
+            if (typeof firebase !== 'undefined') {
+                setTestResult('firebaseSDKTest', true, 'Firebase SDK loaded successfully');
+                return true;
+            } else {
+                setTestResult('firebaseSDKTest', false, 'Firebase SDK not loaded');
+                return false;
+            }
+        }
+
+        function testFirebaseConfig() {
+            console.log('Testing Firebase configuration...');
+            if (window.firebaseApp) {
+                setTestResult('firebaseConfigTest', true, 'Firebase app initialized');
+                return true;
+            } else {
+                setTestResult('firebaseConfigTest', false, 'Firebase app not initialized');
+                return false;
+            }
+        }
+
+        function testFirebaseServices() {
+            console.log('Testing Firebase services...');
+            if (window.firebaseServices) {
+                if (window.firebaseServices.isInitialized()) {
+                    setTestResult('firebaseServicesTest', true, 'Firebase services initialized');
+                    document.getElementById('testFirestoreBtn').disabled = false;
+                    document.getElementById('testAuthBtn').disabled = false;
+                    return true;
+                } else {
+                    setTestWarning('firebaseServicesTest', 'Firebase services found but not initialized');
+                    return false;
+                }
+            } else {
+                setTestResult('firebaseServicesTest', false, 'Firebase services not found');
+                return false;
+            }
+        }
+
+        async function testFirestore() {
+            console.log('Testing Firestore connection...');
+            try {
+                if (!window.firebaseServices) {
+                    throw new Error('Firebase services not available');
+                }
+                
+                const db = window.firebaseServices.getDb();
+                if (!db) {
+                    throw new Error('Firestore not initialized');
+                }
+                
+                // Try a simple query
+                await db.collection('test').limit(1).get();
+                setTestResult('firestoreTest', true, 'Firestore connection successful');
+            } catch (error) {
+                setTestResult('firestoreTest', false, `Firestore connection failed: ${error.message}`);
+            }
+        }
+
+        async function testAuth() {
+            console.log('Testing Firebase Auth...');
+            try {
+                if (!window.firebaseServices) {
+                    throw new Error('Firebase services not available');
+                }
+                
+                const auth = window.firebaseServices.getAuth();
+                if (!auth) {
+                    throw new Error('Firebase Auth not initialized');
+                }
+                
+                // Check current auth state
+                const user = auth.currentUser;
+                setTestResult('authTest', true, `Firebase Auth working. Current user: ${user ? user.email : 'Not signed in'}`);
+            } catch (error) {
+                setTestResult('authTest', false, `Firebase Auth failed: ${error.message}`);
+            }
+        }
+
+        async function runAllTests() {
+            console.log('Running all diagnostic tests...');
+            
+            // Test 1: Firebase SDK
+            const sdkOK = testFirebaseSDK();
+            
+            // Test 2: Firebase Config
+            const configOK = testFirebaseConfig();
+            
+            // Test 3: Firebase Services
+            let servicesOK = false;
+            if (sdkOK && configOK) {
+                // Wait a moment for services to initialize
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                servicesOK = testFirebaseServices();
+            }
+            
+            // Test 4 & 5: Firestore and Auth (if services are OK)
+            if (servicesOK) {
+                await testFirestore();
+                await testAuth();
+            } else {
+                setTestInfo('firestoreTest', 'Skipped - Firebase services not ready');
+                setTestInfo('authTest', 'Skipped - Firebase services not ready');
+            }
+            
+            console.log('All diagnostic tests completed');
+        }
+
+        function exportLogs() {
+            const logData = logs.map(log => 
+                `[${log.timestamp}] ${log.type.toUpperCase()}: ${log.message}`
+            ).join('\n');
+            
+            const blob = new Blob([logData], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'firebase-diagnostic-logs.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Auto-run tests when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Firebase diagnostic tool loaded');
+            setTimeout(runAllTests, 500); // Give scripts time to load
+        });
+    </script>
+</body>
+</html>
