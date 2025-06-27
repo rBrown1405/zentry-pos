@@ -325,22 +325,18 @@ async function handleCompanyLogin(event) {
 
 // Handle super admin login
 async function handleSuperAdminLogin() {
-    const username = document.getElementById('adminUsername').value;
+    const email = document.getElementById('adminUsername').value;
     const password = document.getElementById('adminPassword').value;
     
-    if (!username || !password) {
-        alert('Please enter both username and password.');
+    if (!email || !password) {
+        alert('Please enter both email and password.');
         return;
     }
     
     try {
-        if (SuperAdminManager.loginSuperAdmin(username, password)) {
-            // Store property information as global
-            localStorage.setItem('propertyType', 'global');
-            localStorage.setItem('propertyName', 'Super Admin Dashboard');
-            localStorage.setItem('firstLogin', 'true');
-
-            // Navigate to super admin dashboard
+        const loginSuccess = await SuperAdminManager.loginSuperAdmin(email, password);
+        if (loginSuccess) {
+            // Navigate to super admin dashboard - no localStorage used
             navigateWithTransition('super-admin-dashboard.html');
         } else {
             alert('Invalid super admin credentials. Please try again.');

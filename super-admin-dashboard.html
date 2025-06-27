@@ -932,26 +932,14 @@
         function selectBusinessForPOS(businessId) {
             closeBusinessModal();
             
-            if (businessId === 'global') {
-                // Global super admin access - maintain super admin context
-                localStorage.setItem('superAdminPOSAccess', 'true');
-                localStorage.setItem('currentBusinessContext', JSON.stringify({
-                    businessID: 'SUPER_ADMIN_GLOBAL',
-                    companyName: 'Super Admin Global Access',
-                    businessType: 'super_admin'
-                }));
+            // Use SuperAdminManager to switch business context (no localStorage)
+            if (SuperAdminManager.switchToBusiness(businessId)) {
+                // Navigate to POS interface
+                navigateWithTransition('pos-interface-fixed.html');
             } else {
-                // Switch to specific business context
-                if (SuperAdminManager.switchToBusiness(businessId)) {
-                    localStorage.setItem('superAdminPOSAccess', 'true');
-                } else {
-                    alert('Unable to access business. Business may not exist.');
-                    return;
-                }
+                alert('Unable to access business. Business may not exist.');
+                return;
             }
-            
-            // Navigate to POS interface
-            navigateWithTransition('pos-interface-fixed.html');
         }
         
         function viewAllBusinesses() {

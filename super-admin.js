@@ -1,114 +1,166 @@
 // Super Admin System for POS
-// This creates and manages super admin accounts with global access
+// This creates and manages super admin accounts with global access using Firebase
 
 class SuperAdminManager {
-    static SUPER_ADMIN_KEY = 'MACROS_SUPER_ADMIN_2025';
+    static SUPER_ADMIN_EMAIL = 'admin@macrospos.com';
+    static SUPER_ADMIN_PASSWORD = 'Armoured@2025!';
     
-    static createSuperAdmin() {
-        const superAdmin = {
-            id: 'SUPER_ADMIN_001',
-            username: 'rbrown14',
-            password: 'Armoured@',
-            email: 'admin@macrospos.com',
-            firstName: 'Super',
-            lastName: 'Administrator',
-            role: 'super_admin',
-            createdAt: new Date().toISOString(),
-            lastLogin: null,
-            permissions: ['all'],
-            accessLevel: 'global'
-        };
-        
-        localStorage.setItem(this.SUPER_ADMIN_KEY, JSON.stringify(superAdmin));
-        return superAdmin;
-    }
+    // In-memory storage for super admin state (never stored in localStorage)
+    static currentSuperAdmin = null;
+    static superAdminPOSAccess = false;
+    static currentBusinessContext = null;
     
-    static getSuperAdmin() {
-        const data = localStorage.getItem(this.SUPER_ADMIN_KEY);
-        return data ? JSON.parse(data) : null;
-    }
-    
-    static validateSuperAdmin(username, password) {
-        const superAdmin = this.getSuperAdmin();
-        if (!superAdmin) {
-            // Create super admin if it doesn't exist
-            this.createSuperAdmin();
-            return this.validateSuperAdmin(username, password);
+    static async initializeFirebaseAuth() {
+        // Ensure we have Firebase services
+        if (!window.firebaseServices) {
+            throw new Error('Firebase services not available');
         }
         
-        return superAdmin.username === username && superAdmin.password === password;
+        const auth = window.firebaseServices.getAuth();
+        if (!auth) {
+            throw new Error('Firebase Auth not initialized');
+        }
+        
+        return auth;
     }
     
-    static loginSuperAdmin(username, password) {
-        if (this.validateSuperAdmin(username, password)) {
-            const superAdmin = this.getSuperAdmin();
-            superAdmin.lastLogin = new Date().toISOString();
-            localStorage.setItem(this.SUPER_ADMIN_KEY, JSON.stringify(superAdmin));
+    static async ensureSuperAdminExists() {
+        try {
+            const auth = await this.initializeFirebaseAuth();
+            const db = window.firebaseServices.getDb();
             
-            // Set current user as super admin
-            localStorage.setItem('currentUser', JSON.stringify({
-                type: 'super_admin',
-                id: superAdmin.id,
-                username: superAdmin.username,
-                firstName: superAdmin.firstName,
-                lastName: superAdmin.lastName,
-                email: superAdmin.email,
-                role: 'super_admin',
-                accessLevel: 'global',
-                permissions: ['all']
+            // Check if super admin user exists in Firestore
+            const superAdminQuery = await db.collection('users')
+                .where('email', '==', this.SUPER_ADMIN_EMAIL)
+                .where('role', '==', 'super_admin')
+                .get();
+            
+            if (superAdminQuery.empty) {
+                console.log('Creating super admin account...');
+                // Note: In production, super admin account should be created server-side
+                // This is for development/demo purposes only
+                await this.createSuperAdminAccount();
+            }
+        } catch (error) {
+            console.error('Error ensuring super admin exists:', error);
+        }
+    }
+    
+    static async createSuperAdminAccount() {
+        // This should be done server-side in production
+        console.warn('Super admin account creation should be handled server-side in production');
+        return null;
+    }
+    
+    static async validateSuperAdmin(email, password) {
+        try {
+            const auth = await this.initializeFirebaseAuth();
+            
+            // Attempt to sign in with Firebase Auth
+            const userCredential = await auth.signInWithEmailAndPassword(email, password);
+            const user = userCredential.user;
+            
+            // Get user custom claims to check role
+            const idTokenResult = await user.getIdTokenResult();
+            
+            if (idTokenResult.claims.role === 'super_admin') {
+                return true;
+            } else {
+                // Sign out if not super admin
+                await auth.signOut();
+                return false;
+            }
+        } catch (error) {
+            console.error('Super admin validation failed:', error);
+            return false;
+        }
+    }
+    
+    static async loginSuperAdmin(email, password) {
+        try {
+            if (await this.validateSuperAdmin(email, password)) {
+                const auth = await this.initializeFirebaseAuth();
+                const user = auth.currentUser;
+                const idTokenResult = await user.getIdTokenResult();
+                
+                // Store super admin state in memory only
+                this.currentSuperAdmin = {
+                    uid: user.uid,
+                    email: user.email,
+                    displayName: user.displayName || 'Super Administrator',
+                    role: 'super_admin',
+                    accessLevel: 'global',
+                    permissions: ['all'],
+                    lastLogin: new Date().toISOString()
+                };
+                
+                console.log('Super admin logged in successfully');
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Super admin login failed:', error);
+            return false;
+        }
+    }
+    
+    
+    static async getAllBusinesses() {
+        try {
+            const db = window.firebaseServices.getDb();
+            const businessesSnapshot = await db.collection('businesses').get();
+            
+            return businessesSnapshot.docs.map(doc => ({
+                ...doc.data(),
+                id: doc.id
             }));
+        } catch (error) {
+            console.error('Error fetching businesses:', error);
+            return [];
+        }
+    }
+    
+    static async getAllStaff() {
+        try {
+            const db = window.firebaseServices.getDb();
+            const usersSnapshot = await db.collection('users')
+                .where('role', 'in', ['employee', 'manager', 'admin', 'owner'])
+                .get();
             
-            // Set login flag for authentication
-            localStorage.setItem('isLoggedIn', 'true');
+            return usersSnapshot.docs.map(doc => ({
+                ...doc.data(),
+                uid: doc.id
+            }));
+        } catch (error) {
+            console.error('Error fetching staff:', error);
+            return [];
+        }
+    }
+    
+    static async getSystemStats() {
+        try {
+            const businesses = await this.getAllBusinesses();
+            const staff = await this.getAllStaff();
             
-            return true;
+            return {
+                totalBusinesses: businesses.length,
+                totalStaff: staff.length,
+                activeBusinesses: businesses.filter(b => b.status !== 'inactive').length,
+                activeStaff: staff.filter(s => s.status === 'active').length,
+                businessTypes: this.getBusinessTypeStats(businesses),
+                roleDistribution: this.getRoleDistribution(staff)
+            };
+        } catch (error) {
+            console.error('Error getting system stats:', error);
+            return {
+                totalBusinesses: 0,
+                totalStaff: 0,
+                activeBusinesses: 0,
+                activeStaff: 0,
+                businessTypes: {},
+                roleDistribution: {}
+            };
         }
-        return false;
-    }
-    
-    static getAllBusinesses() {
-        const businesses = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('business_id_')) {
-                const businessData = JSON.parse(localStorage.getItem(key));
-                businesses.push({
-                    ...businessData,
-                    storageKey: key
-                });
-            }
-        }
-        return businesses;
-    }
-    
-    static getAllStaff() {
-        const allStaff = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('staff_')) {
-                const staffData = JSON.parse(localStorage.getItem(key));
-                allStaff.push({
-                    ...staffData,
-                    staffId: key.replace('staff_', ''),
-                    storageKey: key
-                });
-            }
-        }
-        return allStaff;
-    }
-    
-    static getSystemStats() {
-        const businesses = this.getAllBusinesses();
-        const staff = this.getAllStaff();
-        
-        return {
-            totalBusinesses: businesses.length,
-            totalStaff: staff.length,
-            activeBusinesses: businesses.filter(b => b.status !== 'inactive').length,
-            activeStaff: staff.filter(s => s.status === 'active').length,
-            businessTypes: this.getBusinessTypeStats(businesses),
-            roleDistribution: this.getRoleDistribution(staff)
-        };
     }
     
     static getBusinessTypeStats(businesses) {
@@ -130,37 +182,73 @@ class SuperAdminManager {
     }
     
     static switchToBusiness(businessId) {
-        const business = this.getAllBusinesses().find(b => b.businessID === businessId);
-        if (business) {
-            // Set temporary business context while maintaining super admin status
-            localStorage.setItem('currentBusinessContext', JSON.stringify(business));
-            localStorage.setItem('propertyType', business.businessType || 'restaurant');
-            localStorage.setItem('propertyName', business.companyName || 'Business');
+        // Store business context in memory only (never localStorage)
+        if (businessId === 'global') {
+            this.currentBusinessContext = {
+                businessID: 'SUPER_ADMIN_GLOBAL',
+                companyName: 'Super Admin Global Access',
+                businessType: 'super_admin'
+            };
+            this.superAdminPOSAccess = true;
+            return true;
+        } else {
+            // In a real implementation, validate businessId against Firebase
+            this.currentBusinessContext = {
+                businessID: businessId,
+                // Additional business data would be fetched from Firebase
+            };
+            this.superAdminPOSAccess = true;
             return true;
         }
-        return false;
     }
     
     static clearBusinessContext() {
-        localStorage.removeItem('currentBusinessContext');
+        this.currentBusinessContext = null;
+        this.superAdminPOSAccess = false;
     }
     
     static isSuperAdmin() {
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        return currentUser.role === 'super_admin' && currentUser.accessLevel === 'global';
+        return this.currentSuperAdmin && this.currentSuperAdmin.role === 'super_admin';
+    }
+    
+    static getCurrentSuperAdmin() {
+        return this.currentSuperAdmin;
+    }
+    
+    static hasPOSAccess() {
+        return this.superAdminPOSAccess;
+    }
+    
+    static getCurrentBusinessContext() {
+        return this.currentBusinessContext;
+    }
+    
+    static async logout() {
+        try {
+            const auth = await this.initializeFirebaseAuth();
+            await auth.signOut();
+            
+            // Clear in-memory state
+            this.currentSuperAdmin = null;
+            this.superAdminPOSAccess = false;
+            this.currentBusinessContext = null;
+            
+            console.log('Super admin logged out successfully');
+        } catch (error) {
+            console.error('Super admin logout failed:', error);
+        }
     }
 }
-
-// Auto-create super admin on first load
+// Auto-initialize when module loads
 if (typeof window !== 'undefined') {
-    // Ensure super admin exists
-    if (!SuperAdminManager.getSuperAdmin()) {
-        SuperAdminManager.createSuperAdmin();
-        console.log('🔑 Super Admin Created!');
-        console.log('Username: superadmin');
-        console.log('Password: MacrosPOS2025!');
-        console.log('⚠️ Please change the password in production!');
-    }
+    // Ensure super admin account exists when the module loads
+    SuperAdminManager.ensureSuperAdminExists().then(() => {
+        console.log('🔑 Super Admin system initialized with Firebase!');
+        console.log('Email: admin@macrospos.com');
+        console.log('⚠️ Super admin credentials should be configured server-side in production!');
+    }).catch(error => {
+        console.error('Failed to initialize super admin system:', error);
+    });
 }
 
 // Make available globally

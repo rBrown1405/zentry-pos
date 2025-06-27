@@ -3116,7 +3116,7 @@
             }
             
             // Check for super admin access and show notification
-            const superAdminAccess = localStorage.getItem('superAdminPOSAccess');            if (superAdminAccess === 'true') {
+            if (SuperAdminManager && SuperAdminManager.hasPOSAccess()) {
                 setTimeout(() => {
                     showSuperAdminWelcomeNotification();
                 }, 1000);
@@ -3941,9 +3941,8 @@
             updateCartDisplay();
         }        function logout() {
             const currentUser = getUserInfo();
-            const superAdminAccess = localStorage.getItem('superAdminPOSAccess');
             
-            if (currentUser && currentUser.role === 'super_admin' && superAdminAccess === 'true') {
+            if (SuperAdminManager && SuperAdminManager.isSuperAdmin() && SuperAdminManager.hasPOSAccess()) {
                 // Super admin logout - give option to return to dashboard or fully logout
                 const choice = confirm('Super Admin Logout Options:\n\n' +
                     'OK = Return to Super Admin Dashboard\n' +
@@ -3951,24 +3950,17 @@
                 
                 if (choice) {
                     // Return to super admin dashboard
-                    localStorage.removeItem('superAdminPOSAccess');
+                    SuperAdminManager.clearBusinessContext();
                     window.location.href = 'super-admin-dashboard.html';
                 } else {
                     // Full logout
-                    localStorage.removeItem('currentUser');
-                    localStorage.removeItem('currentBusinessContext');
-                    localStorage.removeItem('propertyType');
-                    localStorage.removeItem('propertyName');
-                    localStorage.removeItem('firstLogin');
-                    localStorage.removeItem('superAdminPOSAccess');
-                    
+                    SuperAdminManager.logout();
                     window.location.href = 'login.html';
                 }
             } else {
                 // Regular user logout
                 if (confirm('Are you sure you want to logout?')) {
-                    // Clear user session data
-                    localStorage.removeItem('currentUser');
+                    // Clear user session data - handled by firebase auth
                     localStorage.removeItem('userSession');
                     localStorage.removeItem('isLoggedIn');
                     localStorage.removeItem('superAdminPOSAccess');
@@ -4183,7 +4175,7 @@
         
         function navigateToSuperAdminDashboard() {
             // Clear POS access flag but maintain user session
-            localStorage.removeItem('superAdminPOSAccess');
+            SuperAdminManager.clearBusinessContext();
             window.location.href = 'super-admin-dashboard.html';
         }
           function navigateToBusinessSettings() {
@@ -4195,7 +4187,7 @@
         
         function returnToSuperAdminDashboard() {
             // Clear POS access flag but maintain user session
-            localStorage.removeItem('superAdminPOSAccess');
+            SuperAdminManager.clearBusinessContext();
             window.location.href = 'super-admin-dashboard.html';
         }
           function showSuperAdminDashboardButton() {
@@ -4327,10 +4319,9 @@
         function checkAuthentication() {
             const isLoggedIn = localStorage.getItem('isLoggedIn');
             const currentUser = localStorage.getItem('currentUser');
-            const superAdminAccess = localStorage.getItem('superAdminPOSAccess');
             
             // Allow super admin access even without regular login
-            if (superAdminAccess === 'true') {
+            if (SuperAdminManager && SuperAdminManager.hasPOSAccess()) {
                 console.log('🔑 Super Admin POS access detected');
                 return true;
             }
@@ -4368,13 +4359,12 @@
         }        function loadUserAccount() {
             try {
                 const currentUser = localStorage.getItem('currentUser');
-                const superAdminAccess = localStorage.getItem('superAdminPOSAccess');
                 
                 if (currentUser) {
                     const user = JSON.parse(currentUser);
                     
                     // If super admin is accessing POS, ensure we have the super admin flag
-                    if (superAdminAccess === 'true' && user.role === 'super_admin') {
+                    if (SuperAdminManager && SuperAdminManager.hasPOSAccess() && SuperAdminManager.isSuperAdmin()) {
                         console.log('🔑 Loading super admin POS access');
                         
                         // Check if there's a business context for the super admin

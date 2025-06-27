@@ -29,8 +29,8 @@ class FirebaseManager {
       storage: !!this.storage
     });
     
-    // User information
-    this.user = JSON.parse(localStorage.getItem('user') || 'null');
+    // User information - Firebase only, no localStorage
+    this.user = null;
     
     // Set up auth state change listener
     this.auth.onAuthStateChanged(user => {
@@ -45,11 +45,11 @@ class FirebaseManager {
           role: user.customClaims ? user.customClaims.role : 'employee' // Default role
         };
         
-        localStorage.setItem('user', JSON.stringify(this.user));
+        console.log('User signed in:', this.user.email);
       } else {
         // User is signed out
         this.user = null;
-        localStorage.removeItem('user');
+        console.log('User signed out');
       }
     });
   }
@@ -99,7 +99,7 @@ class FirebaseManager {
         role: idTokenResult.claims.role || 'employee'
       };
       
-      localStorage.setItem('user', JSON.stringify(this.user));
+      console.log('User logged in successfully:', this.user.email);
       return this.user;
     } catch (error) {
       console.error("Login failed:", error.message);
@@ -115,7 +115,7 @@ class FirebaseManager {
     try {
       await this.auth.signOut();
       this.user = null;
-      localStorage.removeItem('user');
+      console.log('User logged out successfully');
     } catch (error) {
       console.error("Logout failed:", error.message);
       throw error;
