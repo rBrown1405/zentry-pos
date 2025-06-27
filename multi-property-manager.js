@@ -30,7 +30,18 @@ class MultiPropertyManager {
     };
 
     /**
-     * Generate a unique ID for various entities
+     * Generate a simple, memorable business ID (consistent with umbrella account manager)
+     */
+    static generateSimpleBusinessId(businessName) {
+        // Create a simple 6-character ID: 3 letters from business name + 3 numbers
+        const cleanedName = (businessName || '').replace(/[^A-Z]/gi, '').toUpperCase();
+        const namePart = cleanedName.substring(0, 3).padEnd(3, 'X'); // Always 3 characters
+        const numberPart = Math.floor(100 + Math.random() * 900); // 100-999
+        return `${namePart}${numberPart}`; // e.g., ZEN123, MAC456, etc.
+    }
+
+    /**
+     * Generate a unique ID for various entities (legacy method)
      */
     static generateUniqueId(prefix = 'entity') {
         const timestamp = Date.now();
@@ -39,10 +50,10 @@ class MultiPropertyManager {
     }
 
     /**
-     * Generate a 6-digit connection code for staff registration
+     * Generate a simple 4-digit connection code
      */
     static generateConnectionCode() {
-        return Math.floor(100000 + Math.random() * 900000).toString();
+        return Math.floor(1000 + Math.random() * 9000).toString(); // 1000-9999
     }
 
     /**
@@ -58,8 +69,8 @@ class MultiPropertyManager {
                 };
             }
 
-            // Generate unique business identifiers
-            const businessId = this.generateUniqueId('business');
+            // Generate simple business identifiers
+            const businessId = this.generateSimpleBusinessId(businessData.businessName);
             const connectionCode = this.generateConnectionCode();
 
             const businessAccount = {

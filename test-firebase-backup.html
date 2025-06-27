@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Backup Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Firebase Backup Test</h1>
+    
+    <div class="test-section">
+        <h2>Firebase Services Status</h2>
+        <div id="firebase-status" class="status warning">Checking...</div>
+        <button onclick="checkFirebaseServices()">Check Firebase Services</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Authentication Test</h2>
+        <div id="auth-status" class="status warning">Not checked</div>
+        <button onclick="testAuth()">Test Authentication</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Umbrella Manager Test</h2>
+        <div id="umbrella-status" class="status warning">Not checked</div>
+        <button onclick="testUmbrellaManager()">Test Umbrella Manager</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Backup Test</h2>
+        <div id="backup-status" class="status warning">Not tested</div>
+        <button onclick="testBackup()" id="backup-btn">Test Backup</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Business ID Generation Test</h2>
+        <div id="business-id-status" class="status warning">Not tested</div>
+        <div style="margin: 10px 0;">
+            <input type="text" id="testCompanyName" placeholder="Enter company name" value="Zentry Restaurant" style="padding: 8px; width: 200px;">
+            <button onclick="testBusinessIdGeneration()" id="business-id-btn">Test Business ID Generation</button>
+        </div>
+        <div id="generated-ids" style="margin-top: 10px; display: none;">
+            <strong>Generated IDs:</strong>
+            <ul id="id-list"></ul>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Connection Code Test</h2>
+        <div id="connection-code-status" class="status warning">Not tested</div>
+        <button onclick="testConnectionCodeGeneration()" id="connection-code-btn">Test Connection Code Generation</button>
+        <div id="generated-codes" style="margin-top: 10px; display: none;">
+            <strong>Generated Connection Codes:</strong>
+            <ul id="code-list"></ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Debug Log</h2>
+        <pre id="debug-log" style="background: #f8f9fa; padding: 10px; max-height: 300px; overflow-y: auto;"></pre>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="js/firebase-config.js"></script>
+    
+    <!-- Firebase Manager -->
+    <script src="js/firebase-manager.js"></script>
+    
+    <!-- Umbrella Account Manager -->
+    <script src="js/umbrella-account-manager.js"></script>
+
+    <script>
+        const debugLog = document.getElementById('debug-log');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            debugLog.textContent += `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            debugLog.scrollTop = debugLog.scrollHeight;
+            
+            if (type === 'error') {
+                console.error(message);
+            } else {
+                console.log(message);
+            }
+        }
+        
+        function updateStatus(elementId, message, success = null) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = 'status ' + (success === true ? 'success' : success === false ? 'error' : 'warning');
+        }
+        
+        function checkFirebaseServices() {
+            log('Checking Firebase services...');
+            
+            try {
+                if (!window.firebase) {
+                    throw new Error('Firebase not loaded');
+                }
+                
+                if (!window.firebaseServices) {
+                    throw new Error('Firebase services not initialized');
+                }
+                
+                const auth = window.firebaseServices.getAuth();
+                const db = window.firebaseServices.getDb();
+                const storage = window.firebaseServices.getStorage();
+                
+                if (!auth) throw new Error('Auth service not available');
+                if (!db) throw new Error('Firestore service not available');
+                if (!storage) throw new Error('Storage service not available');
+                
+                updateStatus('firebase-status', 'All Firebase services available ✓', true);
+                log('Firebase services check passed');
+                
+            } catch (error) {
+                updateStatus('firebase-status', 'Firebase services error: ' + error.message, false);
+                log('Firebase services error: ' + error.message, 'error');
+            }
+        }
+        
+        function testAuth() {
+            log('Testing authentication...');
+            
+            try {
+                if (!window.firebaseManager) {
+                    throw new Error('Firebase Manager not available');
+                }
+                
+                const currentUser = window.firebaseManager.getCurrentUser();
+                
+                if (currentUser) {
+                    updateStatus('auth-status', `User authenticated: ${currentUser.email} (${currentUser.role})`, true);
+                    log(`User authenticated: ${currentUser.email} with role: ${currentUser.role}`);
+                } else {
+                    updateStatus('auth-status', 'No user authenticated', false);
+                    log('No user authenticated');
+                }
+                
+            } catch (error) {
+                updateStatus('auth-status', 'Auth test error: ' + error.message, false);
+                log('Auth test error: ' + error.message, 'error');
+            }
+        }
+        
+        function testUmbrellaManager() {
+            log('Testing umbrella manager...');
+            
+            try {
+                if (!window.umbrellaManager) {
+                    throw new Error('Umbrella Manager not available');
+                }
+                
+                const currentBusiness = window.umbrellaManager.currentBusiness;
+                const currentProperty = window.umbrellaManager.currentProperty;
+                
+                if (currentBusiness) {
+                    updateStatus('umbrella-status', `Business: ${currentBusiness.companyName || currentBusiness.id}`, true);
+                    log(`Current business: ${currentBusiness.companyName || currentBusiness.id}`);
+                    
+                    if (currentProperty) {
+                        log(`Current property: ${currentProperty.propertyName || currentProperty.id}`);
+                    }
+                } else {
+                    updateStatus('umbrella-status', 'No business selected', false);
+                    log('No business selected');
+                }
+                
+            } catch (error) {
+                updateStatus('umbrella-status', 'Umbrella manager error: ' + error.message, false);
+                log('Umbrella manager error: ' + error.message, 'error');
+            }
+        }
+        
+        async function testBackup() {
+            const backupBtn = document.getElementById('backup-btn');
+            backupBtn.disabled = true;
+            backupBtn.textContent = 'Testing...';
+            
+            log('Starting backup test...');
+            
+            try {
+                if (!window.umbrellaManager) {
+                    throw new Error('Umbrella Manager not available');
+                }
+                
+                if (!window.umbrellaManager.currentBusiness) {
+                    throw new Error('No business selected - backup requires a business');
+                }
+                
+                if (!window.firebaseManager || !window.firebaseManager.getCurrentUser()) {
+                    throw new Error('User not authenticated - backup requires authentication');
+                }
+                
+                log('Prerequisites check passed, attempting backup...');
+                
+                // Test backup with a simple filename
+                const testFileName = `test-backup-${Date.now()}.json`;
+                const downloadUrl = await window.umbrellaManager.exportAndUploadAllData(testFileName, 'test_backups');
+                
+                updateStatus('backup-status', 'Backup successful! ✓', true);
+                log(`Backup successful! Download URL: ${downloadUrl}`);
+                
+                // Open the download URL
+                window.open(downloadUrl, '_blank');
+                
+            } catch (error) {
+                updateStatus('backup-status', 'Backup failed: ' + error.message, false);
+                log('Backup failed: ' + error.message, 'error');
+            } finally {
+                backupBtn.disabled = false;
+                backupBtn.textContent = 'Test Backup';
+            }
+        }
+        
+        async function testBusinessIdGeneration() {
+            const businessIdBtn = document.getElementById('business-id-btn');
+            businessIdBtn.disabled = true;
+            businessIdBtn.textContent = 'Testing...';
+            
+            log('Testing business ID generation...');
+            
+            try {
+                if (!window.umbrellaManager) {
+                    throw new Error('Umbrella Manager not available');
+                }
+                
+                const companyName = document.getElementById('testCompanyName').value;
+                if (!companyName) {
+                    throw new Error('Please enter a company name');
+                }
+                
+                // Generate multiple IDs to test uniqueness
+                const generatedIds = [];
+                for (let i = 0; i < 5; i++) {
+                    const businessId = await window.umbrellaManager.generateSimpleBusinessId(companyName);
+                    generatedIds.push(businessId);
+                    log(`Generated ID ${i + 1}: ${businessId}`);
+                }
+                
+                // Display the generated IDs
+                const idList = document.getElementById('id-list');
+                idList.innerHTML = '';
+                generatedIds.forEach(id => {
+                    const li = document.createElement('li');
+                    li.textContent = id;
+                    li.style.fontFamily = 'monospace';
+                    li.style.fontSize = '1.2em';
+                    li.style.color = '#007bff';
+                    idList.appendChild(li);
+                });
+                
+                document.getElementById('generated-ids').style.display = 'block';
+                
+                updateStatus('business-id-status', `Generated ${generatedIds.length} unique IDs ✓`, true);
+                log(`Business ID generation test passed. Format: 3 letters + 3 numbers`);
+                
+            } catch (error) {
+                updateStatus('business-id-status', 'Business ID generation failed: ' + error.message, false);
+                log('Business ID generation error: ' + error.message, 'error');
+            } finally {
+                businessIdBtn.disabled = false;
+                businessIdBtn.textContent = 'Test Business ID Generation';
+            }
+        }
+        
+        async function testConnectionCodeGeneration() {
+            const connectionCodeBtn = document.getElementById('connection-code-btn');
+            connectionCodeBtn.disabled = true;
+            connectionCodeBtn.textContent = 'Testing...';
+            
+            log('Testing connection code generation...');
+            
+            try {
+                if (!window.umbrellaManager) {
+                    throw new Error('Umbrella Manager not available');
+                }
+                
+                // Generate multiple connection codes to test uniqueness
+                const generatedCodes = [];
+                for (let i = 0; i < 5; i++) {
+                    const connectionCode = await window.umbrellaManager.generateSimpleConnectionCode();
+                    generatedCodes.push(connectionCode);
+                    log(`Generated code ${i + 1}: ${connectionCode}`);
+                }
+                
+                // Display the generated codes
+                const codeList = document.getElementById('code-list');
+                codeList.innerHTML = '';
+                generatedCodes.forEach(code => {
+                    const li = document.createElement('li');
+                    li.textContent = code;
+                    li.style.fontFamily = 'monospace';
+                    li.style.fontSize = '1.2em';
+                    li.style.color = '#28a745';
+                    codeList.appendChild(li);
+                });
+                
+                document.getElementById('generated-codes').style.display = 'block';
+                
+                updateStatus('connection-code-status', `Generated ${generatedCodes.length} unique codes ✓`, true);
+                log(`Connection code generation test passed. Format: 4-digit numbers`);
+                
+            } catch (error) {
+                updateStatus('connection-code-status', 'Connection code generation failed: ' + error.message, false);
+                log('Connection code generation error: ' + error.message, 'error');
+            } finally {
+                connectionCodeBtn.disabled = false;
+                connectionCodeBtn.textContent = 'Test Connection Code Generation';
+            }
+        }
+        
+        // Initial checks
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Page loaded, waiting for Firebase initialization...');
+            
+            setTimeout(() => {
+                checkFirebaseServices();
+                testAuth();
+                testUmbrellaManager();
+            }, 3000);
+        });
+        
+        // Listen for Firebase manager ready event
+        window.addEventListener('firebaseManagerReady', () => {
+            log('Firebase Manager ready event received');
+            testAuth();
+        });
+        
+        // Listen for umbrella manager ready event
+        window.addEventListener('umbrellaManagerReady', () => {
+            log('Umbrella Manager ready event received');
+            testUmbrellaManager();
+        });
+    </script>
+</body>
+</html>

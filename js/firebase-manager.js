@@ -463,5 +463,31 @@ class FirebaseManager {
   }
 }
 
-// Create global instance
-window.firebaseManager = new FirebaseManager();
+// Create global instance after Firebase services are available
+document.addEventListener('DOMContentLoaded', () => {
+  // Wait for Firebase services to be available
+  function waitForFirebaseServices(callback, attempts = 0) {
+    if (window.firebaseServices && 
+        window.firebaseServices.getAuth && 
+        window.firebaseServices.getDb && 
+        window.firebaseServices.getStorage) {
+      try {
+        console.log('Firebase services available, creating Firebase Manager...');
+        window.firebaseManager = new FirebaseManager();
+        console.log('Firebase Manager created successfully');
+        callback();
+      } catch (error) {
+        console.error('Error creating Firebase Manager:', error);
+      }
+    } else if (attempts < 50) { // Wait up to 5 seconds
+      setTimeout(() => waitForFirebaseServices(callback, attempts + 1), 100);
+    } else {
+      console.error('Firebase services not available after 5 seconds');
+    }
+  }
+  
+  waitForFirebaseServices(() => {
+    // Dispatch event to notify other scripts
+    window.dispatchEvent(new CustomEvent('firebaseManagerReady'));
+  });
+});

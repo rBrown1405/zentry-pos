@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business ID Generation Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: #f8f9fa;
+        }
+        .business-id {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .connection-code {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #28a745;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <h1>New Business ID Generation Test</h1>
+    
+    <div class="test-section">
+        <h2>Simple Business ID Generator</h2>
+        <p>The new system generates short, memorable business IDs:</p>
+        <ul>
+            <li><strong>Format:</strong> 3 letters + 3 numbers (e.g., ZEN123, MAC456, POS789)</li>
+            <li><strong>Length:</strong> Only 6 characters (much shorter than before)</li>
+            <li><strong>Memorable:</strong> Uses company name for the letter part</li>
+            <li><strong>Unique:</strong> Checks Firebase to ensure uniqueness</li>
+        </ul>
+        
+        <div>
+            <input type="text" id="companyName" placeholder="Enter company name" value="Zentry POS">
+            <button onclick="generateBusinessId()" id="generateBtn">Generate Business ID</button>
+        </div>
+        
+        <div id="businessIdResult" class="result" style="display: none;">
+            <h3>Generated Business ID:</h3>
+            <div class="business-id" id="businessIdDisplay"></div>
+            <p><em>This ID would be checked against Firebase for uniqueness</em></p>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Simple Connection Code Generator</h2>
+        <p>Property connection codes are now simple 4-digit numbers:</p>
+        <ul>
+            <li><strong>Format:</strong> 4 numbers (e.g., 1234, 5678, 9876)</li>
+            <li><strong>Range:</strong> 1000-9999 (10,000 possible codes)</li>
+            <li><strong>Easy to remember:</strong> Just 4 digits</li>
+            <li><strong>Unique:</strong> Checks Firebase to ensure uniqueness</li>
+        </ul>
+        
+        <button onclick="generateConnectionCode()" id="connectionBtn">Generate Connection Code</button>
+        
+        <div id="connectionCodeResult" class="result" style="display: none;">
+            <h3>Generated Connection Code:</h3>
+            <div class="connection-code" id="connectionCodeDisplay"></div>
+            <p><em>This code would be checked against Firebase for uniqueness</em></p>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Examples of Generated IDs</h2>
+        <div id="examples">
+            <h3>Business ID Examples:</h3>
+            <ul>
+                <li><strong>ZEN123</strong> - Zentry Restaurant</li>
+                <li><strong>MAC456</strong> - Mac's Burger Joint</li>
+                <li><strong>POS789</strong> - POS Solutions Inc</li>
+                <li><strong>HOT234</strong> - Hotel California</li>
+                <li><strong>CAF567</strong> - Cafe Central</li>
+            </ul>
+            
+            <h3>Connection Code Examples:</h3>
+            <ul>
+                <li><strong>1234</strong> - Main Restaurant</li>
+                <li><strong>5678</strong> - Second Location</li>
+                <li><strong>9876</strong> - Hotel Front Desk</li>
+                <li><strong>4321</strong> - Bar & Lounge</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function generateBusinessId() {
+            const companyName = document.getElementById('companyName').value;
+            if (!companyName) {
+                alert('Please enter a company name');
+                return;
+            }
+            
+            // Simulate the business ID generation logic
+            const cleanedName = companyName.replace(/[^A-Z]/gi, '').toUpperCase();
+            const namePart = cleanedName.substring(0, 3).padEnd(3, 'X');
+            const numberPart = Math.floor(100 + Math.random() * 900);
+            const businessId = `${namePart}${numberPart}`;
+            
+            // Display the result
+            document.getElementById('businessIdDisplay').textContent = businessId;
+            document.getElementById('businessIdResult').style.display = 'block';
+            
+            console.log(`Generated Business ID: ${businessId} for company: ${companyName}`);
+        }
+        
+        function generateConnectionCode() {
+            // Generate a 4-digit connection code
+            const connectionCode = Math.floor(1000 + Math.random() * 9000).toString();
+            
+            // Display the result
+            document.getElementById('connectionCodeDisplay').textContent = connectionCode;
+            document.getElementById('connectionCodeResult').style.display = 'block';
+            
+            console.log(`Generated Connection Code: ${connectionCode}`);
+        }
+        
+        // Generate some examples on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('New Business ID Generation System Loaded');
+            console.log('Benefits:');
+            console.log('- Much shorter IDs (6 characters vs previous longer format)');
+            console.log('- Easier to remember and type');
+            console.log('- Still includes company name for recognition');
+            console.log('- Fully integrated with Firebase for uniqueness checking');
+            console.log('- Simple 4-digit connection codes instead of complex strings');
+        });
+    </script>
+</body>
+</html>

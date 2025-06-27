@@ -1272,36 +1272,123 @@ Storage Used: 245 MB`);
             });
         });
         
+        // Backup notification helper function
+        function showBackupNotification(message, isSuccess = true, url = null) {
+            let notification = document.getElementById('backup-toast');
+            if (!notification) {
+                notification = document.createElement('div');
+                notification.id = 'backup-toast';
+                notification.style.position = 'fixed';
+                notification.style.bottom = '32px';
+                notification.style.left = '50%';
+                notification.style.transform = 'translateX(-50%)';
+                notification.style.background = isSuccess ? '#22c55e' : '#ef4444';
+                notification.style.color = '#fff';
+                notification.style.padding = '1rem 2rem';
+                notification.style.borderRadius = '8px';
+                notification.style.fontSize = '1.1rem';
+                notification.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+                notification.style.zIndex = 10000;
+                notification.style.display = 'flex';
+                notification.style.alignItems = 'center';
+                notification.style.gap = '1rem';
+                notification.style.cursor = url ? 'pointer' : 'default';
+                document.body.appendChild(notification);
+                
+                if (url) {
+                    notification.onclick = () => window.open(url, '_blank');
+                }
+            }
+            
+            notification.innerHTML = message + (url ? ` <a href="${url}" target="_blank" style="color:#fff;text-decoration:underline;">Download</a>` : '');
+            notification.style.background = isSuccess ? '#22c55e' : '#ef4444';
+            notification.style.display = 'flex';
+            clearTimeout(notification._hideTimeout);
+            notification._hideTimeout = setTimeout(() => { 
+                notification.style.display = 'none'; 
+            }, 6000);
+        }
+        
         // Umbrella backup button logic
         document.addEventListener('DOMContentLoaded', function() {
-            const backupBtn = document.getElementById('umbrella-backup-btn');
-            if (backupBtn) {
-                backupBtn.onclick = async () => {
-                    backupBtn.disabled = true;
-                    backupBtn.textContent = 'Backing up...';
-                    try {
-                        // Prompt for custom file name/folder (optional)
-                        let fileName = prompt('Enter a file name for the backup (or leave blank for default):');
-                        let folder = prompt('Enter a folder name in Firebase Storage (or leave blank for umbrella_backups):');
-                        if (fileName && !fileName.endsWith('.json')) fileName += '.json';
-                        const url = await window.umbrellaManager.exportAndUploadAllData(fileName || undefined, folder || undefined);
-                        backupBtn.textContent = 'Backup Complete!';
-                        showBackupNotification('Backup complete! Click to download.', true, url);
-                        setTimeout(() => {
-                            backupBtn.textContent = '☁️ Backup Umbrella Account Data';
-                            backupBtn.disabled = false;
-                        }, 3000);
-                    } catch (e) {
-                        backupBtn.textContent = 'Backup Failed';
-                        showBackupNotification('Backup failed: ' + e.message, false);
-                        setTimeout(() => {
-                            backupBtn.textContent = '☁️ Backup Umbrella Account Data';
-                            backupBtn.disabled = false;
-                        }, 3000);
+            // Wait for Firebase and umbrella manager to be initialized
+            function waitForUmbrellaManager(callback, attempts = 0) {
+                if (window.umbrellaManager && window.firebaseServices && window.firebaseServices.getStorage()) {
+                    callback();
+                } else if (attempts < 50) { // Wait up to 5 seconds
+                    setTimeout(() => waitForUmbrellaManager(callback, attempts + 1), 100);
+                } else {
+                    console.error('Umbrella manager or Firebase not initialized after 5 seconds');
+                    const backupBtn = document.getElementById('umbrella-backup-btn');
+                    if (backupBtn) {
+                        backupBtn.textContent = 'Firebase Not Ready';
+                        backupBtn.disabled = true;
                     }
-                };
+                }
             }
+            
+            waitForUmbrellaManager(() => {
+                const backupBtn = document.getElementById('umbrella-backup-btn');
+                if (backupBtn) {
+                    backupBtn.onclick = async () => {
+                        backupBtn.disabled = true;
+                        backupBtn.textContent = 'Backing up...';
+                        try {
+                            // Check if user is authenticated
+                            if (!window.firebaseManager || !window.firebaseManager.getCurrentUser()) {
+                                throw new Error('Please log in to create backups');
+                            }
+                            
+                            // Check if business is selected
+                            if (!window.umbrellaManager.currentBusiness) {
+                                throw new Error('No business selected. Please select a business first.');
+                            }
+                            
+                            // Prompt for custom file name/folder (optional)
+                            let fileName = prompt('Enter a file name for the backup (or leave blank for default):');
+                            let folder = prompt('Enter a folder name in Firebase Storage (or leave blank for umbrella_backups):');
+                            if (fileName && !fileName.endsWith('.json')) fileName += '.json';
+                            
+                            const url = await window.umbrellaManager.exportAndUploadAllData(fileName || undefined, folder || undefined);
+                            backupBtn.textContent = 'Backup Complete!';
+                            showBackupNotification('Backup complete! Click to download.', true, url);
+                            setTimeout(() => {
+                                backupBtn.textContent = '☁️ Backup Umbrella Account Data';
+                                backupBtn.disabled = false;
+                            }, 3000);
+                        } catch (e) {
+                            console.error('Backup error:', e);
+                            backupBtn.textContent = 'Backup Failed';
+                            showBackupNotification('Backup failed: ' + (e.message || e), false);
+                            setTimeout(() => {
+                                backupBtn.textContent = '☁️ Backup Umbrella Account Data';
+                                backupBtn.disabled = false;
+                            }, 3000);
+                        }
+                    };
+                } else {
+                    console.warn('Backup button not found');
+                }
+            });
         });
     </script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="js/firebase-config.js"></script>
+    
+    <!-- Firebase Manager -->
+    <script src="js/firebase-manager.js"></script>
+    
+    <!-- Umbrella Account Manager -->
+    <script src="js/umbrella-account-manager.js"></script>
+    
+    <!-- Firebase Data Integration -->
+    <script src="js/firebase-data-integration.js"></script>
 </body>
 </html>

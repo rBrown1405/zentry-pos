@@ -267,16 +267,17 @@ class UmbrellaAccountManager {
             if (user.role !== 'super_admin' && user.role !== 'owner') {
                 throw new Error('Insufficient permissions to create a business');
             }
-            // Generate a business code and business ID using the company name
-            const cleanedName = (businessData.companyName || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
-            const namePart = cleanedName.substring(0, 4) || 'BIZ';
-            const randomPart = this.generateUniqueCode('').replace(/[^A-Z0-9]/gi, '').replace(/^-/, ''); // 3 random chars
-            const businessId = `${namePart}-${randomPart}`; // e.g. ZENT-1A2
-            const businessCode = businessId;
+            
+            // Generate a simple, memorable business ID (e.g., ZEN123, MAC456)
+            const businessId = await this.generateSimpleBusinessId(businessData.companyName);
+            const businessCode = businessId; // Use the same value for consistency
+
+            console.log(`Creating business with ID: ${businessId}`);
 
             // Create the business document
             await this.db.collection('businesses').doc(businessId).set({
                 businessCode,
+                businessId, // Store the ID for easy reference
                 companyName: businessData.companyName,
                 businessType: businessData.businessType || 'restaurant',
                 owner: user.uid,
@@ -293,12 +294,16 @@ class UmbrellaAccountManager {
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
+            console.log(`Business created successfully with ID: ${businessId}`);
+
             // Update the user document to link them to this business if they're an owner
             if (user.role === 'owner') {
                 await this.db.collection('users').doc(user.uid).update({
                     businessId: businessId,
                     accessLevel: 'business'
                 });
+                
+                console.log(`User linked to business: ${businessId}`);
             }
 
             return businessId;
@@ -331,17 +336,17 @@ class UmbrellaAccountManager {
                 throw new Error('Business not found');
             }
             
-            // Generate unique codes
-            const propertyCode = this.generateUniqueCode('PRO');
-            const connectionCode = this.generateUniqueCode('CON');
+            // Generate simple connection code (4-digit number)
+            const connectionCode = await this.generateSimpleConnectionCode();
             
             // Check if this is the first property (to set as main)
             const existingProperties = businessDoc.data().properties || [];
             const isMainProperty = existingProperties.length === 0;
             
+            console.log(`Creating property with connection code: ${connectionCode}`);
+            
             // Create the property
             const propertyRef = await this.db.collection('properties').add({
-                propertyCode,
                 propertyName: propertyData.propertyName,
                 business: businessId,
                 connectionCode,
@@ -354,6 +359,8 @@ class UmbrellaAccountManager {
                 isActive: true,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
+            
+            console.log(`Property created successfully with connection code: ${connectionCode}`);
             
             // Update the business with the new property reference
             await this.db.collection('businesses').doc(businessId).update({
@@ -457,7 +464,71 @@ class UmbrellaAccountManager {
     }
 
     /**
-     * Generate a minimal unique code for business/property
+     * Generate a simple, memorable business ID
+     * @param {string} companyName - Company name for ID generation
+     * @returns {Promise<string>} - Generated business ID
+     */
+    async generateSimpleBusinessId(companyName) {
+        // Create a simple 6-character ID: 3 letters from company name + 3 numbers
+        const cleanedName = (companyName || '').replace(/[^A-Z]/gi, '').toUpperCase();
+        const namePart = cleanedName.substring(0, 3).padEnd(3, 'X'); // Always 3 characters
+        
+        // Generate 3-digit number (100-999)
+        let attempts = 0;
+        let businessId;
+        
+        do {
+            const numberPart = Math.floor(100 + Math.random() * 900); // 100-999
+            businessId = `${namePart}${numberPart}`; // e.g., ZEN123, MAC456, etc.
+            attempts++;
+            
+            // Check if this ID already exists in Firebase
+            const existingDoc = await this.db.collection('businesses').doc(businessId).get();
+            if (!existingDoc.exists) {
+                break; // ID is unique
+            }
+        } while (attempts < 50); // Try up to 50 times
+        
+        if (attempts >= 50) {
+            throw new Error('Unable to generate unique business ID');
+        }
+        
+        return businessId;
+    }
+
+    /**
+     * Generate a simple connection code for properties
+     * @returns {Promise<string>} - Generated connection code
+     */
+    async generateSimpleConnectionCode() {
+        // Generate a simple 4-digit connection code (1000-9999)
+        let attempts = 0;
+        let connectionCode;
+        
+        do {
+            connectionCode = Math.floor(1000 + Math.random() * 9000).toString(); // 1000-9999
+            attempts++;
+            
+            // Check if this connection code already exists in Firebase
+            const existingProperty = await this.db.collection('properties')
+                .where('connectionCode', '==', connectionCode)
+                .limit(1)
+                .get();
+                
+            if (existingProperty.empty) {
+                break; // Code is unique
+            }
+        } while (attempts < 50); // Try up to 50 times
+        
+        if (attempts >= 50) {
+            throw new Error('Unable to generate unique connection code');
+        }
+        
+        return connectionCode;
+    }
+
+    /**
+     * Generate a minimal unique code for business/property (legacy method)
      * @param {string} prefix - Code prefix
      * @returns {string} - Generated code
      */
@@ -626,42 +697,101 @@ class UmbrellaAccountManager {
      * @returns {Promise<string>} - Download URL of the uploaded file
      */
     async exportAndUploadAllData(fileName = null, folder = 'umbrella_backups') {
-        if (!this.currentBusiness) throw new Error('No current business selected');
-        const businessId = this.currentBusiness.id;
-        // Gather all business data
-        const businessDoc = await this.db.collection('businesses').doc(businessId).get();
-        const businessData = businessDoc.data();
-        // Get all properties for this business
-        const propertiesSnapshot = await this.db.collection('properties').where('business', '==', businessId).get();
-        const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // Get all users for this business
-        const usersSnapshot = await this.db.collection('users').where('businessId', '==', businessId).get();
-        const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // Get all menus for this business (if you have a menus collection)
-        let menus = [];
-        if (this.db.collection('menus')) {
-            const menusSnapshot = await this.db.collection('menus').where('business', '==', businessId).get();
-            menus = menusSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        try {
+            console.log('Starting umbrella account backup...');
+            
+            // Check prerequisites
+            if (!this.currentBusiness) {
+                throw new Error('No current business selected');
+            }
+            
+            if (!this.db) {
+                throw new Error('Firebase database not initialized');
+            }
+            
+            // Check if Firebase storage is available
+            const storage = window.firebaseServices?.getStorage();
+            if (!storage) {
+                throw new Error('Firebase Storage not initialized');
+            }
+            
+            // Check authentication
+            const currentUser = this.firebaseManager?.getCurrentUser();
+            if (!currentUser) {
+                throw new Error('User not authenticated');
+            }
+            
+            console.log('Prerequisites check passed, gathering business data...');
+            
+            const businessId = this.currentBusiness.id;
+            
+            // Gather all business data
+            const businessDoc = await this.db.collection('businesses').doc(businessId).get();
+            if (!businessDoc.exists) {
+                throw new Error('Business document not found');
+            }
+            const businessData = businessDoc.data();
+            
+            console.log('Business data gathered, fetching properties...');
+            
+            // Get all properties for this business
+            const propertiesSnapshot = await this.db.collection('properties').where('business', '==', businessId).get();
+            const properties = propertiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            console.log('Properties gathered, fetching users...');
+            
+            // Get all users for this business
+            const usersSnapshot = await this.db.collection('users').where('businessId', '==', businessId).get();
+            const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            console.log('Users gathered, fetching menus...');
+            
+            // Get all menus for this business (if you have a menus collection)
+            let menus = [];
+            try {
+                const menusSnapshot = await this.db.collection('menus').where('business', '==', businessId).get();
+                menus = menusSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            } catch (menuError) {
+                console.warn('No menus collection or error fetching menus:', menuError.message);
+            }
+            
+            console.log('Data gathering complete, preparing export...');
+            
+            const exportData = {
+                exportedAt: new Date().toISOString(),
+                exportedBy: currentUser.uid,
+                business: { id: businessDoc.id, ...businessData },
+                properties,
+                users,
+                menus
+            };
+            
+            // Convert to JSON
+            const jsonString = JSON.stringify(exportData, null, 2);
+            
+            // Prepare file name
+            const now = new Date();
+            const defaultFileName = `umbrella-backup-${businessId}-${now.toISOString().replace(/[:.]/g, '-')}.json`;
+            const uploadFileName = fileName || defaultFileName;
+            
+            console.log(`Uploading backup file: ${uploadFileName}`);
+            
+            // Upload to Firebase Storage
+            const storageRef = storage.ref().child(`${folder}/${uploadFileName}`);
+            const snapshot = await storageRef.putString(jsonString, 'raw', { contentType: 'application/json' });
+            
+            console.log('File uploaded successfully, getting download URL...');
+            
+            // Get download URL
+            const downloadURL = await snapshot.ref.getDownloadURL();
+            
+            console.log('Backup complete! Download URL:', downloadURL);
+            
+            return downloadURL;
+        } catch (error) {
+            console.error('Backup failed:', error);
+            throw error;
         }
-        const exportData = {
-            business: { id: businessDoc.id, ...businessData },
-            properties,
-            users,
-            menus
-        };
-        // Convert to JSON
-        const jsonString = JSON.stringify(exportData, null, 2);
-        // Prepare file name
-        const now = new Date();
-        const defaultFileName = `umbrella-backup-${businessId}-${now.toISOString().replace(/[:.]/g, '-')}.json`;
-        const uploadFileName = fileName || defaultFileName;
-        // Upload to Firebase Storage
-        const storage = window.firebaseServices.getStorage();
-        const storageRef = storage.ref().child(`${folder}/${uploadFileName}`);
-        const snapshot = await storageRef.putString(jsonString, 'raw', { contentType: 'application/json' });
-        // Get download URL
-        const downloadURL = await snapshot.ref.getDownloadURL();
-        return downloadURL;
     }
 }
 
@@ -670,15 +800,36 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize after a short delay to ensure Firebase is ready
     setTimeout(() => {
         try {
+            console.log('Initializing umbrella account manager...');
+            
+            // Check if Firebase services are available
+            if (!window.firebaseServices) {
+                console.error('Firebase services not available');
+                return;
+            }
+            
+            // Check if Firebase manager is available
+            if (!window.firebaseManager) {
+                console.error('Firebase manager not available');
+                return;
+            }
+            
             // Create and initialize the umbrella account manager
             window.umbrellaManager = new UmbrellaAccountManager(window.firebaseManager);
             window.umbrellaManager.initialize()
-                .then(() => console.log('Umbrella account system initialized'))
-                .catch(err => console.error('Error initializing umbrella account system:', err));
+                .then(() => {
+                    console.log('Umbrella account system initialized successfully');
+                    
+                    // Dispatch event to notify other scripts
+                    window.dispatchEvent(new CustomEvent('umbrellaManagerReady'));
+                })
+                .catch(err => {
+                    console.error('Error initializing umbrella account system:', err);
+                });
         } catch (e) {
             console.error('Could not initialize umbrella account manager:', e);
         }
-    }, 1000);
+    }, 2000); // Increased delay to ensure Firebase is fully loaded
 });
 
 // Add a button to trigger umbrella account backup/upload from the UI
