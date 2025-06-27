@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Macros POS LOL - Table Management</title>
+    <style>
+        /* Complete CSS Reset for Full Viewport */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* Table Management Container - Full Viewport */
+        .tables-container {
+            border: 3px solid #000;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: #ffffff;
+        }
+
+        /* Header Styles */
+        .tables-header {
+            background: #2d3748;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #000;
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .system-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .account-info {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .hotel-name {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-top: 0.1rem;
+        }
+
+        .header-tabs {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .tab-button {
+            background: #4a5568;
+            border: 2px solid #000;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .tab-button:hover {
+            background: #2d3748;
+        }
+
+        .tab-button.active {
+            background: #1a202c;
+            border-color: #fff;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .header-btn {
+            background: #4a5568;
+            border: 2px solid #000;
+            color: white;
+            padding: 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-btn:hover {
+            background: #2d3748;
+        }
+
+        /* Main Content Layout */
+        .tables-main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        /* Left Panel - Table Grid */
+        .tables-panel {
+            flex: 3;
+            padding: 1.5rem;
+            overflow-y: auto;
+            background: #ffffff;
+            border-right: 3px solid #000;
+            position: relative;
+        }
+
+        .tables-panel::before {
+            content: "Restaurant Floor Plan";
+            position: absolute;
+            top: 0.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #2d3748;
+        }
+
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .table-item {
+            background: white;
+            border: 3px solid #000;
+            border-radius: 8px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            height: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .table-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .table-item.occupied {
+            background: #fef2f2;
+            border-color: #dc2626;
+        }
+
+        .table-item.reserved {
+            background: #fef3c7;
+            border-color: #f59e0b;
+        }
+
+        .table-item.available {
+            background: #f0fdf4;
+            border-color: #059669;
+        }
+
+        .table-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #1a202c;
+        }
+
+        .table-status {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .table-item.occupied .table-status {
+            color: #dc2626;
+        }
+
+        .table-item.reserved .table-status {
+            color: #f59e0b;
+        }
+
+        .table-item.available .table-status {
+            color: #059669;
+        }
+
+        .table-info {
+            font-size: 0.8rem;
+            color: #6b7280;
+            text-align: center;
+        }
+
+        .table-capacity {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* Right Panel - Table Details */
+        .details-panel {
+            flex: 1;
+            min-width: 350px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .details-header {
+            background: #f8fafc;
+            padding: 1rem 1.5rem;
+            border-bottom: 3px solid #000;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .details-header::before {
+            content: "Table Details";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #2d3748;
+            border: 2px solid #000;
+            background: white;
+            padding: 0.5rem 1rem;
+        }
+
+        .details-content {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .no-selection {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #9ca3af;
+        }
+
+        .no-selection-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .table-details {
+            display: none;
+        }
+
+        .table-details.active {
+            display: block;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .detail-value {
+            color: #6b7280;
+        }
+
+        /* Action Buttons */
+        .table-actions {
+            padding: 1.5rem;
+            background: white;
+            flex-shrink: 0;
+            border-top: 2px solid #000;
+        }
+
+        .action-button {
+            width: 100%;
+            border: 2px solid #000;
+            border-radius: 8px;
+            padding: 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .action-button:last-child {
+            margin-bottom: 0;
+        }
+
+        .seat-btn {
+            background: #10b981;
+            color: white;
+        }
+
+        .seat-btn:hover {
+            background: #059669;
+        }
+
+        .reserve-btn {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .reserve-btn:hover {
+            background: #d97706;
+        }
+
+        .clear-btn {
+            background: #ef4444;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background: #dc2626;
+        }
+
+        .order-btn {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .order-btn:hover {
+            background: #2563eb;
+        }
+
+        .action-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Legend */
+        .status-legend {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            display: flex;
+            gap: 1rem;
+            background: white;
+            padding: 0.75rem;
+            border: 2px solid #000;
+            border-radius: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            border: 1px solid #000;
+        }
+
+        .legend-available {
+            background: #f0fdf4;
+        }
+
+        .legend-occupied {
+            background: #fef2f2;
+        }
+
+        .legend-reserved {
+            background: #fef3c7;
+        }
+
+        /* Notification Animations */
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .tables-main {
+                flex-direction: column;
+            }
+            
+            .details-panel {
+                min-width: auto;
+                border-right: none;
+                border-top: 3px solid #000;
+            }
+            
+            .tables-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tables-container">
+        <!-- Header -->
+        <header class="tables-header">
+            <div class="header-left">
+                <div class="system-name">Macros POS LOL</div>
+                <div class="account-info">John Smith (Manager)</div>
+                <div class="hotel-name">Grand Hotel & Restaurant</div>
+            </div>
+            
+            <div class="header-tabs">
+                <a href="tables.html" class="tab-button active">Tables</a>
+                <a href="pos-interface-fixed.html" class="tab-button">Kitchen</a>
+            </div>
+            
+            <div class="header-actions">
+                <button class="header-btn" title="Settings">⚙️</button>
+                <button class="header-btn" title="Logout" onclick="logout()">🚪</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="tables-main">
+            <!-- Left Panel - Tables Grid -->
+            <section class="tables-panel">
+                <div class="tables-grid" id="tablesGrid">
+                    <!-- Table Items will be generated by JavaScript -->
+                </div>
+                
+                <!-- Status Legend -->
+                <div class="status-legend">
+                    <div class="legend-item">
+                        <div class="legend-color legend-available"></div>
+                        <span>Available</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color legend-occupied"></div>
+                        <span>Occupied</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color legend-reserved"></div>
+                        <span>Reserved</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel - Table Details -->
+            <section class="details-panel">
+                <div class="details-header">
+                    <!-- Table Details title handled by CSS ::before -->
+                </div>
+
+                <div class="details-content" id="detailsContent">
+                    <div class="no-selection">
+                        <div class="no-selection-icon">🪑</div>
+                        <p>Select a table to view details</p>
+                        <p style="font-size: 0.8rem;">Click on any table to manage reservations and orders</p>
+                    </div>
+                </div>
+
+                <div class="table-actions" id="tableActions" style="display: none;">
+                    <button class="action-button seat-btn" id="seatBtn" onclick="seatGuests()">
+                        👥 Seat Guests
+                    </button>                    <button class="action-button reserve-btn" id="reserveBtn" onclick="reserveTable()">
+                        📅 Make Reservation
+                    </button>
+                    <button class="action-button order-btn" id="orderBtn" onclick="takeOrder()">
+                        📝 Take Order
+                    </button>
+                    <button class="action-button order-btn" id="startOrderBtn" onclick="startNewOrder()">
+                        🍽️ Start New Order
+                    </button>
+                    <button class="action-button clear-btn" id="clearBtn" onclick="clearTable()">
+                        🧹 Clear Table
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Table Management JavaScript
+        let selectedTable = null;
+        let tables = [];
+
+        // Initialize tables data
+        function initializeTables() {
+            // Try to load floor plan from localStorage first
+            const floorPlanData = localStorage.getItem('floorPlan');
+            
+            if (floorPlanData) {
+                try {
+                    const floorPlan = JSON.parse(floorPlanData);
+                    
+                    // Convert floor plan data to table format
+                    tables = floorPlan.map((table, index) => {
+                        // Extract table number from id (remove any prefixes)
+                        let tableNumber = table.id;
+                        if (typeof tableNumber === 'string') {
+                            // Extract number from strings like "table-1" or "draggable-table-1"
+                            const match = tableNumber.match(/(\d+)$/);
+                            tableNumber = match ? parseInt(match[1]) : index + 1;
+                        }
+                          return {
+                            id: tableNumber,
+                            name: table.name || `Table ${tableNumber}`, // Use custom name from floor plan
+                            capacity: parseInt(table.capacity) || 2,
+                            status: 'available', // Default status
+                            guests: 0,
+                            server: '',
+                            orderTime: null,
+                            reservedBy: '',
+                            // Store floor plan specific data for potential future use
+                            floorPlanData: {
+                                shapeType: table.shapeType,
+                                name: table.name,
+                                left: table.left,
+                                top: table.top,
+                                rotationAngle: table.rotationAngle,
+                                width: table.width,
+                                height: table.height
+                            }
+                        };
+                    });
+                    
+                    // Sort tables by ID for consistent display
+                    tables.sort((a, b) => a.id - b.id);
+                    
+                    console.log('Loaded tables from floor plan:', tables);
+                } catch (error) {
+                    console.error('Error loading floor plan data:', error);
+                    // Fall back to default tables if loading fails
+                    createDefaultTables();
+                }            } else {
+                // No floor plan data found, use default tables
+                createDefaultTables();
+            }
+            
+            // Load saved table statuses
+            loadTableStatuses();
+              renderTables();
+        }
+
+        // Save current table statuses to localStorage
+        function saveTableStatuses() {
+            const tableStatuses = {};
+            tables.forEach(table => {
+                tableStatuses[table.id] = {
+                    status: table.status,
+                    guests: table.guests,
+                    server: table.server,
+                    orderTime: table.orderTime,
+                    reservedBy: table.reservedBy
+                };
+            });
+            localStorage.setItem('tableStatuses', JSON.stringify(tableStatuses));
+        }
+
+        // Load table statuses from localStorage
+        function loadTableStatuses() {
+            const savedStatuses = localStorage.getItem('tableStatuses');
+            if (savedStatuses) {
+                try {
+                    const tableStatuses = JSON.parse(savedStatuses);
+                    tables.forEach(table => {
+                        if (tableStatuses[table.id]) {
+                            const savedStatus = tableStatuses[table.id];
+                            table.status = savedStatus.status;
+                            table.guests = savedStatus.guests;
+                            table.server = savedStatus.server;
+                            table.orderTime = savedStatus.orderTime;
+                            table.reservedBy = savedStatus.reservedBy;
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error loading table statuses:', error);
+                }
+            }
+        }function createDefaultTables() {
+            tables = [
+                { id: 1, name: 'Table 1', capacity: 2, status: 'available', guests: 0, server: '', orderTime: null, reservedBy: '' },
+                { id: 2, name: 'Table 2', capacity: 4, status: 'occupied', guests: 3, server: 'Alice', orderTime: '12:30 PM', reservedBy: '' },
+                { id: 3, name: 'Table 3', capacity: 6, status: 'reserved', guests: 0, server: '', orderTime: null, reservedBy: 'Johnson Party' },
+                { id: 4, name: 'Table 4', capacity: 2, status: 'available', guests: 0, server: '', orderTime: null, reservedBy: '' },
+                { id: 5, name: 'Table 5', capacity: 4, status: 'occupied', guests: 4, server: 'Bob', orderTime: '1:15 PM', reservedBy: '' },
+                { id: 6, name: 'Table 6', capacity: 8, status: 'available', guests: 0, server: '', orderTime: null, reservedBy: '' },
+                { id: 7, name: 'Table 7', capacity: 2, status: 'occupied', guests: 2, server: 'Carol', orderTime: '12:45 PM', reservedBy: '' },
+                { id: 8, name: 'Table 8', capacity: 4, status: 'available', guests: 0, server: '', orderTime: null, reservedBy: '' },
+                { id: 9, name: 'Table 9', capacity: 6, status: 'reserved', guests: 0, server: '', orderTime: null, reservedBy: 'Smith Wedding' },
+                { id: 10, name: 'Table 10', capacity: 2, status: 'available', guests: 0, server: '', orderTime: null, reservedBy: '' },
+                { id: 11, name: 'Table 11', capacity: 4, status: 'occupied', guests: 2, server: 'David', orderTime: '1:00 PM', reservedBy: '' },
+                { id: 12, name: 'Table 12', capacity: 8, status: 'available', guests: 0, server: '', orderTime: null, reservedBy: '' }
+            ];
+        }        // Render tables grid
+        function renderTables() {
+            const tablesGrid = document.getElementById('tablesGrid');
+            tablesGrid.innerHTML = tables.map(table => `
+                <div class="table-item ${table.status}" onclick="selectTable(${table.id})">
+                    <div class="table-capacity">${table.capacity}</div>
+                    <div class="table-number">${table.name || `T${table.id}`}</div>
+                    <div class="table-status">${table.status}</div>
+                    <div class="table-info">
+                        ${table.status === 'occupied' ? `${table.guests} guests` : ''}
+                        ${table.status === 'reserved' ? table.reservedBy : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Select table
+        function selectTable(tableId) {
+            selectedTable = tables.find(table => table.id === tableId);
+            showTableDetails();
+            updateActionButtons();
+        }
+
+        // Show table details
+        function showTableDetails() {
+            const detailsContent = document.getElementById('detailsContent');
+            const tableActions = document.getElementById('tableActions');
+            
+            if (!selectedTable) return;            detailsContent.innerHTML = `
+                <div class="table-details active">
+                    <div class="detail-row">
+                        <span class="detail-label">Table:</span>
+                        <span class="detail-value">${selectedTable.name || `T${selectedTable.id}`}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Capacity:</span>
+                        <span class="detail-value">${selectedTable.capacity} seats</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status:</span>
+                        <span class="detail-value" style="text-transform: capitalize; font-weight: 600;">${selectedTable.status}</span>
+                    </div>
+                    ${selectedTable.status === 'occupied' ? `
+                        <div class="detail-row">
+                            <span class="detail-label">Current Guests:</span>
+                            <span class="detail-value">${selectedTable.guests}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Server:</span>
+                            <span class="detail-value">${selectedTable.server}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Order Time:</span>
+                            <span class="detail-value">${selectedTable.orderTime}</span>
+                        </div>
+                    ` : ''}
+                    ${selectedTable.status === 'reserved' ? `
+                        <div class="detail-row">
+                            <span class="detail-label">Reserved By:</span>
+                            <span class="detail-value">${selectedTable.reservedBy}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            tableActions.style.display = 'block';
+        }        // Update action buttons based on table status
+        function updateActionButtons() {
+            const seatBtn = document.getElementById('seatBtn');
+            const reserveBtn = document.getElementById('reserveBtn');
+            const orderBtn = document.getElementById('orderBtn');
+            const startOrderBtn = document.getElementById('startOrderBtn');
+            const clearBtn = document.getElementById('clearBtn');
+
+            if (!selectedTable) return;
+
+            // Reset all buttons
+            seatBtn.disabled = false;
+            reserveBtn.disabled = false;
+            orderBtn.disabled = false;
+            startOrderBtn.disabled = false;
+            clearBtn.disabled = false;
+
+            switch (selectedTable.status) {
+                case 'available':
+                    orderBtn.disabled = true;
+                    clearBtn.disabled = true;
+                    break;
+                case 'occupied':
+                    seatBtn.disabled = true;
+                    reserveBtn.disabled = true;
+                    break;
+                case 'reserved':
+                    reserveBtn.disabled = true;
+                    orderBtn.disabled = true;
+                    break;
+            }
+        }
+
+        // Action functions
+        function seatGuests() {
+            if (!selectedTable || selectedTable.status !== 'available') return;
+            
+            const guests = prompt(`How many guests for Table ${selectedTable.id}? (Max: ${selectedTable.capacity})`);
+            if (!guests || guests < 1 || guests > selectedTable.capacity) return;
+            
+            selectedTable.status = 'occupied';
+            selectedTable.guests = parseInt(guests);
+            selectedTable.server = 'Available Staff';
+            selectedTable.orderTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+              renderTables();
+            showTableDetails();
+            updateActionButtons();
+            saveTableStatuses();
+            showNotification(`Table ${selectedTable.id} seated with ${guests} guests!`, 'success');
+        }
+
+        function reserveTable() {
+            if (!selectedTable || selectedTable.status !== 'available') return;
+            
+            const reservedBy = prompt(`Reservation name for Table ${selectedTable.id}:`);
+            if (!reservedBy) return;
+            
+            selectedTable.status = 'reserved';
+            selectedTable.reservedBy = reservedBy;
+              renderTables();
+            showTableDetails();
+            updateActionButtons();
+            saveTableStatuses();
+            showNotification(`Table ${selectedTable.id} reserved for ${reservedBy}!`, 'success');
+        }        function takeOrder() {
+            if (!selectedTable || selectedTable.status !== 'occupied') return;
+              showNotification('Redirecting to order screen...', 'info');
+            setTimeout(() => {
+                window.location.href = 'pos-interface-fixed.html';
+            }, 1000);
+        }
+
+        function startNewOrder() {
+            if (!selectedTable) return;
+              showNotification('Starting new order - Redirecting to POS...', 'info');
+            setTimeout(() => {
+                window.location.href = 'pos-interface-fixed.html';
+            }, 1000);
+        }
+
+        function clearTable() {
+            if (!selectedTable) return;
+            
+            if (confirm(`Clear Table ${selectedTable.id}? This will make it available for new guests.`)) {
+                selectedTable.status = 'available';
+                selectedTable.guests = 0;
+                selectedTable.server = '';
+                selectedTable.orderTime = null;
+                selectedTable.reservedBy = '';
+                  renderTables();
+                showTableDetails();
+                updateActionButtons();
+                saveTableStatuses();
+                showNotification(`Table ${selectedTable.id} cleared and available!`, 'success');
+            }
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Notification system
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#10b981' : type === 'warning' ? '#f59e0b' : type === 'error' ? '#ef4444' : '#3b82f6'};
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                font-weight: 500;
+                max-width: 300px;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => document.body.removeChild(notification), 300);
+            }, 3000);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTables();
+        });
+    </script>
+</body>
+</html>

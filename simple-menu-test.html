@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Menu Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .menu-item { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+        .debug { background: #f0f0f0; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Simple Menu Test</h1>
+    <div id="debug" class="debug">Debug info will appear here...</div>
+    <div id="menu-list">Menu items will appear here...</div>
+    
+    <script>
+        console.log('Script started');
+        
+        let menuItems = [];
+        
+        function loadMenuData() {
+            console.log('loadMenuData called');
+            try {
+                const uploadedMenu = localStorage.getItem('menuData');
+                if (uploadedMenu) {
+                    menuItems = JSON.parse(uploadedMenu);
+                    console.log('Loaded from menuData:', menuItems);
+                } else {
+                    const savedMenu = localStorage.getItem('menuItems');
+                    if (savedMenu) {
+                        menuItems = JSON.parse(savedMenu);
+                        console.log('Loaded from menuItems:', savedMenu);
+                    } else {
+                        console.log('No menu data found');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading menu data:', error);
+            }
+        }
+        
+        function renderMenuItems() {
+            console.log('renderMenuItems called with', menuItems.length, 'items');
+            const menuList = document.getElementById('menu-list');
+            const debug = document.getElementById('debug');
+            
+            debug.innerHTML = `
+                <h3>Debug Info:</h3>
+                <p>Number of items: ${menuItems.length}</p>
+                <p>First item: ${menuItems.length > 0 ? JSON.stringify(menuItems[0]) : 'None'}</p>
+            `;
+            
+            if (menuItems.length === 0) {
+                menuList.innerHTML = '<p>No menu items found</p>';
+                return;
+            }
+            
+            menuList.innerHTML = menuItems.map(item => `
+                <div class="menu-item">
+                    <h3>${item.emoji || '🍽️'} ${item.name}</h3>
+                    <p>Price: $${(item.price || 0).toFixed(2)}</p>
+                    <p>Category: ${item.category || 'Unknown'}</p>
+                    <p>Description: ${item.description || 'No description'}</p>
+                    <button onclick="testEdit('${item.id}')">Test Edit</button>
+                    <button onclick="testToggle('${item.id}')">Test 86</button>
+                </div>
+            `).join('');
+        }
+        
+        function testEdit(itemId) {
+            console.log('testEdit called with:', itemId);
+            alert('Edit clicked for: ' + itemId);
+        }
+        
+        function testToggle(itemId) {
+            console.log('testToggle called with:', itemId);
+            alert('86 clicked for: ' + itemId);
+        }
+        
+        // Make functions global
+        window.testEdit = testEdit;
+        window.testToggle = testToggle;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded');
+            loadMenuData();
+            renderMenuItems();
+        });
+    </script>
+</body>
+</html>

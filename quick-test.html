@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Mode - Quick Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            padding: 2rem;
+            background: #f8fafc;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .section {
+            background: white;
+            border: 2px solid #000;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0.5rem;
+            font-size: 1rem;
+        }
+        button:hover { background: #3730a3; }
+        .success { background: #10b981; }
+        .danger { background: #ef4444; }
+        .result {
+            background: #f3f4f6;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            font-family: monospace;
+        }
+        .result.success { background: #d1fae5; color: #065f46; }
+        .result.error { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Hotel Mode - Quick Test</h1>
+    <p>Simple test to verify Hotel Mode integration is working.</p>
+    
+    <div class="section">
+        <h3>Step 1: Activate Hotel Mode</h3>
+        <button onclick="quickActivate()" class="success">🏨 Activate Hotel Mode</button>
+        <div id="step1Result" class="result">Click to activate...</div>
+    </div>
+    
+    <div class="section">
+        <h3>Step 2: Open POS System</h3>
+        <button onclick="openPOS()">🖥️ Open POS with Room Service</button>
+        <div id="step2Result" class="result">Activate hotel mode first...</div>
+    </div>
+    
+    <div class="section">
+        <h3>Step 3: Test Complete</h3>
+        <button onclick="runQuickTest()" class="success">🧪 Run Complete Test</button>
+        <button onclick="resetData()" class="danger">🔄 Reset Data</button>
+        <div id="step3Result" class="result">Ready to test...</div>
+    </div>
+    
+    <script src="hotel-mode.js"></script>
+    <script>
+        function updateResult(stepId, message, type = '') {
+            const element = document.getElementById(stepId);
+            element.textContent = message;
+            element.className = 'result ' + type;
+        }
+        
+        function quickActivate() {
+            try {
+                if (typeof HotelMode === 'undefined') {
+                    throw new Error('HotelMode class not loaded');
+                }
+                
+                // Activate with Marriott brand
+                const success = HotelMode.activateHotelMode('marriott');
+                
+                if (success) {
+                    updateResult('step1Result', '✅ Hotel Mode activated successfully!', 'success');
+                    updateResult('step2Result', 'Ready - click to open POS system', 'success');
+                } else {
+                    updateResult('step1Result', '❌ Activation failed', 'error');
+                }
+                
+            } catch (error) {
+                updateResult('step1Result', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function openPOS() {
+            const isActive = localStorage.getItem('hotelModeActive') === 'true';
+            
+            if (!isActive) {
+                updateResult('step2Result', '❌ Activate hotel mode first!', 'error');
+                return;
+            }
+            
+            // Open POS system
+            window.open('pos-interface-fixed.html', '_blank');
+            updateResult('step2Result', '✅ POS opened - look for Room Service tab!', 'success');
+        }
+        
+        function runQuickTest() {
+            try {
+                // Step 1: Check HotelMode availability
+                if (typeof HotelMode === 'undefined') {
+                    throw new Error('HotelMode class not available');
+                }
+                
+                // Step 2: Activate hotel mode
+                const activated = HotelMode.activateHotelMode('marriott');
+                if (!activated) {
+                    throw new Error('Failed to activate hotel mode');
+                }
+                
+                // Step 3: Initialize menu
+                const menu = HotelMode.initializeRoomServiceMenu();
+                if (menu.length === 0) {
+                    throw new Error('Failed to initialize room service menu');
+                }
+                
+                // Step 4: Test menu sync
+                const testMenu = [
+                    { id: 'test1', name: 'Test Item', price: 10.99, category: 'Test' }
+                ];
+                const synced = HotelMode.syncMenuWithRestaurant(testMenu);
+                if (synced.length === 0) {
+                    throw new Error('Failed to sync menu');
+                }
+                
+                updateResult('step3Result', '✅ All tests passed! Hotel Mode is working correctly.', 'success');
+                
+                // Auto-open POS
+                setTimeout(() => {
+                    window.open('pos-interface-fixed.html', '_blank');
+                }, 1000);
+                
+            } catch (error) {
+                updateResult('step3Result', `❌ Test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function resetData() {
+            localStorage.clear();
+            updateResult('step1Result', 'Click to activate...', '');
+            updateResult('step2Result', 'Activate hotel mode first...', '');
+            updateResult('step3Result', 'Ready to test...', '');
+        }
+        
+        // Check status on load
+        window.onload = function() {
+            const isActive = localStorage.getItem('hotelModeActive') === 'true';
+            if (isActive) {
+                updateResult('step1Result', '✅ Hotel Mode already active', 'success');
+                updateResult('step2Result', 'Ready - click to open POS system', 'success');
+            }
+        };
+    </script>
+</body>
+</html>

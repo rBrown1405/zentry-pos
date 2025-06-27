@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zentry POS - User Management</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background-color: #4285f4;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo h2 {
+            margin: 0;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        .user-info span {
+            margin-right: 15px;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #ffffff;
+            color: #4285f4;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button:hover {
+            background-color: #f1f1f1;
+        }
+        button.primary {
+            background-color: #4285f4;
+            color: white;
+        }
+        button.primary:hover {
+            background-color: #3367d6;
+        }
+        .dashboard-content {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 30px;
+        }
+        .sidebar {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            padding: 20px;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar li {
+            margin-bottom: 10px;
+        }
+        .sidebar a {
+            display: block;
+            padding: 10px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .sidebar a:hover, .sidebar a.active {
+            background-color: #f1f1f1;
+            color: #4285f4;
+        }
+        .main-content {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            padding: 30px;
+        }
+        h1 {
+            margin-top: 0;
+            color: #333;
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .user-list {
+            margin-top: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        .action-buttons button {
+            margin-right: 5px;
+            background-color: transparent;
+            color: #4285f4;
+            padding: 5px 10px;
+        }
+        .action-buttons button:hover {
+            background-color: #f1f1f1;
+        }
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #4285f4;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            overflow: auto;
+        }
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .close {
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .form-actions {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .form-actions button {
+            margin-left: 10px;
+        }
+        .error-message {
+            color: #d93025;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h2>Zentry POS</h2>
+        </div>
+        <div class="user-info">
+            <span id="userDisplay">Loading...</span>
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="dashboard-content">
+            <div class="sidebar">
+                <ul>
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="businesses.html">Businesses</a></li>
+                    <li><a href="properties.html">Properties</a></li>
+                    <li><a href="#" class="active">Users</a></li>
+                    <li><a href="#">Settings</a></li>
+                </ul>
+            </div>
+
+            <div class="main-content">
+                <div class="page-header">
+                    <h1>User Management</h1>
+                    <button id="addUserBtn" class="primary">Add User</button>
+                </div>
+                
+                <div class="user-filters">
+                    <div class="form-group">
+                        <label for="businessFilter">Filter by Business:</label>
+                        <select id="businessFilter">
+                            <option value="">All Businesses</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="user-list">
+                    <div id="usersTable" class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Form Modal -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add User</h2>
+                <span class="close">&times;</span>
+            </div>
+            
+            <form id="userForm">
+                <input type="hidden" id="userId">
+                
+                <div class="form-group">
+                    <label for="username">Username *</label>
+                    <input type="text" id="username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" required>
+                </div>
+                
+                <div id="passwordGroup" class="form-group">
+                    <label for="password">Password *</label>
+                    <input type="password" id="password" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="role">Role *</label>
+                    <select id="role" required>
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                        <option value="super_admin">Super Admin</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="business">Business</label>
+                    <select id="business">
+                        <option value="">None (Unassigned)</option>
+                    </select>
+                </div>
+                
+                <p class="error-message" id="formErrorMessage"></p>
+                
+                <div class="form-actions">
+                    <button type="button" class="close-btn">Cancel</button>
+                    <button type="submit" class="primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import SuperAdminManager from './SuperAdminManager.js';
+        
+        const manager = new SuperAdminManager();
+        
+        // Check if authenticated
+        if (!manager.isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+        
+        // DOM Elements
+        const userDisplay = document.getElementById('userDisplay');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const usersTable = document.getElementById('usersTable');
+        const addUserBtn = document.getElementById('addUserBtn');
+        const businessFilter = document.getElementById('businessFilter');
+        const userModal = document.getElementById('userModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const userForm = document.getElementById('userForm');
+        const userIdInput = document.getElementById('userId');
+        const usernameInput = document.getElementById('username');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const passwordGroup = document.getElementById('passwordGroup');
+        const roleInput = document.getElementById('role');
+        const businessInput = document.getElementById('business');
+        const formErrorMessage = document.getElementById('formErrorMessage');
+        const closeModal = document.querySelector('.close');
+        const closeBtn = document.querySelector('.close-btn');
+        
+        // State
+        let users = [];
+        let businesses = [];
+        let currentUser = null;
+        
+        // Handle logout
+        logoutBtn.addEventListener('click', () => {
+            manager.logout();
+            window.location.href = 'login.html';
+        });
+        
+        // Event Listeners
+        closeModal.addEventListener('click', () => userModal.style.display = 'none');
+        closeBtn.addEventListener('click', () => userModal.style.display = 'none');
+        window.addEventListener('click', (e) => {
+            if (e.target === userModal) {
+                userModal.style.display = 'none';
+            }
+        });
+        
+        addUserBtn.addEventListener('click', () => {
+            modalTitle.textContent = 'Add User';
+            userForm.reset();
+            userIdInput.value = '';
+            passwordGroup.style.display = 'block';
+            passwordInput.required = true;
+            formErrorMessage.style.display = 'none';
+            userModal.style.display = 'block';
+        });
+        
+        userForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            formErrorMessage.style.display = 'none';
+            
+            const userData = {
+                username: usernameInput.value,
+                email: emailInput.value,
+                role: roleInput.value,
+                business: businessInput.value || null
+            };
+            
+            // Add password only if provided (required for new users)
+            if (passwordInput.value) {
+                userData.password = passwordInput.value;
+            }
+            
+            try {
+                if (userIdInput.value) {
+                    // Update existing user
+                    await manager.updateUser(userIdInput.value, userData);
+                } else {
+                    // Create new user
+                    await manager.createUser(userData);
+                }
+                
+                userModal.style.display = 'none';
+                loadUsers(businessFilter.value);
+            } catch (error) {
+                formErrorMessage.textContent = error.message || 'Error saving user';
+                formErrorMessage.style.display = 'block';
+            }
+        });
+        
+        businessFilter.addEventListener('change', () => {
+            loadUsers(businessFilter.value);
+        });
+        
+        // Load user profile, businesses and users
+        async function loadData() {
+            try {
+                // Load user profile
+                currentUser = await manager.getUserProfile();
+                userDisplay.textContent = `${currentUser.username} (${currentUser.role})`;
+                
+                // Load businesses for filter
+                businesses = await manager.getBusinesses();
+                populateBusinessDropdowns(businesses);
+                
+                // Load users
+                await loadUsers();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                
+                // If authentication error, redirect to login
+                if (error.message === 'Not authenticated' || error.message === 'Authentication failed') {
+                    window.location.href = 'login.html';
+                } else {
+                    // Try to use localStorage fallback for demo
+                    try {
+                        currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+                        userDisplay.textContent = `${currentUser.username || 'Demo User'} (${currentUser.role || 'super_admin'})`;
+                        
+                        const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
+                        renderUsersTable(localUsers);
+                        
+                        // Show notice about using localStorage
+                        alert('Note: Using localStorage fallback data. Database connection may be unavailable.');
+                    } catch (localError) {
+                        console.error('Local storage fallback error:', localError);
+                    }
+                }
+            }
+        }
+        
+        // Load users with optional business filter
+        async function loadUsers(businessId = '') {
+            try {
+                usersTable.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+                
+                if (businessId) {
+                    // If business filter is specified, get users by business
+                    users = await manager.getUsersByBusiness(businessId);
+                } else {
+                    // Otherwise get all users
+                    users = await manager.getUsers();
+                }
+                
+                renderUsersTable(users);
+            } catch (error) {
+                console.error('Error loading users:', error);
+                usersTable.innerHTML = '<p>Error loading users. Please try again.</p>';
+            }
+        }
+        
+        // Populate business dropdowns
+        function populateBusinessDropdowns(businesses) {
+            // Filter dropdown
+            let filterOptions = '<option value="">All Businesses</option>';
+            
+            // Form dropdown
+            let formOptions = '<option value="">None (Unassigned)</option>';
+            
+            businesses.forEach(business => {
+                const option = `<option value="${business._id}">${business.name}</option>`;
+                filterOptions += option;
+                formOptions += option;
+            });
+            
+            businessFilter.innerHTML = filterOptions;
+            businessInput.innerHTML = formOptions;
+        }
+        
+        // Render users table
+        function renderUsersTable(users) {
+            if (users.length === 0) {
+                usersTable.innerHTML = '<p>No users found</p>';
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Business</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            users.forEach(user => {
+                const businessName = user.business ? 
+                    (typeof user.business === 'object' ? user.business.name : 
+                        businesses.find(b => b._id === user.business)?.name || 'Unknown') : 
+                    'Unassigned';
+                
+                html += `
+                    <tr>
+                        <td>${user.username}</td>
+                        <td>${user.email}</td>
+                        <td>${user.role}</td>
+                        <td>${businessName}</td>
+                        <td class="action-buttons">
+                            ${currentUser._id !== user._id ? `
+                                <button data-id="${user._id}" class="edit-btn">Edit</button>
+                                <button data-id="${user._id}" class="delete-btn">Delete</button>
+                            ` : `<span>Current User</span>`}
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            usersTable.innerHTML = html;
+            
+            // Add event listeners to action buttons
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    editUser(btn.dataset.id);
+                });
+            });
+            
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    deleteUser(btn.dataset.id);
+                });
+            });
+        }
+        
+        // Edit user
+        function editUser(id) {
+            const user = users.find(u => u._id === id);
+            if (!user) return;
+            
+            modalTitle.textContent = 'Edit User';
+            userIdInput.value = user._id;
+            usernameInput.value = user.username;
+            emailInput.value = user.email;
+            roleInput.value = user.role;
+            businessInput.value = user.business ? 
+                (typeof user.business === 'object' ? user.business._id : user.business) : 
+                '';
+            
+            // Password is optional when editing
+            passwordGroup.style.display = 'block';
+            passwordInput.required = false;
+            passwordInput.value = '';
+            passwordInput.placeholder = 'Leave blank to keep current password';
+            
+            formErrorMessage.style.display = 'none';
+            userModal.style.display = 'block';
+        }
+        
+        // Delete user
+        async function deleteUser(id) {
+            if (confirm('Are you sure you want to delete this user?')) {
+                try {
+                    await manager.deleteUser(id);
+                    await loadUsers(businessFilter.value);
+                } catch (error) {
+                    alert(`Error deleting user: ${error.message}`);
+                }
+            }
+        }
+        
+        // Load initial data
+        loadData();
+    </script>
+</body>
+</html>

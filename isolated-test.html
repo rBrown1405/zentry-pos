@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Isolated Floor Plan Test</title>
+    <style>
+        body { font-family: 'Courier New', monospace; margin: 20px; }
+        .container { border: 2px solid #000; padding: 20px; margin: 10px 0; background: white; }
+        button { padding: 10px 20px; margin: 5px; border: 2px solid #000; background: #007bff; color: white; cursor: pointer; font-family: inherit; }
+        .canvas { position: relative; width: 400px; height: 300px; border: 2px solid #000; background: #f8fafc; }
+        .floor-plan-table {
+            position: absolute;
+            border: 3px solid #000;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .available { background: #f0fdf4; border-color: #059669; }
+        .circle { border-radius: 50%; }
+        .rectangle { border-radius: 4px; }
+        pre { background: #f0f0f0; padding: 10px; border: 1px solid #ccc; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Isolated Floor Plan Test</h1>
+    <p>This tests the floor plan rendering logic in isolation.</p>
+
+    <div class="container">
+        <h2>Actions</h2>
+        <button onclick="step1()">Step 1: Create Data</button>
+        <button onclick="step2()">Step 2: Process Data</button>
+        <button onclick="step3()">Step 3: Render Tables</button>
+        <button onclick="reset()">Reset</button>
+    </div>
+
+    <div class="container">
+        <h2>Test Canvas</h2>
+        <div class="canvas" id="testCanvas"></div>
+    </div>
+
+    <div class="container">
+        <h2>Debug Output</h2>
+        <pre id="output"></pre>
+    </div>
+
+    <script>
+        let rawData = [];
+        let processedTables = [];
+        
+        function log(message) {
+            const output = document.getElementById('output');
+            output.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function step1() {
+            log('=== STEP 1: Creating raw floor plan data ===');
+            
+            rawData = [
+                {
+                    id: 'table-1',
+                    name: 'Test Table 1',
+                    capacity: '4',
+                    left: '50px',
+                    top: '50px',
+                    width: '80px',
+                    height: '80px',
+                    shapeType: 'circle',
+                    rotationAngle: 0
+                },
+                {
+                    id: 'table-2',
+                    name: 'Test Table 2',
+                    capacity: '6',
+                    left: '200px',
+                    top: '100px',
+                    width: '120px',
+                    height: '70px',
+                    shapeType: 'rectangle',
+                    rotationAngle: 0
+                }
+            ];
+            
+            log('Created ' + rawData.length + ' raw table objects');
+            log('Raw data: ' + JSON.stringify(rawData, null, 2));
+            
+            // Test condition on raw data
+            const rawHasPositions = rawData.some(table => table.left);
+            log('Raw data condition check (table.left): ' + rawHasPositions);
+        }
+
+        function step2() {
+            log('=== STEP 2: Processing data (simulating initializeTables) ===');
+            
+            if (rawData.length === 0) {
+                log('ERROR: No raw data. Run Step 1 first.');
+                return;
+            }
+            
+            processedTables = rawData.map(tableData => {
+                log('Processing table: ' + tableData.id);
+                
+                // Extract table number from id (simulate POS logic)
+                let tableNumber = tableData.id;
+                if (typeof tableNumber === 'string') {
+                    const match = tableNumber.match(/(\d+)$/);
+                    tableNumber = match ? parseInt(match[1]) : 1;
+                }
+                
+                const processedTable = {
+                    id: tableNumber,
+                    capacity: parseInt(tableData.capacity) || 2,
+                    status: 'available',
+                    guests: 0,
+                    server: '',
+                    orderTime: null,
+                    reservedBy: '',
+                    tags: [],
+                    // Include all original floor plan properties
+                    left: tableData.left,
+                    top: tableData.top,
+                    width: tableData.width,
+                    height: tableData.height,
+                    shapeType: tableData.shapeType || 'square',
+                    name: tableData.name,
+                    rotationAngle: tableData.rotationAngle || 0
+                };
+                
+                log('Processed table ' + tableData.id + ' -> ' + processedTable.id);
+                log('Position preserved: left=' + processedTable.left + ', top=' + processedTable.top);
+                
+                return processedTable;
+            });
+            
+            log('Processed ' + processedTables.length + ' tables');
+            log('Processed data: ' + JSON.stringify(processedTables, null, 2));
+            
+            // Test condition on processed data
+            const processedHasPositions = processedTables.some(table => table.left);
+            log('Processed data condition check (table.left): ' + processedHasPositions);
+        }
+
+        function step3() {
+            log('=== STEP 3: Rendering tables ===');
+            
+            if (processedTables.length === 0) {
+                log('ERROR: No processed data. Run Step 2 first.');
+                return;
+            }
+            
+            const canvas = document.getElementById('testCanvas');
+            canvas.innerHTML = '';
+            
+            log('Canvas cleared, starting render...');
+            
+            processedTables.forEach((table, index) => {
+                log('Rendering table ' + (index + 1) + ': ' + table.name);
+                
+                if (!table.left) {
+                    log('WARNING: Table has no left position - skipping');
+                    return;
+                }
+                
+                try {
+                    const tableElement = document.createElement('div');
+                    tableElement.className = `floor-plan-table ${table.status} ${table.shapeType || 'square'}`;
+                    tableElement.id = `floor-table-${table.id}`;
+                    
+                    // Set position
+                    tableElement.style.left = table.left;
+                    tableElement.style.top = table.top;
+                    tableElement.style.width = table.width;
+                    tableElement.style.height = table.height;
+                    
+                    // Set content
+                    tableElement.innerHTML = `<div>${table.name}</div>`;
+                    
+                    log('Created element with styles: left=' + table.left + ', top=' + table.top);
+                    
+                    canvas.appendChild(tableElement);
+                    log('Successfully added table to canvas');
+                    
+                } catch (error) {
+                    log('ERROR rendering table: ' + error.message);
+                }
+            });
+            
+            log('Render complete. Canvas now has ' + canvas.children.length + ' children');
+            
+            // Verify visibility
+            setTimeout(() => {
+                const visibleTables = Array.from(canvas.children).filter(el => {
+                    const rect = el.getBoundingClientRect();
+                    return rect.width > 0 && rect.height > 0;
+                });
+                log('Visible tables: ' + visibleTables.length + ' of ' + canvas.children.length);
+            }, 100);
+        }
+
+        function reset() {
+            rawData = [];
+            processedTables = [];
+            document.getElementById('testCanvas').innerHTML = '';
+            document.getElementById('output').textContent = '';
+            log('Reset complete');
+        }
+
+        // Auto-start
+        window.addEventListener('load', () => {
+            log('Isolated test loaded. Click Step 1 to begin.');
+        });
+    </script>
+</body>
+</html>

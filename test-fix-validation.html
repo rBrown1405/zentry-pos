@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floor Plan Fix Validation</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            border: 2px solid #000;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .pass { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .fail { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: 2px solid #000;
+            padding: 10px 20px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 5px;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Floor Plan Fix Validation</h1>
+    <p>This tool validates that the floor plan display fix is working correctly.</p>
+
+    <div class="test-container">
+        <h2>Test 1: Floor Plan Data Validation</h2>
+        <button onclick="testFloorPlanData()">Check Floor Plan Data</button>
+        <div id="floorPlanDataResult"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Test 2: Data Structure Compatibility</h2>
+        <button onclick="testDataStructure()">Test Data Structure</button>
+        <div id="dataStructureResult"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Test 3: Rendering Logic Test</h2>
+        <button onclick="testRenderingLogic()">Test Rendering Logic</button>
+        <div id="renderingLogicResult"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Test 4: Integration Test</h2>
+        <button onclick="openPOSInterface()">Open POS Interface</button>
+        <button onclick="openFloorPlanEditor()">Open Floor Plan Editor</button>
+        <div id="integrationResult"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Debug Console Commands</h2>
+        <p>Copy and run these commands in the browser console on the POS interface:</p>
+        <div class="code-block">// Check floor plan data
+console.log('Floor plan data:', localStorage.getItem('floorPlan'));
+
+// Check if tables have position data
+const savedPlan = localStorage.getItem('floorPlan');
+if (savedPlan) {
+    const tables = JSON.parse(savedPlan);
+    console.log('Tables with positions:', tables.filter(t => t.left));
+    console.log('Data structure check:', tables[0]);
+}
+
+// Test condition check
+const hasFloorPlanPositions = tables.some(table => table.left);
+console.log('Has floor plan positions:', hasFloorPlanPositions);</div>
+    </div>
+
+    <script>
+        function testFloorPlanData() {
+            const resultDiv = document.getElementById('floorPlanDataResult');
+            resultDiv.innerHTML = '';
+
+            const savedPlan = localStorage.getItem('floorPlan');
+            
+            if (!savedPlan) {
+                resultDiv.innerHTML = '<div class="test-result fail">❌ No floor plan data found in localStorage</div><div class="info">Please create some tables in the floor plan editor first.</div>';
+                return;
+            }
+
+            try {
+                const floorPlanTables = JSON.parse(savedPlan);
+                
+                if (!Array.isArray(floorPlanTables)) {
+                    resultDiv.innerHTML = '<div class="test-result fail">❌ Floor plan data is not an array</div>';
+                    return;
+                }
+
+                if (floorPlanTables.length === 0) {
+                    resultDiv.innerHTML = '<div class="test-result fail">❌ No tables found in floor plan data</div>';
+                    return;
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="test-result pass">✅ Floor plan data found</div>
+                    <div class="info">Found ${floorPlanTables.length} tables in localStorage</div>
+                    <div class="code-block">${JSON.stringify(floorPlanTables[0], null, 2)}</div>
+                `;
+
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result fail">❌ Error parsing floor plan data: ${error.message}</div>`;
+            }
+        }
+
+        function testDataStructure() {
+            const resultDiv = document.getElementById('dataStructureResult');
+            resultDiv.innerHTML = '';
+
+            const savedPlan = localStorage.getItem('floorPlan');
+            
+            if (!savedPlan) {
+                resultDiv.innerHTML = '<div class="test-result fail">❌ No floor plan data to test</div>';
+                return;
+            }
+
+            try {
+                const floorPlanTables = JSON.parse(savedPlan);
+                const testTable = floorPlanTables[0];
+                
+                const tests = [
+                    { name: 'Has left property', check: testTable.hasOwnProperty('left') },
+                    { name: 'Has top property', check: testTable.hasOwnProperty('top') },
+                    { name: 'Has width property', check: testTable.hasOwnProperty('width') },
+                    { name: 'Has height property', check: testTable.hasOwnProperty('height') },
+                    { name: 'Left is not nested in position', check: !testTable.position || !testTable.position.left }
+                ];
+
+                let allPassed = true;
+                let resultHTML = '';
+
+                tests.forEach(test => {
+                    const passed = test.check;
+                    allPassed = allPassed && passed;
+                    resultHTML += `<div class="test-result ${passed ? 'pass' : 'fail'}">
+                        ${passed ? '✅' : '❌'} ${test.name}
+                    </div>`;
+                });
+
+                if (allPassed) {
+                    resultHTML += '<div class="test-result pass">✅ Data structure is compatible with the fix!</div>';
+                } else {
+                    resultHTML += '<div class="test-result fail">❌ Data structure issues detected</div>';
+                }
+
+                resultDiv.innerHTML = resultHTML;
+
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result fail">❌ Error testing data structure: ${error.message}</div>`;
+            }
+        }
+
+        function testRenderingLogic() {
+            const resultDiv = document.getElementById('renderingLogicResult');
+            resultDiv.innerHTML = '';
+
+            const savedPlan = localStorage.getItem('floorPlan');
+            
+            if (!savedPlan) {
+                resultDiv.innerHTML = '<div class="test-result fail">❌ No floor plan data to test</div>';
+                return;
+            }
+
+            try {
+                const floorPlanTables = JSON.parse(savedPlan);
+                
+                // Test the condition logic from our fix
+                const hasFloorPlanPositions = floorPlanTables.some(table => table.left);
+                
+                if (hasFloorPlanPositions) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result pass">✅ Floor plan positions detected!</div>
+                        <div class="info">The condition check 'table.left' passes for ${floorPlanTables.filter(t => t.left).length} tables</div>
+                        <div class="test-result pass">✅ Tables should render in visual floor plan mode</div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = '<div class="test-result fail">❌ No floor plan positions detected</div>';
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result fail">❌ Error testing rendering logic: ${error.message}</div>`;
+            }
+        }
+
+        function openPOSInterface() {
+            window.open('pos-interface-fixed.html', '_blank');
+            document.getElementById('integrationResult').innerHTML = 
+                '<div class="info">🔗 POS Interface opened. Check if tables are visible in the Tables view.</div>';
+        }
+
+        function openFloorPlanEditor() {
+            window.open('floor-plan-editor.html', '_blank');
+            document.getElementById('integrationResult').innerHTML += 
+                '<div class="info">🔗 Floor Plan Editor opened. Create tables here if needed.</div>';
+        }
+
+        // Auto-run initial test on page load
+        window.addEventListener('load', () => {
+            testFloorPlanData();
+        });
+    </script>
+</body>
+</html>

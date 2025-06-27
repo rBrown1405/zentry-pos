@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floor Plan Integration Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f9fafb;
+        }
+        .test-section {
+            background: white;
+            border: 2px solid #000;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+        }
+        .test-button {
+            background: #3b82f6;
+            color: white;
+            border: 2px solid #000;
+            padding: 0.75rem 1.5rem;
+            margin: 0.5rem;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: inherit;
+            font-weight: bold;
+        }
+        .test-button:hover {
+            background: #2563eb;
+        }
+        .status {
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success { background: #dcfce7; color: #166534; }
+        .warning { background: #fef3c7; color: #92400e; }
+        .error { background: #fecaca; color: #b91c1c; }
+        .info { background: #dbeafe; color: #1e40af; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Floor Plan Integration Test</h1>
+    <p>This tool helps test the floor plan integration between the editor and POS interface.</p>
+
+    <div class="test-section">
+        <h2>1. Test Data Setup</h2>
+        <p>Create sample floor plan data in localStorage:</p>
+        <button class="test-button" onclick="createSampleFloorPlan()">Create Sample Floor Plan</button>
+        <button class="test-button" onclick="clearFloorPlan()">Clear Floor Plan</button>
+        <div id="setupStatus"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Test POS Interface</h2>
+        <p>Open the POS interface to verify floor plan integration:</p>
+        <button class="test-button" onclick="openPOSInterface()">Open POS Interface</button>
+        <button class="test-button" onclick="openFloorPlanEditor()">Open Floor Plan Editor</button>
+        <div id="posStatus"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Check localStorage Data</h2>
+        <p>View current floor plan and table status data:</p>
+        <button class="test-button" onclick="viewLocalStorageData()">View Data</button>
+        <button class="test-button" onclick="clearAllData()">Clear All Data</button>
+        <div id="dataStatus"></div>
+        <pre id="dataDisplay" style="background: #f3f4f6; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.875rem;"></pre>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Integration Status</h2>
+        <div id="integrationStatus">
+            <div class="status info">Ready to test floor plan integration</div>
+        </div>
+    </div>
+
+    <script>
+        function createSampleFloorPlan() {
+            const sampleFloorPlan = [
+                {
+                    id: 'table-1',
+                    capacity: 4,
+                    left: '100px',
+                    top: '50px',
+                    width: '80px',
+                    height: '80px',
+                    shapeType: 'circle',
+                    name: 'Table 1',
+                    rotationAngle: 0
+                },
+                {
+                    id: 'table-2',
+                    capacity: 2,
+                    left: '250px',
+                    top: '50px',
+                    width: '60px',
+                    height: '100px',
+                    shapeType: 'curved',
+                    name: 'Table 2',
+                    rotationAngle: 0
+                },
+                {
+                    id: 'table-3',
+                    capacity: 6,
+                    left: '100px',
+                    top: '200px',
+                    width: '120px',
+                    height: '80px',
+                    shapeType: 'booth',
+                    name: 'Booth 3',
+                    rotationAngle: 0
+                },
+                {
+                    id: 'table-4',
+                    capacity: 8,
+                    left: '300px',
+                    top: '180px',
+                    width: '100px',
+                    height: '40px',
+                    shapeType: 'bar-seat',
+                    name: 'Bar 4',
+                    rotationAngle: 0
+                }
+            ];
+
+            localStorage.setItem('floorPlan', JSON.stringify(sampleFloorPlan));
+            
+            document.getElementById('setupStatus').innerHTML = 
+                '<div class="status success">✅ Sample floor plan created with 4 tables</div>';
+        }
+
+        function clearFloorPlan() {
+            localStorage.removeItem('floorPlan');
+            localStorage.removeItem('tableStatuses');
+            
+            document.getElementById('setupStatus').innerHTML = 
+                '<div class="status warning">⚠️ Floor plan and table statuses cleared</div>';
+        }
+
+        function openPOSInterface() {
+            window.open('pos-interface-fixed.html', '_blank');
+            
+            document.getElementById('posStatus').innerHTML = 
+                '<div class="status info">📱 POS Interface opened in new tab</div>';
+        }
+
+        function openFloorPlanEditor() {
+            window.open('floor-plan-editor.html', '_blank');
+            
+            document.getElementById('posStatus').innerHTML = 
+                '<div class="status info">✏️ Floor Plan Editor opened in new tab</div>';
+        }
+
+        function viewLocalStorageData() {
+            const floorPlan = localStorage.getItem('floorPlan');
+            const tableStatuses = localStorage.getItem('tableStatuses');
+            
+            let display = '';
+            
+            if (floorPlan) {
+                display += 'FLOOR PLAN DATA:\\n';
+                display += JSON.stringify(JSON.parse(floorPlan), null, 2);
+                display += '\\n\\n';
+            } else {
+                display += 'FLOOR PLAN DATA: None\\n\\n';
+            }
+            
+            if (tableStatuses) {
+                display += 'TABLE STATUSES:\\n';
+                display += JSON.stringify(JSON.parse(tableStatuses), null, 2);
+            } else {
+                display += 'TABLE STATUSES: None';
+            }
+            
+            document.getElementById('dataDisplay').textContent = display;
+            
+            document.getElementById('dataStatus').innerHTML = 
+                '<div class="status info">📊 Data displayed below</div>';
+        }
+
+        function clearAllData() {
+            localStorage.removeItem('floorPlan');
+            localStorage.removeItem('tableStatuses');
+            localStorage.removeItem('cart');
+            localStorage.removeItem('orders');
+            
+            document.getElementById('dataDisplay').textContent = '';
+            document.getElementById('dataStatus').innerHTML = 
+                '<div class="status warning">🗑️ All localStorage data cleared</div>';
+        }
+
+        // Check integration status on load
+        window.onload = function() {
+            const floorPlan = localStorage.getItem('floorPlan');
+            const hasData = floorPlan !== null;
+            
+            const statusDiv = document.getElementById('integrationStatus');
+            
+            if (hasData) {
+                const data = JSON.parse(floorPlan);
+                statusDiv.innerHTML = 
+                    `<div class="status success">✅ Floor plan data found (${data.length} tables)</div>`;
+            } else {
+                statusDiv.innerHTML = 
+                    '<div class="status warning">⚠️ No floor plan data found - create sample data to test</div>';
+            }
+        };
+    </script>
+</body>
+</html>

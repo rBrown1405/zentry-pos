@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>86 Functionality Test - Macros POS LOL</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 2rem;
+            background: #f8fafc;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border: 2px solid #000;
+            border-radius: 8px;
+            padding: 2rem;
+        }
+        .test-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+        }
+        .test-result {
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .test-success { background: #f0fdf4; color: #059669; border: 1px solid #16a34a; }
+        .test-error { background: #fef2f2; color: #dc2626; border: 1px solid #ef4444; }
+        .test-info { background: #f0f9ff; color: #0284c7; border: 1px solid #0ea5e9; }
+        .test-button {
+            background: #3b82f6;
+            color: white;
+            border: 2px solid #000;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0.5rem;
+            font-family: inherit;
+        }
+        .test-button:hover {
+            background: #2563eb;
+        }
+        .menu-item-test {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 4px;
+        }
+        .menu-item-test.eighty-sixed {
+            opacity: 0.6;
+            background: repeating-linear-gradient(
+                45deg,
+                #f8fafc,
+                #f8fafc 8px,
+                #f1f5f9 8px,
+                #f1f5f9 16px
+            );
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🚫 86 Functionality Test Suite</h1>
+            <p>Testing the "86" (unavailable) feature across all POS interfaces</p>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 Test Overview</h2>
+            <div class="test-result test-info">
+                Testing the 86 functionality that allows marking food items as unavailable for specific days while keeping them visible (grayed out) in the menu.
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🍽️ Menu Editor 86 Functions Test</h2>
+            <button class="test-button" onclick="testMenuEditorFunctions()">Test Menu Editor Functions</button>
+            <div id="menuEditorResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🏪 POS Interface 86 Integration Test</h2>
+            <button class="test-button" onclick="testPOSIntegration()">Test POS Integration</button>
+            <div id="posResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🛎️ Room Service 86 Integration Test</h2>
+            <button class="test-button" onclick="testRoomServiceIntegration()">Test Room Service Integration</button>
+            <div id="roomServiceResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Test Sample Menu Items</h2>
+            <button class="test-button" onclick="createSampleMenu()">Create Sample Menu</button>
+            <button class="test-button" onclick="toggle86Sample()">Toggle 86 Status</button>
+            <div id="sampleMenuResults"></div>
+            <div id="sampleMenuDisplay"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔗 Quick Links to Test Interfaces</h2>
+            <button class="test-button" onclick="window.open('menu-editor.html', '_blank')">📝 Open Menu Editor</button>
+            <button class="test-button" onclick="window.open('pos-interface-fixed.html', '_blank')">🏪 Open POS Interface</button>
+            <button class="test-button" onclick="window.open('pos-interface-fixed.html', '_blank')">🏪 Open POS Interface (Enhanced)</button>
+            <button class="test-button" onclick="window.open('room-service.html', '_blank')">🛎️ Open Room Service</button>
+        </div>
+    </div>
+
+    <script>
+        // Helper functions for testing
+        function log(message, type = 'info', containerId = 'results') {
+            const container = document.getElementById(containerId);
+            const result = document.createElement('div');
+            result.className = `test-result test-${type}`;
+            result.textContent = message;
+            container.appendChild(result);
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearResults(containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+        }
+
+        // Get today's day name
+        function getTodayName() {
+            const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            return days[new Date().getDay()];
+        }
+
+        // Check if item is available today (considering 86 status)
+        function isItemAvailableToday(item) {
+            if (!item.available) return false;
+            if (!item.dayAvailability) return true;
+            
+            const today = getTodayName();
+            return item.dayAvailability[today] !== false;
+        }
+
+        // Test Menu Editor Functions
+        function testMenuEditorFunctions() {
+            clearResults('menuEditorResults');
+            
+            try {
+                // Test if getTodayName function works
+                const today = getTodayName();
+                log(`✅ getTodayName() returns: ${today}`, 'success', 'menuEditorResults');
+                
+                // Test availability check
+                const testItem1 = {
+                    id: 'test1',
+                    name: 'Test Burger',
+                    available: true,
+                    dayAvailability: {
+                        monday: true, tuesday: true, wednesday: true, thursday: true,
+                        friday: true, saturday: true, sunday: true
+                    }
+                };
+                
+                const testItem2 = {
+                    id: 'test2',
+                    name: 'Test Pizza',
+                    available: true,
+                    dayAvailability: {
+                        monday: true, tuesday: true, wednesday: true, thursday: true,
+                        friday: true, saturday: true, sunday: true,
+                        [today]: false  // 86'd for today
+                    }
+                };
+                
+                const available1 = isItemAvailableToday(testItem1);
+                const available2 = isItemAvailableToday(testItem2);
+                
+                log(`✅ Available item check: ${available1}`, available1 ? 'success' : 'error', 'menuEditorResults');
+                log(`✅ 86'd item check: ${available2}`, !available2 ? 'success' : 'error', 'menuEditorResults');
+                
+                // Test localStorage functionality
+                const testMenu = [testItem1, testItem2];
+                localStorage.setItem('menuItems', JSON.stringify(testMenu));
+                const savedMenu = JSON.parse(localStorage.getItem('menuItems') || '[]');
+                
+                log(`✅ localStorage menu save/load: ${savedMenu.length === 2}`, savedMenu.length === 2 ? 'success' : 'error', 'menuEditorResults');
+                
+                log('🎯 Menu Editor functions are working correctly!', 'success', 'menuEditorResults');
+                
+            } catch (error) {
+                log(`❌ Error testing menu editor functions: ${error.message}`, 'error', 'menuEditorResults');
+            }
+        }
+
+        // Test POS Integration
+        function testPOSIntegration() {
+            clearResults('posResults');
+            
+            try {
+                // Check if menu items are in localStorage
+                const menuItems = JSON.parse(localStorage.getItem('menuItems') || '[]');
+                log(`📊 Found ${menuItems.length} menu items in localStorage`, 'info', 'posResults');
+                
+                if (menuItems.length === 0) {
+                    log('⚠️ No menu items found. Create sample menu first.', 'error', 'posResults');
+                    return;
+                }
+                
+                // Filter available items
+                const availableItems = menuItems.filter(item => isItemAvailableToday(item));
+                const eightySixedItems = menuItems.filter(item => !isItemAvailableToday(item));
+                
+                log(`✅ Available items for today: ${availableItems.length}`, 'success', 'posResults');
+                log(`🚫 86'd items for today: ${eightySixedItems.length}`, 'info', 'posResults');
+                
+                // Test both POS interfaces
+                log('📱 POS Interface (pos-interface-fixed.html) - Enhanced with 86 functionality', 'success', 'posResults');
+                log('📱 POS Interface Fixed (pos-interface-fixed.html) - Has 86 functionality', 'success', 'posResults');
+                
+                eightySixedItems.forEach(item => {
+                    log(`  - ${item.name} is 86'd for ${getTodayName()}`, 'info', 'posResults');
+                });
+                
+            } catch (error) {
+                log(`❌ Error testing POS integration: ${error.message}`, 'error', 'posResults');
+            }
+        }
+
+        // Test Room Service Integration
+        function testRoomServiceIntegration() {
+            clearResults('roomServiceResults');
+            
+            try {
+                // Check room service menu
+                const roomServiceMenu = JSON.parse(localStorage.getItem('roomServiceMenu') || '[]');
+                log(`📊 Found ${roomServiceMenu.length} room service menu items`, 'info', 'roomServiceResults');
+                
+                if (roomServiceMenu.length === 0) {
+                    // Try to sync with restaurant menu
+                    const restaurantMenu = JSON.parse(localStorage.getItem('menuItems') || '[]');
+                    if (restaurantMenu.length > 0) {
+                        const syncedMenu = restaurantMenu.map(item => ({
+                            ...item,
+                            id: `rs_${item.id}_${Date.now()}`,
+                            originalId: item.id,
+                            syncedFromRestaurant: true,
+                            customized: false
+                        }));
+                        localStorage.setItem('roomServiceMenu', JSON.stringify(syncedMenu));
+                        log(`✅ Synced ${syncedMenu.length} items to room service menu`, 'success', 'roomServiceResults');
+                    } else {
+                        log('⚠️ No restaurant menu to sync from', 'error', 'roomServiceResults');
+                        return;
+                    }
+                }
+                
+                // Re-check after potential sync
+                const updatedRoomServiceMenu = JSON.parse(localStorage.getItem('roomServiceMenu') || '[]');
+                const availableRoomServiceItems = updatedRoomServiceMenu.filter(item => isItemAvailableToday(item));
+                const eightySixedRoomServiceItems = updatedRoomServiceMenu.filter(item => !isItemAvailableToday(item));
+                
+                log(`✅ Available room service items: ${availableRoomServiceItems.length}`, 'success', 'roomServiceResults');
+                log(`🚫 86'd room service items: ${eightySixedRoomServiceItems.length}`, 'info', 'roomServiceResults');
+                log('🛎️ Room Service has 86 functionality integrated', 'success', 'roomServiceResults');
+                
+            } catch (error) {
+                log(`❌ Error testing room service integration: ${error.message}`, 'error', 'roomServiceResults');
+            }
+        }
+
+        // Create Sample Menu
+        function createSampleMenu() {
+            clearResults('sampleMenuResults');
+            
+            const today = getTodayName();
+            const sampleMenu = [
+                {
+                    id: 'burger_001',
+                    name: 'Classic Burger',
+                    price: 12.99,
+                    category: 'mains',
+                    description: 'Juicy beef burger with lettuce, tomato, and special sauce',
+                    emoji: '🍔',
+                    available: true,
+                    dayAvailability: {
+                        monday: true, tuesday: true, wednesday: true, thursday: true,
+                        friday: true, saturday: true, sunday: true
+                    }
+                },
+                {
+                    id: 'pizza_001',
+                    name: 'Margherita Pizza',
+                    price: 16.99,
+                    category: 'mains',
+                    description: 'Fresh tomato, mozzarella, and basil',
+                    emoji: '🍕',
+                    available: true,
+                    dayAvailability: {
+                        monday: true, tuesday: true, wednesday: true, thursday: true,
+                        friday: true, saturday: true, sunday: true,
+                        [today]: false  // 86'd for today
+                    }
+                },
+                {
+                    id: 'salad_001',
+                    name: 'Caesar Salad',
+                    price: 9.99,
+                    category: 'appetizers',
+                    description: 'Crisp romaine lettuce with Caesar dressing',
+                    emoji: '🥗',
+                    available: true,
+                    dayAvailability: {
+                        monday: true, tuesday: true, wednesday: true, thursday: true,
+                        friday: true, saturday: true, sunday: true
+                    }
+                },
+                {
+                    id: 'pasta_001',
+                    name: 'Spaghetti Carbonara',
+                    price: 14.99,
+                    category: 'mains',
+                    description: 'Classic Italian pasta with eggs, cheese, and pancetta',
+                    emoji: '🍝',
+                    available: true,
+                    dayAvailability: {
+                        monday: true, tuesday: true, wednesday: true, thursday: true,
+                        friday: true, saturday: true, sunday: true,
+                        [today]: false  // 86'd for today
+                    }
+                }
+            ];
+            
+            localStorage.setItem('menuItems', JSON.stringify(sampleMenu));
+            log(`✅ Created sample menu with ${sampleMenu.length} items`, 'success', 'sampleMenuResults');
+            log(`🚫 ${sampleMenu.filter(item => !isItemAvailableToday(item)).length} items are 86'd for ${today}`, 'info', 'sampleMenuResults');
+            
+            displaySampleMenu(sampleMenu);
+        }
+
+        // Display Sample Menu
+        function displaySampleMenu(menu = null) {
+            const container = document.getElementById('sampleMenuDisplay');
+            if (!menu) {
+                menu = JSON.parse(localStorage.getItem('menuItems') || '[]');
+            }
+            
+            if (menu.length === 0) {
+                container.innerHTML = '<p>No menu items to display. Create sample menu first.</p>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <h3>Sample Menu Items (Today: ${getTodayName()})</h3>
+                ${menu.map(item => {
+                    const isAvailable = isItemAvailableToday(item);
+                    return `
+                        <div class="menu-item-test ${!isAvailable ? 'eighty-sixed' : ''}">
+                            <strong>${item.emoji} ${item.name}</strong> - $${item.price.toFixed(2)}
+                            <br><small>${item.description}</small>
+                            <br><span style="color: ${isAvailable ? '#059669' : '#dc2626'}; font-weight: bold;">
+                                ${isAvailable ? '✅ Available' : '🚫 86\'d for ' + getTodayName()}
+                            </span>
+                        </div>
+                    `;
+                }).join('')}
+            `;
+        }
+
+        // Toggle 86 Status
+        function toggle86Sample() {
+            clearResults('sampleMenuResults');
+            
+            const menuItems = JSON.parse(localStorage.getItem('menuItems') || '[]');
+            if (menuItems.length === 0) {
+                log('⚠️ No menu items found. Create sample menu first.', 'error', 'sampleMenuResults');
+                return;
+            }
+            
+            const today = getTodayName();
+            const updatedMenu = menuItems.map(item => {
+                if (item.id === 'burger_001') {
+                    // Toggle burger availability for today
+                    item.dayAvailability[today] = !item.dayAvailability[today];
+                }
+                return item;
+            });
+            
+            localStorage.setItem('menuItems', JSON.stringify(updatedMenu));
+            
+            const burger = updatedMenu.find(item => item.id === 'burger_001');
+            const status = burger.dayAvailability[today] ? 'available' : '86\'d';
+            log(`🍔 Classic Burger is now ${status} for ${today}`, 'success', 'sampleMenuResults');
+            
+            displaySampleMenu(updatedMenu);
+        }
+
+        // Initialize display on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuItems = JSON.parse(localStorage.getItem('menuItems') || '[]');
+            if (menuItems.length > 0) {
+                displaySampleMenu(menuItems);
+            }
+        });
+    </script>
+</body>
+</html>

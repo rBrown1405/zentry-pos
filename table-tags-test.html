@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Table Tags Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .tag { display: inline-block; background: #3b82f6; color: white; padding: 4px 8px; border-radius: 4px; margin: 2px; }
+    </style>
+</head>
+<body>
+    <h1>Table Tags Test</h1>
+    
+    <div class="test-section">
+        <h3>Test Tag Object Creation</h3>
+        <button onclick="testTagCreation()">Test Tag Creation</button>
+        <div id="tagCreationResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test Tag Display</h3>
+        <button onclick="testTagDisplay()">Test Tag Display</button>
+        <div id="tagDisplayResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test Backward Compatibility</h3>
+        <button onclick="testBackwardCompatibility()">Test Backward Compatibility</button>
+        <div id="backwardCompatResult"></div>
+    </div>
+
+    <script>
+        function testTagCreation() {
+            const tagMetadata = {
+                'birthday': { emoji: '🎂', name: 'Birthday', type: 'birthday' },
+                'anniversary': { emoji: '💕', name: 'Anniversary', type: 'anniversary' },
+                'vip': { emoji: '👑', name: 'VIP', type: 'vip' }
+            };
+            
+            const selectedTags = [];
+            selectedTags.push(tagMetadata['birthday']);
+            selectedTags.push(tagMetadata['vip']);
+            selectedTags.push({ emoji: '🏷️', name: 'Custom Event', type: 'custom' });
+            
+            const result = document.getElementById('tagCreationResult');
+            result.innerHTML = `
+                <p>Created tags: ${JSON.stringify(selectedTags, null, 2)}</p>
+                <p>Test passed: ${selectedTags.length === 3 && selectedTags[0].emoji === '🎂' ? '✅' : '❌'}</p>
+            `;
+        }
+        
+        function testTagDisplay() {
+            const testTags = [
+                { emoji: '🎂', name: 'Birthday', type: 'birthday' },
+                { emoji: '👑', name: 'VIP', type: 'vip' },
+                { emoji: '🏷️', name: 'Custom Event', type: 'custom' }
+            ];
+            
+            const displayHtml = testTags.map(tag => `<span class="tag">${tag.emoji} ${tag.name}</span>`).join('');
+            
+            const result = document.getElementById('tagDisplayResult');
+            result.innerHTML = `
+                <p>Display test:</p>
+                <div>${displayHtml}</div>
+                <p>Test passed: ${displayHtml.includes('🎂 Birthday') && displayHtml.includes('👑 VIP') ? '✅' : '❌'}</p>
+            `;
+        }
+        
+        function testBackwardCompatibility() {
+            const oldStringTags = ['birthday', 'vip', 'custom event'];
+            const newObjectTags = [
+                { emoji: '🎂', name: 'Birthday', type: 'birthday' },
+                { emoji: '👑', name: 'VIP', type: 'vip' }
+            ];
+            
+            function handleMixedTags(tags) {
+                return tags.map(tag => {
+                    if (typeof tag === 'string') {
+                        // Convert old format
+                        return { emoji: '🏷️', name: tag, type: 'legacy' };
+                    }
+                    return tag; // Already in new format
+                });
+            }
+            
+            const processedOld = handleMixedTags(oldStringTags);
+            const processedNew = handleMixedTags(newObjectTags);
+            
+            const result = document.getElementById('backwardCompatResult');
+            result.innerHTML = `
+                <p>Old string tags converted: ${JSON.stringify(processedOld, null, 2)}</p>
+                <p>New object tags preserved: ${JSON.stringify(processedNew, null, 2)}</p>
+                <p>Test passed: ${processedOld[0].name === 'birthday' && processedNew[0].emoji === '🎂' ? '✅' : '❌'}</p>
+            `;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Settings - Macros POS LOL - v2.1</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>        body {
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 0;
+            background: #f8fafc;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        .settings-container {
+            height: 100vh;
+            width: 100vw;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }        .settings-header {
+            background: white;
+            border: 2px solid #000;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            gap: 3rem;
+            min-height: 80px;
+        }        .settings-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-left: auto;
+            text-align: right;
+            order: 2;
+        }.back-button {
+            background: #3b82f6;
+            color: white;
+            border: 2px solid #000;
+            padding: 0.75rem 1.5rem;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            order: 1;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .back-button:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            padding: 1.5rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .settings-section {
+            background: white;
+            border: 2px solid #000;
+            padding: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            color: #1f2937;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .setting-description {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        .setting-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: #d1d5db;
+            border: 2px solid #000;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle-switch.active {
+            background: #10b981;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border: 1px solid #000;
+            transition: transform 0.2s;
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(26px);
+        }
+
+        .input-field {
+            background: white;
+            border: 2px solid #000;
+            padding: 0.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            width: 120px;
+        }
+
+        .select-field {
+            background: white;
+            border: 2px solid #000;
+            padding: 0.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            width: 140px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .settings-btn {
+            background: #f1f5f9;
+            color: #374151;
+            border: 2px solid #000;
+            padding: 0.5rem 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .settings-btn:hover {
+            background: #e2e8f0;
+            transform: translateY(-1px);
+        }
+
+        .settings-btn.primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .settings-btn.primary:hover {
+            background: #2563eb;
+        }
+
+        .settings-btn.danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .settings-btn.danger:hover {
+            background: #dc2626;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 1rem 1.5rem;
+            border: 2px solid #000;
+            z-index: 1000;
+            font-weight: bold;
+            animation: slideIn 0.3s ease;
+        }
+
+        .notification.success {
+            background: #10b981; /* Green */
+        }
+        
+        .notification.error {
+            background: #ef4444; /* Red */
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }        @media (max-width: 768px) {
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .settings-header {
+                flex-direction: column;
+                gap: 1.5rem;
+                text-align: center;
+                padding: 1rem;
+            }
+            
+            .settings-title {
+                font-size: 1.5rem;
+                margin-right: 0;
+            }
+        }
+
+        .export-format-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .export-format-content {
+            background: white;
+            border: 2px solid #000;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+        }
+        .format-options {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .format-options label {
+            display: flex;
+            align-items: flex-start;
+            cursor: pointer;
+            padding: 0.5rem;
+            border: 1px solid transparent;
+        }
+        .format-options label:hover {
+            background-color: #f1f5f9;
+            border-color: #e2e8f0;
+        }
+        .format-name {
+            font-weight: bold;
+            margin-left: 0.5rem;
+            width: 100px;
+        }
+        .format-desc {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-left: 0.5rem;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+    </style>
+</head>
+<body>    <div class="settings-container">        <header class="settings-header">
+            <a href="pos-interface-fixed.html" class="back-button">← Back to POS</a>
+            <h1 class="settings-title">Settings</h1>
+            <button onclick="window.open('help.html', '_blank')" style="background: #667eea; color: white; border: 2px solid #000; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                📚 Help
+            </button>
+        </header>
+
+        <div class="settings-grid">
+            <!-- General Settings -->
+            <section class="settings-section">
+                <h2 class="section-title">General Settings</h2>
+                
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Restaurant Name</div>
+                        <div class="setting-description">Display name for receipts and reports</div>
+                    </div>
+                    <div class="setting-control">
+                        <input type="text" class="input-field" value="Grand Hotel & Restaurant" id="restaurantName">
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Currency</div>
+                        <div class="setting-description">Primary currency for all transactions</div>
+                    </div>
+                    <div class="setting-control">
+                        <select class="select-field" id="currency">
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="GBP">GBP (£)</option>
+                            <option value="CAD">CAD ($)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Time Zone</div>
+                        <div class="setting-description">Local time zone for orders and reports</div>
+                    </div>
+                    <div class="setting-control">
+                        <select class="select-field" id="timezone">
+                            <option value="EST">Eastern (EST)</option>
+                            <option value="CST">Central (CST)</option>
+                            <option value="MST">Mountain (MST)</option>
+                            <option value="PST">Pacific (PST)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">24-Hour Format</div>
+                        <div class="setting-description">Use 24-hour time format</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="toggle-switch" onclick="toggleSetting(this, '24hour')" id="toggle24hour">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Umbrella Account Backup</div>
+                        <div class="setting-description">Export and upload all umbrella account data to cloud storage</div>
+                    </div>
+                    <div class="setting-control">
+                        <button id="umbrella-backup-btn" class="settings-btn" style="background: #1976d2; color: #fff; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: 600;">☁️ Backup Umbrella Account Data</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tax & Pricing -->
+            <section class="settings-section">
+                <h2 class="section-title">Tax & Pricing</h2>
+                
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Tax Rate (%)</div>
+                        <div class="setting-description">Default tax rate for all items</div>
+                    </div>
+                    <div class="setting-control">
+                        <input type="number" class="input-field" value="8.5" min="0" max="50" step="0.1" id="taxRate">
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Service Charge</div>
+                        <div class="setting-description">Automatic service charge for large parties</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="toggle-switch" onclick="toggleSetting(this, 'servicecharge')" id="toggleServiceCharge">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Round to Nearest</div>
+                        <div class="setting-description">Round final total to nearest cent</div>
+                    </div>
+                    <div class="setting-control">
+                        <select class="select-field" id="rounding">
+                            <option value="0.01">$0.01</option>
+                            <option value="0.05">$0.05</option>
+                            <option value="0.10">$0.10</option>
+                            <option value="1.00">$1.00</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Receipt & Printing -->
+            <section class="settings-section">
+                <h2 class="section-title">Receipt & Printing</h2>
+                
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Auto-Print Receipt</div>
+                        <div class="setting-description">Automatically print receipt after payment</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="toggle-switch active" onclick="toggleSetting(this, 'autoprint')" id="toggleAutoPrint">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Receipt Footer</div>
+                        <div class="setting-description">Custom message on all receipts</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="button-group">
+                            <button class="settings-btn" onclick="editReceiptFooter()">Edit</button>
+                            <button class="settings-btn" onclick="previewReceipt()">Preview</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Kitchen Printer</div>
+                        <div class="setting-description">Send orders directly to kitchen printer</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="toggle-switch active" onclick="toggleSetting(this, 'kitchenprint')" id="toggleKitchenPrint">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Staff & Security -->
+            <section class="settings-section">
+                <h2 class="section-title">Staff & Security</h2>
+                
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Manager Override</div>
+                        <div class="setting-description">Require manager approval for voids/discounts</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="toggle-switch active" onclick="toggleSetting(this, 'manageroverride')" id="toggleManagerOverride">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Auto Logout</div>
+                        <div class="setting-description">Automatically logout after inactivity (minutes)</div>
+                    </div>
+                    <div class="setting-control">
+                        <input type="number" class="input-field" value="30" min="5" max="120" id="autoLogout">
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Staff Management</div>
+                        <div class="setting-description">Add, edit, or remove staff accounts</div>
+                    </div>
+                    <div class="setting-control">
+                        <button class="settings-btn primary" onclick="manageStaff()">Manage Staff</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- System & Backup -->
+            <section class="settings-section">
+                <h2 class="section-title">System & Backup</h2>
+                
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Automatic Backup</div>
+                        <div class="setting-description">Daily backup of all data and settings</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="toggle-switch active" onclick="toggleSetting(this, 'autobackup')" id="toggleAutoBackup">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Data Export</div>
+                        <div class="setting-description">Export sales data and reports</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="button-group">
+                            <button class="settings-btn" onclick="exportData()">Export</button>
+                            <button class="settings-btn" onclick="scheduleExport()">Schedule</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Reset System</div>
+                        <div class="setting-description">Reset all settings to defaults</div>
+                    </div>
+                    <div class="setting-control">
+                        <button class="settings-btn danger" onclick="resetSystem()">Reset All</button>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">System Info</div>
+                        <div class="setting-description">View system version and diagnostics</div>
+                    </div>
+                    <div class="setting-control">
+                        <button class="settings-btn" onclick="showSystemInfo()">View Info</button>
+                    </div>
+                </div>
+            </section>            <!-- Menu Management -->
+            <section class="settings-section">
+                <h2 class="section-title">Menu Management</h2>
+                
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Menu Editor</div>
+                        <div class="setting-description">Add, edit, or remove menu items and categories</div>
+                    </div>
+                    <div class="setting-control">
+                        <button class="settings-btn primary" onclick="openMenuEditor()">🍽️ Edit Menu</button>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Menu Categories</div>
+                        <div class="setting-description">Organize menu items into categories</div>
+                    </div>
+                    <div class="setting-control">
+                        <button class="settings-btn" onclick="manageCategories()">📂 Categories</button>
+                    </div>
+                </div>                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Import/Export Menu</div>
+                        <div class="setting-description">Import menu from file or export current menu</div>
+                    </div>
+                    <div class="setting-control">
+                        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 10px;">
+                            <div style="display: flex; gap: 10px;">
+                                <button class="settings-btn" onclick="importMenu()">📥 Import</button>
+                                <button class="settings-btn" onclick="exportMenu()">📤 Export</button>
+                            </div>
+                            <button class="settings-btn" onclick="showImportFormatTutorial()">❓ Help</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Menu Availability</div>
+                        <div class="setting-description">Enable/disable items based on availability</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="toggle-switch active" onclick="toggleSetting(this, 'menuavailability')" id="toggleMenuAvailability">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Floor Plan Editor -->
+            <section class="settings-section">
+                <h2 class="section-title">Floor Plan Editor</h2>
+                
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Edit Floor Plan</div>
+                        <div class="setting-description">Customize table shapes and layout with drag and drop.</div>
+                    </div>
+                    <div class="setting-control">
+                        <button class="settings-btn primary" onclick="openFloorPlanEditor()">📐 Edit Floor Plan</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Save Actions -->
+            <section class="settings-section" style="grid-column: 1 / -1;">
+                <div style="display: flex; justify-content: center; gap: 1rem;">
+                    <button class="settings-btn primary" onclick="saveSettings()" style="padding: 1rem 2rem; font-size: 1rem;">💾 Save All Settings</button>
+                    <button class="settings-btn" onclick="resetToDefaults()" style="padding: 1rem 2rem; font-size: 1rem;">↩️ Reset to Defaults</button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div class="notification" id="notification" style="display: none;"></div>    <!-- Add SheetJS library for Excel file support -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- Add Mammoth.js library for Word document support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    
+    <script>
+        // Settings functionality
+        function toggleSetting(element, settingName) {
+            element.classList.toggle('active');
+            const isActive = element.classList.contains('active');
+            
+            // Store setting in localStorage
+            localStorage.setItem(`setting_${settingName}`, isActive);
+            
+            showNotification(`${settingName} ${isActive ? 'enabled' : 'disabled'}`);
+        }
+
+        async function saveSettings() {
+            // Collect all form values
+            const settings = {
+                restaurantName: document.getElementById('restaurantName').value,
+                currency: document.getElementById('currency').value,
+                timezone: document.getElementById('timezone').value,
+                taxRate: document.getElementById('taxRate') ? document.getElementById('taxRate').value : '',
+                rounding: document.getElementById('rounding') ? document.getElementById('rounding').value : '',
+                autoLogout: document.getElementById('autoLogout') ? document.getElementById('autoLogout').value : ''
+            };
+            // Save to localStorage
+            localStorage.setItem('posSettings', JSON.stringify(settings));
+            // --- SYNC TO FIREBASE ---
+            if (window.umbrellaManager && window.umbrellaManager.currentBusiness) {
+                try {
+                    // Update business document
+                    const db = window.firebaseServices.getDb();
+                    const businessId = window.umbrellaManager.currentBusiness.id;
+                    await db.collection('businesses').doc(businessId).update({
+                        companyName: settings.restaurantName,
+                        currency: settings.currency,
+                        timezone: settings.timezone,
+                        // Add more fields as needed
+                    });
+                    // Update all properties for this business
+                    const propertiesSnapshot = await db.collection('properties').where('business', '==', businessId).get();
+                    const batch = db.batch();
+                    propertiesSnapshot.forEach(doc => {
+                        batch.update(doc.ref, {
+                            businessName: settings.restaurantName,
+                            currency: settings.currency,
+                            timezone: settings.timezone
+                            // Add more fields as needed
+                        });
+                    });
+                    await batch.commit();
+                    showNotification('All settings saved and synced to properties!');
+                } catch (err) {
+                    showNotification('Settings saved locally, but failed to sync to cloud: ' + err.message);
+                }
+            } else {
+                showNotification('All settings saved locally! (Not synced to cloud)');
+            }
+        }
+
+        function resetToDefaults() {
+            if (confirm('Are you sure you want to reset all settings to defaults? This cannot be undone.')) {
+                // Clear localStorage
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('setting_') || key === 'posSettings') {
+                        localStorage.removeItem(key);
+                    }
+                });
+                
+                // Reload page to show defaults
+                location.reload();
+                
+                showNotification('Settings reset to defaults');
+            }
+        }
+
+        function editReceiptFooter() {
+            const footer = prompt('Enter receipt footer message:', 'Thank you for dining with us!');
+            if (footer !== null) {
+                localStorage.setItem('receiptFooter', footer);
+                showNotification('Receipt footer updated');
+            }
+        }
+
+        function previewReceipt() {
+            showNotification('Receipt preview - Feature coming soon!');
+        }
+
+        function manageStaff() {
+            showNotification('Staff management - Feature coming soon!');
+        }
+
+        function exportData() {
+            showNotification('Exporting data - Feature coming soon!');
+        }
+
+        function scheduleExport() {
+            showNotification('Schedule export - Feature coming soon!');
+        }
+
+        function resetSystem() {
+            if (confirm('Are you sure you want to reset the entire system? This will delete all data!')) {
+                if (confirm('This action cannot be undone. Type "RESET" to confirm:') === 'RESET') {
+                    showNotification('System reset - Feature coming soon!');
+                }
+            }
+        }        function showSystemInfo() {
+            alert(`Macros POS LOL v2.0
+Build: 2025.06.09
+Database: Connected
+Last Backup: 2025-06-08 11:30 PM
+Storage Used: 245 MB`);
+        }
+
+        function openMenuEditor() {
+            window.location.href = 'menu-editor.html';
+        }
+
+        function openFloorPlanEditor() {
+            window.location.href = 'floor-plan-editor.html';
+        }
+
+        // Placeholder functions for menu management
+        function manageCategories() {
+            console.log('manageCategories function called');
+            alert('Category management functionality not yet implemented.');
+            // Future implementation:
+            // - Show a modal or navigate to a page for managing categories
+            // - Allow adding, editing, deleting categories
+            // - Link categories to menu items
+        }        function importMenu() {
+            console.log('importMenu function called');
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.json,.csv,.txt,.xlsx,.xls,.docx'; // Accept JSON, CSV, TXT, Excel, and Word files
+
+            fileInput.onchange = event => {
+                const file = event.target.files[0];
+                if (!file) {
+                    showNotification('No file selected.', 'error');
+                    return;
+                }
+
+                // Show loading notification
+                showNotification('Processing your file...', 'info');
+                
+                const reader = new FileReader();
+                
+                reader.onload = e => {
+                    const content = e.target.result;
+                    let menuData;
+                    
+                    try {
+                        const fileName = file.name.toLowerCase();
+                        
+                        if (fileName.endsWith('.json')) {
+                            // Handle JSON files
+                            menuData = JSON.parse(content);
+                            if (!Array.isArray(menuData)) {
+                                throw new Error('JSON file is not an array of menu items.');
+                            }
+                            // Basic validation for JSON structure
+                            if (menuData.length > 0 && (!menuData[0].name || typeof menuData[0].price === 'undefined')) {
+                                throw new Error('Invalid JSON format. Each item must have at least "name" and "price".');
+                            }
+                        } 
+                        else if (fileName.endsWith('.csv')) {
+                            // Handle CSV files
+                            menuData = parseCsvMenu(content);
+                        } 
+                        else if (fileName.endsWith('.txt')) {
+                            // Handle TXT files
+                            menuData = parseTxtMenu(content);
+                        }                        else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                            // Handle Excel files using SheetJS
+                            const data = new Uint8Array(content);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            
+                            // Assume first sheet contains menu data
+                            const firstSheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[firstSheetName];
+                            
+                            // Convert to JSON with headers
+                            const excelData = XLSX.utils.sheet_to_json(worksheet, { raw: false });
+                            
+                            if (!excelData || excelData.length === 0) {
+                                throw new Error('Excel file is empty or has invalid format.');
+                            }
+                            
+                            // Validate excel data - must have name and price columns
+                            const firstRow = excelData[0];
+                            const hasNameColumn = Object.keys(firstRow).some(key => 
+                                key.toLowerCase() === 'name' || key.toLowerCase() === 'item' || key.toLowerCase() === 'item name');
+                            const hasPriceColumn = Object.keys(firstRow).some(key => 
+                                key.toLowerCase() === 'price' || key.toLowerCase() === 'cost' || key.toLowerCase() === 'amount');
+                                
+                            if (!hasNameColumn || !hasPriceColumn) {
+                                throw new Error('Excel file must have columns for name (or item) and price.');
+                            }
+                            
+                            // Map Excel data to our standard format
+                            menuData = excelData.map(row => {
+                                // Find the name column (could be "name", "item", "item name")
+                                let nameValue = row.Name || row.name || row.ITEM || row.Item || row["Item Name"] || row["item name"];
+                                // Find the price column (could be "price", "cost", "amount")
+                                let priceValue = row.Price || row.price || row.PRICE || row.Cost || row.cost || row.Amount || row.amount;
+                                // Find the category column if it exists
+                                let categoryValue = row.Category || row.category || row.CATEGORY || row.Type || row.type || 'Uncategorized';
+                                
+                                // Parse price to ensure it's a number
+                                let price = parseFloat(String(priceValue).replace(/[^\d.-]/g, ''));
+                                
+                                if (!nameValue || isNaN(price)) {
+                                    console.warn('Skipping Excel row due to missing name or invalid price:', row);
+                                    return null; // Will be filtered out
+                                }
+                                
+                                return {
+                                    name: String(nameValue).trim(),
+                                    price: price,
+                                    category: String(categoryValue).trim()
+                                };
+                            }).filter(item => item !== null); // Remove invalid items
+                        }
+                        else if (fileName.endsWith('.docx')) {
+                            // Handle Word documents using Mammoth.js
+                            showNotification('Processing Word document...', 'info');
+                            
+                            // Convert the ArrayBuffer to appropriate format for mammoth
+                            const arrayBuffer = content;
+                            
+                            // We need to process this asynchronously
+                            mammoth.extractRawText({arrayBuffer})
+                                .then(result => {
+                                    const text = result.value;
+                                    // Assume each line follows name;price;category format (similar to TXT)
+                                    try {
+                                        const parsedMenu = parseTxtMenu(text);
+                                        if (parsedMenu && parsedMenu.length > 0) {
+                                            localStorage.setItem('menuData', JSON.stringify(parsedMenu));
+                                            showNotification(`Menu imported successfully from ${file.name}. ${parsedMenu.length} items loaded.`, 'success');
+                                        } else {
+                                            showNotification('No valid menu items found in the Word document.', 'error');
+                                        }
+                                    } catch (err) {
+                                        showNotification(`Error parsing Word document: ${err.message}`, 'error');
+                                    }
+                                })
+                                .catch(error => {
+                                    showNotification(`Error processing Word document: ${error.message}`, 'error');
+                                });
+                                
+                            // Return early as we're handling this asynchronously
+                            return;
+                        }
+                        else {
+                            showNotification('Unsupported file type.', 'error');
+                            return;
+                        }
+
+                        if (menuData && menuData.length > 0) {
+                            localStorage.setItem('menuData', JSON.stringify(menuData));
+                            showNotification(`Menu imported successfully from ${file.name}. ${menuData.length} items loaded.`, 'success');
+                            // Optionally, redirect or update UI to reflect new menu
+                        } else {
+                            showNotification('No valid menu items found in the file or file was empty.', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error importing menu:', error);
+                        showNotification(`Error importing menu: ${error.message}`, 'error');
+                    }
+                };
+
+                reader.onerror = () => {
+                    showNotification('Error reading file.', 'error');
+                };                // Different handling for Excel files vs text-based files vs Word docs
+                const fileName = file.name.toLowerCase();
+                if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.docx')) {
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    reader.readAsText(file);
+                }
+            };            // Directly trigger file selection dialog
+            fileInput.click();
+        }
+
+        function parseCsvMenu(csvContent) {
+            const lines = csvContent.trim().split('\n');
+            if (lines.length < 2) { // Header + at least one data row
+                throw new Error('CSV file must have a header and at least one item.');
+            }
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            const nameIndex = headers.indexOf('name');
+            const priceIndex = headers.indexOf('price');
+            const categoryIndex = headers.indexOf('category');
+            // Add more expected headers here e.g., description, id
+
+            if (nameIndex === -1 || priceIndex === -1) {
+                throw new Error('CSV file must contain "name" and "price" columns.');
+            }
+
+            const menuItems = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                const name = values[nameIndex] ? values[nameIndex].trim() : null;
+                const priceStr = values[priceIndex] ? values[priceIndex].trim() : null;
+                const category = categoryIndex !== -1 && values[categoryIndex] ? values[categoryIndex].trim() : 'Uncategorized';
+                
+                if (!name || priceStr === null) {
+                    console.warn(`Skipping CSV row ${i + 1} due to missing name or price.`);
+                    continue;
+                }
+                const price = parseFloat(priceStr);
+                if (isNaN(price)) {
+                    console.warn(`Skipping CSV row ${i + 1} due to invalid price: ${priceStr}`);
+                    continue;
+                }
+                menuItems.push({ name, price, category });
+            }
+            return menuItems;
+        }
+
+        function parseTxtMenu(txtContent) {
+            const lines = txtContent.trim().split('\n');
+            const menuItems = [];
+            // Expected format per line: Name;Price;Category (optional)
+            lines.forEach((line, index) => {
+                const parts = line.split(';');
+                if (parts.length >= 2) {
+                    const name = parts[0].trim();
+                    const priceStr = parts[1].trim();
+                    const category = parts.length > 2 ? parts[2].trim() : 'Uncategorized';
+                    
+                    if (!name || !priceStr) {
+                        console.warn(`Skipping TXT line ${index + 1} due to missing name or price.`);
+                        return; // continue to next iteration
+                    }
+                    const price = parseFloat(priceStr);
+                     if (isNaN(price)) {
+                        console.warn(`Skipping TXT line ${index + 1} due to invalid price: ${priceStr}`);
+                        return; // continue to next iteration
+                    }
+                    menuItems.push({ name, price, category });
+                } else {
+                    console.warn(`Skipping TXT line ${index + 1} due to incorrect format.`);
+                }
+            });
+            return menuItems;
+        }
+
+        function parseExcelMenu(content) {
+            const workbook = XLSX.read(content, { type: 'binary' });
+            const menuItems = [];
+
+            // Assuming the first sheet is the menu
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+            // Validate and convert to menu item objects
+            for (let i = 1; i < jsonData.length; i++) { // Skip header row
+                const row = jsonData[i];
+                const name = row[0] ? row[0].trim() : null;
+                const price = row[1] !== undefined ? parseFloat(row[1]) : null;
+                const category = row[2] ? row[2].trim() : 'Uncategorized';
+                
+                if (!name || price === null) {
+                    console.warn(`Skipping Excel row ${i + 1} due to missing name or price.`);
+                    continue;
+                }
+                if (isNaN(price)) {
+                    console.warn(`Skipping Excel row ${i + 1} due to invalid price: ${row[1]}`);
+                    continue;
+                }
+                menuItems.push({ name, price, category });
+            }
+
+            return menuItems;
+        }
+
+        function exportMenu() {
+            console.log('exportMenu function called');
+            const menuDataString = localStorage.getItem('menuData');
+            
+            if (!menuDataString) {
+                showNotification('No menu data to export.', 'error');
+                return;
+            }
+
+            try {
+                const menuData = JSON.parse(menuDataString);
+                if (!menuData || menuData.length === 0) {
+                    showNotification('Menu data is empty. Nothing to export.', 'error');
+                    return;
+                }
+
+                // Create a modal for format selection instead of a simple prompt
+                const modal = document.createElement('div');
+                modal.className = 'export-format-modal';
+                modal.innerHTML = `
+                    <div class="export-format-content">
+                        <h3>Export Menu Format</h3>
+                        <p>Select the format for your menu export:</p>
+                        <div class="format-options">
+                            <label>
+                                <input type="radio" name="exportFormat" value="json" checked> 
+                                <span class="format-name">JSON</span>
+                                <span class="format-desc">Standard data format, best for importing back into this system</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="exportFormat" value="csv"> 
+                                <span class="format-name">CSV</span>
+                                <span class="format-desc">Compatible with Excel, Google Sheets, etc.</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="exportFormat" value="xlsx"> 
+                                <span class="format-name">Excel (XLSX)</span>
+                                <span class="format-desc">Native Excel spreadsheet format</span>
+                            </label>                            <label>
+                                <input type="radio" name="exportFormat" value="txt"> 
+                                <span class="format-name">Text (TXT)</span>
+                                <span class="format-desc">Simple text format with values separated by semicolons</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="exportFormat" value="docx"> 
+                                <span class="format-name">Word (DOCX)</span>
+                                <span class="format-desc">Microsoft Word document format</span>
+                            </label>
+                        </div>
+                        <div class="modal-actions">
+                            <button class="settings-btn" id="cancelExport">Cancel</button>
+                            <button class="settings-btn primary" id="confirmExport">Export</button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+
+                // Handle modal actions
+                document.getElementById('cancelExport').addEventListener('click', () => {
+                    document.body.removeChild(modal);
+                });
+
+                document.getElementById('confirmExport').addEventListener('click', () => {
+                    const selectedFormat = document.querySelector('input[name="exportFormat"]:checked').value;
+                    document.body.removeChild(modal);
+                    
+                    // Process the export based on selected format
+                    processMenuExport(menuData, selectedFormat);
+                });
+
+            } catch (error) {
+                console.error('Error preparing menu export:', error);
+                showNotification(`Error preparing menu export: ${error.message}`, 'error');
+            }
+        }
+
+        function processMenuExport(menuData, format) {
+            let dataString;
+            let fileName;
+            let mimeType;
+
+            try {
+                if (format === 'json') {
+                    dataString = JSON.stringify(menuData, null, 2);
+                    fileName = 'menu_export.json';
+                    mimeType = 'application/json';
+                    triggerDownload(dataString, fileName, mimeType);
+                } 
+                else if (format === 'csv') {
+                    if (menuData.length === 0) {
+                        showNotification('No data to export to CSV.', 'error');
+                        return;
+                    }
+                    const headers = Object.keys(menuData[0]).join(',');
+                    const rows = menuData.map(item => 
+                        Object.values(item).map(value => {
+                            // Handle commas within values by enclosing in quotes
+                            const valStr = String(value);
+                            return valStr.includes(',') ? `"${valStr}"` : valStr;
+                        }).join(',')
+                    );
+                    dataString = `${headers}\n${rows.join('\n')}`;
+                    fileName = 'menu_export.csv';
+                    mimeType = 'text/csv';
+                    triggerDownload(dataString, fileName, mimeType);
+                } 
+                else if (format === 'xlsx') {
+                    // Export as Excel using SheetJS
+                    const ws = XLSX.utils.json_to_sheet(menuData);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Menu");
+                    
+                    // Generate Excel file as array buffer
+                    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                    
+                    // Convert to Blob and download
+                    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = 'menu_export.xlsx';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+                    showNotification('Menu exported successfully as Excel file.', 'success');
+                    return; // Exit early as we've already handled the download
+                }                else if (format === 'txt') {
+                    dataString = menuData.map(item => `${item.name};${item.price};${item.category || 'Uncategorized'}`).join('\n');
+                    fileName = 'menu_export.txt';
+                    mimeType = 'text/plain';
+                    triggerDownload(dataString, fileName, mimeType);
+                }
+                else if (format === 'docx') {
+                    // Generate a simple Word document with menu data
+                    // Since we can't create .docx directly in browser without a complex library,
+                    // we'll create HTML and let the browser convert it when downloaded
+                    
+                    // Create HTML structure with menu data
+                    const htmlContent = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>Menu Export</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; }
+                            table { border-collapse: collapse; width: 100%; }
+                            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                            th { background-color: #f2f2f2; }
+                            tr:nth-child(even) { background-color: #f9f9f9; }
+                            h1 { text-align: center; }
+                            .category-header { 
+                                background-color: #e6e6e6; 
+                                font-weight: bold;
+                                padding: 10px;
+                                margin-top: 20px;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>Menu</h1>
+                        <p>Exported on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+                        
+                        <table>
+                            <tr>
+                                <th>Item</th>
+                                <th>Price</th>
+                                <th>Category</th>
+                            </tr>
+                            ${menuData.map(item => `
+                            <tr>
+                                <td>${item.name}</td>
+                                <td>$${item.price.toFixed(2)}</td>
+                                <td>${item.category || 'Uncategorized'}</td>
+                            </tr>
+                            `).join('')}
+                        </table>
+                    </body>
+                    </html>
+                    `;
+                    
+                    // Use file type .doc since browsers can't directly produce .docx
+                    // Modern Word can still open these HTML-based .doc files
+                    fileName = 'menu_export.doc';
+                    mimeType = 'application/msword';
+                    triggerDownload(htmlContent, fileName, mimeType);
+                    
+                    showNotification('Menu exported as Word document. Open with Microsoft Word.', 'success');
+                }
+                else {
+                    showNotification('Invalid export format selected.', 'error');
+                    return;
+                }
+            } catch (error) {
+                console.error('Error processing export:', error);
+                showNotification(`Export failed: ${error.message}`, 'error');
+            }
+        }
+
+        function triggerDownload(content, fileName, mimeType) {
+            try {
+                const blob = new Blob([content], { type: mimeType });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+                showNotification(`Menu exported successfully as ${fileName}.`, 'success');
+            } catch (error) {
+                console.error('Download error:', error);
+                showNotification(`Failed to download file: ${error.message}`, 'error');
+            }
+        }        function showImportFormatTutorial(callback) {
+            // Open the help guide in a separate window/tab
+            const helpWindow = window.open('menu-import-help.html', '_blank', 'width=800,height=700');
+            
+            // If a callback was provided, execute it after a short delay
+            if (typeof callback === 'function') {
+                setTimeout(() => {
+                    callback();
+                }, 500);
+            }
+            
+            // If the window was blocked, show a simple alert instead
+            if (!helpWindow || helpWindow.closed || typeof helpWindow.closed === 'undefined') {
+                alert("The import format guide was blocked by your browser. Please allow popups for this site to view the guide.");
+                if (typeof callback === 'function') {
+                    callback();
+                }
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.className = `notification ${type}`;
+            notification.innerText = message;
+            notification.style.display = 'block';
+
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        // Load saved settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load settings from localStorage
+            const savedSettings = localStorage.getItem('posSettings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                
+                // Populate form fields
+                Object.keys(settings).forEach(key => {
+                    const element = document.getElementById(key);
+                    if (element) {
+                        element.value = settings[key];
+                    }
+                });
+            }
+            
+            // Load toggle states
+            document.querySelectorAll('.toggle-switch').forEach(toggle => {
+                const settingName = toggle.id.replace('toggle', '').toLowerCase();
+                const saved = localStorage.getItem(`setting_${settingName}`);
+                if (saved === 'false') {
+                    toggle.classList.remove('active');
+                }
+            });
+        });
+        
+        // Umbrella backup button logic
+        document.addEventListener('DOMContentLoaded', function() {
+            const backupBtn = document.getElementById('umbrella-backup-btn');
+            if (backupBtn) {
+                backupBtn.onclick = async () => {
+                    backupBtn.disabled = true;
+                    backupBtn.textContent = 'Backing up...';
+                    try {
+                        // Prompt for custom file name/folder (optional)
+                        let fileName = prompt('Enter a file name for the backup (or leave blank for default):');
+                        let folder = prompt('Enter a folder name in Firebase Storage (or leave blank for umbrella_backups):');
+                        if (fileName && !fileName.endsWith('.json')) fileName += '.json';
+                        const url = await window.umbrellaManager.exportAndUploadAllData(fileName || undefined, folder || undefined);
+                        backupBtn.textContent = 'Backup Complete!';
+                        showBackupNotification('Backup complete! Click to download.', true, url);
+                        setTimeout(() => {
+                            backupBtn.textContent = '☁️ Backup Umbrella Account Data';
+                            backupBtn.disabled = false;
+                        }, 3000);
+                    } catch (e) {
+                        backupBtn.textContent = 'Backup Failed';
+                        showBackupNotification('Backup failed: ' + e.message, false);
+                        setTimeout(() => {
+                            backupBtn.textContent = '☁️ Backup Umbrella Account Data';
+                            backupBtn.disabled = false;
+                        }, 3000);
+                    }
+                };
+            }
+        });
+    </script>
+</body>
+</html>

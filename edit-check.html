@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Macros POS LOL - Edit Check</title>
+    <style>
+        /* Complete CSS Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            background: #f8fafc;
+        }
+        
+        /* Edit Check Container */
+        .edit-check-container {
+            border: 3px solid #000;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: #ffffff;
+        }
+
+        /* Header */
+        .edit-check-header {
+            background: #2d3748;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #000;
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-button {
+            background: #4a5568;
+            border: 2px solid #000;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .back-button:hover {
+            background: #2d3748;
+        }
+
+        .table-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .table-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .table-details {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .action-btn {
+            background: #10b981;
+            border: 2px solid #000;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .action-btn.secondary {
+            background: #6b7280;
+        }
+
+        .action-btn.danger {
+            background: #dc2626;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        /* Main Content */
+        .edit-check-main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        /* Checks Panel */
+        .checks-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .checks-toolbar {
+            background: #f1f5f9;
+            padding: 1rem 1.5rem;
+            border-bottom: 2px solid #000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .checks-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .split-check-btn {
+            background: #3b82f6;
+            border: 2px solid #000;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .split-check-btn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        .checks-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            padding: 1.5rem;
+            overflow-y: auto;
+            background: #f8fafc;
+        }
+
+        /* Individual Check */
+        .check-card {
+            background: white;
+            border: 3px solid #000;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            min-height: 500px;
+            max-height: 600px;
+            position: relative;
+        }
+
+        .check-card.primary {
+            border-color: #059669;
+            background: #f0fdf4;
+        }
+
+        .check-header {
+            background: #2d3748;
+            color: white;
+            padding: 1rem;
+            border-bottom: 2px solid #000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .check-card.primary .check-header {
+            background: #059669;
+        }
+
+        .check-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .check-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .check-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .check-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .check-btn.danger {
+            background: rgba(220, 38, 38, 0.8);
+        }
+
+        .check-btn.danger:hover {
+            background: rgba(220, 38, 38, 1);
+        }
+
+        /* Check Items */
+        .check-items {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            min-height: 200px;
+            background: white;
+            position: relative;
+        }
+
+        .check-card.primary .check-items {
+            background: #f0fdf4;
+        }
+
+        .drop-zone {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px dashed #cbd5e0;
+            border-radius: 4px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(59, 130, 246, 0.1);
+            z-index: 10;
+        }
+
+        .drop-zone.active {
+            display: flex;
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        .drop-zone-text {
+            color: #3b82f6;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .check-item {
+            background: #f8fafc;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            cursor: grab;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .check-item:hover {
+            border-color: #3b82f6;
+            background: #f1f5f9;
+            transform: translateY(-1px);
+        }
+
+        .check-item.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+            cursor: grabbing;
+            z-index: 1000;
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+
+        .item-name {
+            font-weight: bold;
+            color: #1f2937;
+            font-size: 1rem;
+        }
+
+        .item-price {
+            font-weight: bold;
+            color: #059669;
+            font-size: 1rem;
+        }
+
+        .item-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        .item-quantity {
+            background: #e5e7eb;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .empty-check {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: #9ca3af;
+            border: 2px dashed #d1d5db;
+            border-radius: 6px;
+            margin: 1rem;
+        }
+
+        .empty-check-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Check Summary */
+        .check-summary {
+            background: #f8fafc;
+            border-top: 2px solid #e5e7eb;
+            padding: 1rem;
+            flex-shrink: 0;
+        }
+
+        .check-card.primary .check-summary {
+            background: #ecfdf5;
+            border-top-color: #059669;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .summary-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .summary-row.total {
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding-top: 0.5rem;
+            border-top: 2px solid #e5e7eb;
+            margin-top: 0.5rem;
+        }
+
+        .summary-label {
+            color: #6b7280;
+        }
+
+        .summary-value {
+            color: #1f2937;
+            font-weight: 600;
+        }
+
+        .summary-row.total .summary-value {
+            color: #059669;
+        }
+
+        /* Actions Panel */
+        .actions-panel {
+            width: 300px;
+            background: white;
+            border-left: 3px solid #000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .actions-header {
+            background: #f1f5f9;
+            padding: 1rem;
+            border-bottom: 2px solid #000;
+            text-align: center;
+        }
+
+        .actions-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .actions-content {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .action-section {
+            margin-bottom: 2rem;
+        }
+
+        .action-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #374151;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .action-button {
+            width: 100%;
+            background: #f1f5f9;
+            border: 2px solid #000;
+            color: #374151;
+            padding: 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            transition: all 0.2s;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .action-button:hover {
+            background: #e2e8f0;
+            transform: translateY(-1px);
+        }
+
+        .action-button.primary {
+            background: #10b981;
+            color: white;
+            border-color: #059669;
+        }
+
+        .action-button.primary:hover {
+            background: #059669;
+        }
+
+        .action-button.danger {
+            background: #fef2f2;
+            color: #dc2626;
+            border-color: #fecaca;
+        }
+
+        .action-button.danger:hover {
+            background: #fee2e2;
+            border-color: #fca5a5;
+        }
+
+        /* Payment Options */
+        .payment-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .payment-btn {
+            background: #3b82f6;
+            border: 2px solid #000;
+            color: white;
+            padding: 1rem 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .payment-btn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        .payment-btn.cash {
+            background: #059669;
+        }
+
+        .payment-btn.cash:hover {
+            background: #047857;
+        }
+
+        .payment-btn.card {
+            background: #7c3aed;
+        }
+
+        .payment-btn.card:hover {
+            background: #6d28d9;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: #10b981;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            font-weight: 500;
+            max-width: 300px;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: #dc2626;
+        }
+
+        .notification.warning {
+            background: #f59e0b;
+        }
+
+        .notification.info {
+            background: #3b82f6;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .checks-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .actions-panel {
+                width: 250px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .edit-check-main {
+                flex-direction: column;
+            }
+            
+            .actions-panel {
+                width: 100%;
+                height: 200px;
+            }
+            
+            .actions-content {
+                padding: 1rem;
+            }
+            
+            .payment-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="edit-check-container">
+        <!-- Header -->
+        <header class="edit-check-header">
+            <div class="header-left">
+                <a href="pos-interface-fixed.html" class="back-button">
+                    <span>←</span>
+                    <span>Back to POS</span>
+                </a>
+                <div class="table-info">
+                    <div class="table-title" id="tableTitle">Table 17 - Edit Check</div>
+                    <div class="table-details" id="tableDetails">4 guests • Server: John Smith • 7:45 PM</div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="action-btn secondary" onclick="printCheck()">🖨️ Print Check</button>
+                <button class="action-btn" onclick="saveChanges()">💾 Save Changes</button>
+                <button class="action-btn danger" onclick="cancelEdit()">❌ Cancel</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="edit-check-main">
+            <!-- Checks Panel -->
+            <div class="checks-panel">
+                <div class="checks-toolbar">
+                    <div class="checks-title">Check Management</div>
+                    <button class="split-check-btn" onclick="splitCheck()">➕ Split Check</button>
+                </div>
+                
+                <div class="checks-container" id="checksContainer">
+                    <!-- Check 1 (Primary) -->
+                    <div class="check-card primary" data-check-id="1">
+                        <div class="check-header">
+                            <div class="check-title">Check #1 (Main)</div>
+                            <div class="check-controls">
+                                <button class="check-btn" onclick="renameCheck(1)">✏️ Rename</button>
+                            </div>
+                        </div>
+                        <div class="check-items" id="check-items-1">
+                            <div class="drop-zone" id="drop-zone-1">
+                                <div class="drop-zone-text">Drop items here</div>
+                            </div>
+                            <!-- Items will be populated by JavaScript -->
+                        </div>
+                        <div class="check-summary">
+                            <div class="summary-row">
+                                <span class="summary-label">Subtotal:</span>
+                                <span class="summary-value" id="subtotal-1">$0.00</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">Tax (8.5%):</span>
+                                <span class="summary-value" id="tax-1">$0.00</span>
+                            </div>
+                            <div class="summary-row total">
+                                <span class="summary-label">Total:</span>
+                                <span class="summary-value" id="total-1">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions Panel -->
+            <div class="actions-panel">
+                <div class="actions-header">
+                    <div class="actions-title">Check Actions</div>
+                </div>
+                <div class="actions-content">
+                    <!-- Quick Actions -->
+                    <div class="action-section">
+                        <div class="section-title">Quick Actions</div>
+                        <button class="action-button" onclick="addItem()">
+                            <span>➕</span>
+                            <span>Add Item</span>
+                        </button>
+                        <button class="action-button" onclick="addDiscount()">
+                            <span>💸</span>
+                            <span>Add Discount</span>
+                        </button>
+                        <button class="action-button" onclick="addTip()">
+                            <span>💰</span>
+                            <span>Add Tip</span>
+                        </button>
+                        <button class="action-button" onclick="voidItem()">
+                            <span>❌</span>
+                            <span>Void Item</span>
+                        </button>
+                    </div>
+
+                    <!-- Check Management -->
+                    <div class="action-section">
+                        <div class="section-title">Check Management</div>
+                        <button class="action-button" onclick="mergeChecks()">
+                            <span>🔗</span>
+                            <span>Merge Checks</span>
+                        </button>
+                        <button class="action-button" onclick="duplicateCheck()">
+                            <span>📋</span>
+                            <span>Duplicate Check</span>
+                        </button>
+                        <button class="action-button danger" onclick="deleteCheck()">
+                            <span>🗑️</span>
+                            <span>Delete Check</span>
+                        </button>
+                    </div>
+
+                    <!-- Payment Options -->
+                    <div class="action-section">
+                        <div class="section-title">Process Payment</div>
+                        <div class="payment-grid">
+                            <button class="payment-btn cash" onclick="processCashPayment()">💵 Cash</button>
+                            <button class="payment-btn card" onclick="processCardPayment()">💳 Card</button>
+                            <button class="payment-btn" onclick="processSplitPayment()">🔄 Split</button>
+                            <button class="payment-btn" onclick="processOtherPayment()">⚡ Other</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Global variables
+        let tableData = null;
+        let checks = [];
+        let draggedItem = null;
+        let checkCounter = 1;
+
+        // Sample data for demonstration
+        const sampleItems = [
+            { id: 1, name: 'Grilled Steak', price: 24.99, quantity: 1, checkId: 1 },
+            { id: 2, name: 'Caesar Salad', price: 9.99, quantity: 2, checkId: 1 },
+            { id: 3, name: 'Margherita Pizza', price: 16.99, quantity: 1, checkId: 1 },
+            { id: 4, name: 'House Wine', price: 8.99, quantity: 2, checkId: 1 },
+            { id: 5, name: 'Chocolate Cake', price: 7.99, quantity: 1, checkId: 1 }
+        ];
+
+        // Initialize the edit check interface
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTableData();
+            initializeChecks();
+            renderChecks();
+        });
+
+        // Load table data from URL parameters or localStorage
+        function loadTableData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tableId = urlParams.get('table') || '17';
+            
+            tableData = {
+                id: tableId,
+                guests: 4,
+                server: 'John Smith',
+                time: '7:45 PM',
+                items: [...sampleItems]
+            };
+
+            // Update header with table info
+            document.getElementById('tableTitle').textContent = `Table ${tableId} - Edit Check`;
+            document.getElementById('tableDetails').textContent = 
+                `${tableData.guests} guests • Server: ${tableData.server} • ${tableData.time}`;
+        }
+
+        // Initialize checks structure
+        function initializeChecks() {
+            checks = [
+                {
+                    id: 1,
+                    name: 'Check #1 (Main)',
+                    items: [...tableData.items],
+                    isPrimary: true
+                }
+            ];
+        }
+
+        // Render all checks
+        function renderChecks() {
+            const container = document.getElementById('checksContainer');
+            
+            container.innerHTML = checks.map(check => `
+                <div class="check-card ${check.isPrimary ? 'primary' : ''}" data-check-id="${check.id}">
+                    <div class="check-header">
+                        <div class="check-title">${check.name}</div>
+                        <div class="check-controls">
+                            <button class="check-btn" onclick="renameCheck(${check.id})">✏️ Rename</button>
+                            ${!check.isPrimary ? `<button class="check-btn danger" onclick="deleteCheckById(${check.id})">🗑️ Delete</button>` : ''}
+                        </div>
+                    </div>
+                    <div class="check-items" id="check-items-${check.id}">
+                        <div class="drop-zone" id="drop-zone-${check.id}">
+                            <div class="drop-zone-text">Drop items here</div>
+                        </div>
+                        ${renderCheckItems(check)}
+                    </div>
+                    <div class="check-summary">
+                        ${renderCheckSummary(check)}
+                    </div>
+                </div>
+            `).join('');
+
+            // Setup drag and drop event listeners
+            setupDragAndDrop();
+        }
+
+        // Render items for a specific check
+        function renderCheckItems(check) {
+            if (check.items.length === 0) {
+                return `
+                    <div class="empty-check">
+                        <div class="empty-check-icon">📋</div>
+                        <p>No items in this check</p>
+                        <p style="font-size: 0.8rem;">Drag items here to add them</p>
+                    </div>
+                `;
+            }
+
+            return check.items.map(item => `
+                <div class="check-item" draggable="true" data-item-id="${item.id}" data-check-id="${check.id}">
+                    <div class="item-header">
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-price">$${(item.price * item.quantity).toFixed(2)}</div>
+                    </div>
+                    <div class="item-details">
+                        <span>$${item.price.toFixed(2)} each</span>
+                        <span class="item-quantity">Qty: ${item.quantity}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Render check summary
+        function renderCheckSummary(check) {
+            const subtotal = check.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const tax = subtotal * 0.085; // 8.5% tax
+            const total = subtotal + tax;
+
+            return `
+                <div class="summary-row">
+                    <span class="summary-label">Subtotal:</span>
+                    <span class="summary-value">$${subtotal.toFixed(2)}</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Tax (8.5%):</span>
+                    <span class="summary-value">$${tax.toFixed(2)}</span>
+                </div>
+                <div class="summary-row total">
+                    <span class="summary-label">Total:</span>
+                    <span class="summary-value">$${total.toFixed(2)}</span>
+                </div>
+            `;
+        }
+
+        // Setup drag and drop functionality
+        function setupDragAndDrop() {
+            // Add event listeners to all draggable items
+            document.querySelectorAll('.check-item').forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragend', handleDragEnd);
+            });
+
+            // Add event listeners to all drop zones
+            document.querySelectorAll('.check-items').forEach(zone => {
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('dragenter', handleDragEnter);
+                zone.addEventListener('dragleave', handleDragLeave);
+                zone.addEventListener('drop', handleDrop);
+            });
+        }
+
+        // Drag event handlers
+        function handleDragStart(e) {
+            draggedItem = {
+                id: parseInt(e.target.dataset.itemId),
+                checkId: parseInt(e.target.dataset.checkId)
+            };
+            e.target.classList.add('dragging');
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            draggedItem = null;
+            
+            // Hide all drop zones
+            document.querySelectorAll('.drop-zone').forEach(zone => {
+                zone.classList.remove('active');
+            });
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            const checkId = e.currentTarget.id.split('-')[2];
+            const dropZone = document.getElementById(`drop-zone-${checkId}`);
+            if (dropZone && draggedItem && draggedItem.checkId != checkId) {
+                dropZone.classList.add('active');
+            }
+        }
+
+        function handleDragLeave(e) {
+            const checkId = e.currentTarget.id.split('-')[2];
+            const dropZone = document.getElementById(`drop-zone-${checkId}`);
+            if (dropZone) {
+                dropZone.classList.remove('active');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const targetCheckId = parseInt(e.currentTarget.id.split('-')[2]);
+            
+            if (draggedItem && draggedItem.checkId !== targetCheckId) {
+                moveItemToCheck(draggedItem.id, draggedItem.checkId, targetCheckId);
+                renderChecks();
+                showNotification(`Item moved to ${getCheckName(targetCheckId)}!`, 'success');
+            }
+        }
+
+        // Move item between checks
+        function moveItemToCheck(itemId, fromCheckId, toCheckId) {
+            const fromCheck = checks.find(c => c.id === fromCheckId);
+            const toCheck = checks.find(c => c.id === toCheckId);
+            
+            if (fromCheck && toCheck) {
+                const itemIndex = fromCheck.items.findIndex(item => item.id === itemId);
+                if (itemIndex !== -1) {
+                    const item = fromCheck.items.splice(itemIndex, 1)[0];
+                    item.checkId = toCheckId;
+                    toCheck.items.push(item);
+                }
+            }
+        }
+
+        // Get check name by ID
+        function getCheckName(checkId) {
+            const check = checks.find(c => c.id === checkId);
+            return check ? check.name : `Check #${checkId}`;
+        }
+
+        // Split check functionality
+        function splitCheck() {
+            checkCounter++;
+            const newCheck = {
+                id: checkCounter,
+                name: `Check #${checkCounter}`,
+                items: [],
+                isPrimary: false
+            };
+            
+            checks.push(newCheck);
+            renderChecks();
+            showNotification(`New check created: ${newCheck.name}`, 'success');
+        }
+
+        // Rename check
+        function renameCheck(checkId) {
+            const check = checks.find(c => c.id === checkId);
+            if (check) {
+                const newName = prompt('Enter new check name:', check.name);
+                if (newName && newName.trim()) {
+                    check.name = newName.trim();
+                    renderChecks();
+                    showNotification('Check renamed successfully!', 'success');
+                }
+            }
+        }
+
+        // Delete check
+        function deleteCheckById(checkId) {
+            const check = checks.find(c => c.id === checkId);
+            if (check && !check.isPrimary) {
+                if (confirm(`Are you sure you want to delete ${check.name}?`)) {
+                    // Move items back to primary check
+                    const primaryCheck = checks.find(c => c.isPrimary);
+                    if (primaryCheck && check.items.length > 0) {
+                        check.items.forEach(item => {
+                            item.checkId = primaryCheck.id;
+                            primaryCheck.items.push(item);
+                        });
+                    }
+                    
+                    // Remove the check
+                    checks = checks.filter(c => c.id !== checkId);
+                    renderChecks();
+                    showNotification('Check deleted and items moved to main check!', 'info');
+                }
+            }
+        }
+
+        // Action functions
+        function addItem() {
+            showNotification('Add Item feature - Coming soon!', 'info');
+        }
+
+        function addDiscount() {
+            showNotification('Add Discount feature - Coming soon!', 'info');
+        }
+
+        function addTip() {
+            showNotification('Add Tip feature - Coming soon!', 'info');
+        }
+
+        function voidItem() {
+            showNotification('Void Item feature - Coming soon!', 'info');
+        }
+
+        function mergeChecks() {
+            if (checks.length <= 1) {
+                showNotification('Need at least 2 checks to merge!', 'warning');
+                return;
+            }
+            
+            if (confirm('Merge all checks into the main check?')) {
+                const primaryCheck = checks.find(c => c.isPrimary);
+                const otherChecks = checks.filter(c => !c.isPrimary);
+                
+                otherChecks.forEach(check => {
+                    check.items.forEach(item => {
+                        item.checkId = primaryCheck.id;
+                        primaryCheck.items.push(item);
+                    });
+                });
+                
+                checks = [primaryCheck];
+                renderChecks();
+                showNotification('All checks merged successfully!', 'success');
+            }
+        }
+
+        function duplicateCheck() {
+            showNotification('Duplicate Check feature - Coming soon!', 'info');
+        }
+
+        function deleteCheck() {
+            showNotification('Use the delete button on individual checks!', 'info');
+        }
+
+        // Payment functions
+        function processCashPayment() {
+            showNotification('Cash Payment processing - Coming soon!', 'info');
+        }
+
+        function processCardPayment() {
+            showNotification('Card Payment processing - Coming soon!', 'info');
+        }
+
+        function processSplitPayment() {
+            showNotification('Split Payment processing - Coming soon!', 'info');
+        }
+
+        function processOtherPayment() {
+            showNotification('Other Payment options - Coming soon!', 'info');
+        }
+
+        // Header actions
+        function printCheck() {
+            showNotification('Printing check - Coming soon!', 'info');
+        }
+
+        function saveChanges() {
+            // Here you would save the changes back to the main POS system
+            showNotification('Changes saved successfully!', 'success');
+            setTimeout(() => {
+                window.location.href = 'pos-interface-fixed.html';
+            }, 1500);
+        }
+
+        function cancelEdit() {
+            if (confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
+                window.location.href = 'pos-interface-fixed.html';
+            }
+        }
+
+        // Notification system
+        function showNotification(message, type = 'success') {
+            // Remove any existing notifications
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Show notification
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            // Hide notification after 3 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

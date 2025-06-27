@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Property System - Test Launcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .launcher-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .launcher-header {
+            background: linear-gradient(135deg, #2d3748, #4a5568);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .launcher-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .launcher-header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .launcher-content {
+            padding: 40px;
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .test-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .test-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-color: #4299e1;
+        }
+
+        .test-card-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .test-card h3 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+
+        .test-card p {
+            color: #718096;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .test-card-button {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: 100%;
+        }
+
+        .test-card-button:hover {
+            background: #3182ce;
+        }
+
+        .status-section {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .status-section h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .status-icon {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .status-online {
+            background: #48bb78;
+        }
+
+        .status-checking {
+            background: #ed8936;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .action-button {
+            background: #805ad5;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .action-button:hover {
+            background: #6b46c1;
+            transform: translateY(-2px);
+        }
+
+        .action-button.secondary {
+            background: #a0aec0;
+        }
+
+        .action-button.secondary:hover {
+            background: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="launcher-container">
+        <div class="launcher-header">
+            <h1>🛠️ Multi-Property System Test Launcher</h1>
+            <p>Comprehensive testing suite for the multi-property POS system</p>
+        </div>
+
+        <div class="launcher-content">
+            <!-- System Status -->
+            <div class="status-section">
+                <h2>📊 System Status</h2>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <div class="status-icon" id="managerStatus"></div>
+                        <span>MultiPropertyManager</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-icon" id="switcherStatus"></div>
+                        <span>PropertySwitcher</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-icon" id="storageStatus"></div>
+                        <span>LocalStorage</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-icon" id="integrationStatus"></div>
+                        <span>POS Integration</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Interfaces -->
+            <div class="test-grid">
+                <div class="test-card" onclick="openInterface('multi-property-debugger.html')">
+                    <div class="test-card-icon">🔧</div>
+                    <h3>Interactive Debugger</h3>
+                    <p>Comprehensive debugging interface with real-time testing, console output, and data visualization</p>
+                    <button class="test-card-button">Open Debugger</button>
+                </div>
+
+                <div class="test-card" onclick="openInterface('pos-interface-fixed.html')">
+                    <div class="test-card-icon">💻</div>
+                    <h3>POS Interface</h3>
+                    <p>Main POS interface with integrated property switcher functionality</p>
+                    <button class="test-card-button">Open POS</button>
+                </div>
+
+                <div class="test-card" onclick="openInterface('login.html')">
+                    <div class="test-card-icon">🔐</div>
+                    <h3>Login System</h3>
+                    <p>Staff login interface with multi-property support</p>
+                    <button class="test-card-button">Open Login</button>
+                </div>
+
+                <div class="test-card" onclick="openInterface('business-registration.html')">
+                    <div class="test-card-icon">🏢</div>
+                    <h3>Business Registration</h3>
+                    <p>Register new business accounts and manage properties</p>
+                    <button class="test-card-button">Open Registration</button>
+                </div>
+
+                <div class="test-card" onclick="openInterface('staff-registration.html')">
+                    <div class="test-card-icon">👥</div>
+                    <h3>Staff Registration</h3>
+                    <p>Register staff members with property access control</p>
+                    <button class="test-card-button">Open Staff Reg</button>
+                </div>
+
+                <div class="test-card" onclick="openInterface('property-management.html')">
+                    <div class="test-card-icon">🏪</div>
+                    <h3>Property Management</h3>
+                    <p>Manage multiple properties and staff access</p>
+                    <button class="test-card-button">Open Properties</button>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div style="text-align: center;">
+                <h2 style="margin-bottom: 20px; color: #2d3748;">🚀 Quick Actions</h2>
+                <div class="quick-actions">
+                    <button class="action-button" onclick="runQuickTest()">Run Quick Test</button>
+                    <button class="action-button secondary" onclick="clearAllData()">Clear Test Data</button>
+                    <button class="action-button secondary" onclick="createSampleData()">Create Sample Data</button>
+                    <button class="action-button secondary" onclick="exportSystemData()">Export Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="multi-property-manager.js"></script>
+    <script src="property-switcher.js"></script>
+    <script>
+        // Check system status on load
+        function checkSystemStatus() {
+            // Check MultiPropertyManager
+            if (typeof MultiPropertyManager !== 'undefined') {
+                document.getElementById('managerStatus').className = 'status-icon status-online';
+            } else {
+                document.getElementById('managerStatus').className = 'status-icon status-checking';
+            }
+
+            // Check PropertySwitcher
+            if (typeof PropertySwitcher !== 'undefined') {
+                document.getElementById('switcherStatus').className = 'status-icon status-online';
+            } else {
+                document.getElementById('switcherStatus').className = 'status-icon status-checking';
+            }
+
+            // Check LocalStorage
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                document.getElementById('storageStatus').className = 'status-icon status-online';
+            } catch (error) {
+                document.getElementById('storageStatus').className = 'status-icon status-checking';
+            }
+
+            // Check POS Integration (check if pos-interface-fixed.html exists)
+            fetch('pos-interface-fixed.html', { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        document.getElementById('integrationStatus').className = 'status-icon status-online';
+                    } else {
+                        document.getElementById('integrationStatus').className = 'status-icon status-checking';
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('integrationStatus').className = 'status-icon status-checking';
+                });
+        }
+
+        function openInterface(filename) {
+            window.open(filename, '_blank');
+        }
+
+        function runQuickTest() {
+            console.log('Running quick system test...');
+            
+            try {
+                // Test business creation
+                const businessResult = MultiPropertyManager.createBusinessAccount({
+                    businessName: 'Quick Test Business',
+                    businessType: 'restaurant',
+                    ownerName: 'Test Owner',
+                    email: 'test@quicktest.com',
+                    phone: '555-0000',
+                    address: 'Test Address'
+                });
+                
+                if (businessResult.success) {
+                    console.log('✅ Business creation: PASS');
+                    
+                    // Test property creation
+                    const propertyResult = MultiPropertyManager.addProperty(businessResult.businessId, {
+                        name: 'Quick Test Property',
+                        type: 'restaurant',
+                        address: 'Test Property Address',
+                        city: 'Test City',
+                        state: 'TS',
+                        zip: '00000'
+                    });
+                    
+                    if (propertyResult.success) {
+                        console.log('✅ Property creation: PASS');
+                        
+                        // Test staff registration
+                        const staffResult = MultiPropertyManager.registerStaff({
+                            firstName: 'Quick',
+                            lastName: 'Test',
+                            email: 'quicktest@test.com',
+                            phone: '555-0001',
+                            role: 'manager',
+                            connectionCode: businessResult.connectionCode
+                        });
+                        
+                        if (staffResult.success) {
+                            console.log('✅ Staff registration: PASS');
+                            
+                            // Test property access
+                            const accessResult = MultiPropertyManager.grantPropertyAccess(staffResult.staffId, propertyResult.propertyId);
+                            if (accessResult.success) {
+                                console.log('✅ Property access: PASS');
+                                
+                                // Test property switcher
+                                const accessibleProps = PropertySwitcher.getAccessibleProperties(staffResult.staffId);
+                                if (accessibleProps.length > 0) {
+                                    console.log('✅ Property switcher: PASS');
+                                    console.log('🎉 ALL TESTS PASSED!');
+                                    alert('✅ Quick test completed successfully! Check console for details.');
+                                } else {
+                                    console.log('❌ Property switcher: FAIL');
+                                    alert('❌ Property switcher test failed.');
+                                }
+                            } else {
+                                console.log('❌ Property access: FAIL');
+                                alert('❌ Property access test failed.');
+                            }
+                        } else {
+                            console.log('❌ Staff registration: FAIL');
+                            alert('❌ Staff registration test failed.');
+                        }
+                    } else {
+                        console.log('❌ Property creation: FAIL');
+                        alert('❌ Property creation test failed.');
+                    }
+                } else {
+                    console.log('❌ Business creation: FAIL');
+                    alert('❌ Business creation test failed.');
+                }
+            } catch (error) {
+                console.error('❌ Quick test error:', error);
+                alert('❌ Quick test encountered an error. Check console for details.');
+            }
+        }
+
+        function clearAllData() {
+            if (confirm('Clear all test data? This cannot be undone.')) {
+                try {
+                    localStorage.removeItem('businessAccounts');
+                    localStorage.removeItem('registeredStaff');
+                    localStorage.removeItem('currentStaffId');
+                    localStorage.removeItem('currentPropertyId');
+                    
+                    console.log('✅ All test data cleared');
+                    alert('✅ Test data cleared successfully!');
+                } catch (error) {
+                    console.error('❌ Clear data error:', error);
+                    alert('❌ Error clearing data. Check console for details.');
+                }
+            }
+        }
+
+        function createSampleData() {
+            console.log('Creating sample data...');
+            
+            try {
+                // Create sample business
+                const businessResult = MultiPropertyManager.createBusinessAccount({
+                    businessName: 'Sample Restaurant Chain',
+                    businessType: 'restaurant',
+                    ownerName: 'Sample Owner',
+                    email: 'owner@samplechain.com',
+                    phone: '555-0100',
+                    address: '100 Sample Street, Sample City, SC 10001'
+                });
+
+                if (businessResult.success) {
+                    // Create sample properties
+                    const properties = [
+                        { name: 'Main Restaurant', type: 'restaurant' },
+                        { name: 'Downtown Café', type: 'cafe' },
+                        { name: 'Airport Location', type: 'restaurant' }
+                    ];
+
+                    properties.forEach((property, index) => {
+                        MultiPropertyManager.addProperty(businessResult.businessId, {
+                            ...property,
+                            address: `${100 + index * 100} Sample St`,
+                            city: 'Sample City',
+                            state: 'SC',
+                            zip: `1000${index + 1}`
+                        });
+                    });
+
+                    // Create sample staff
+                    const staffMembers = [
+                        { firstName: 'Alice', lastName: 'Manager', role: 'manager' },
+                        { firstName: 'Bob', lastName: 'Server', role: 'server' },
+                        { firstName: 'Carol', lastName: 'Cashier', role: 'cashier' }
+                    ];
+
+                    staffMembers.forEach((staff, index) => {
+                        MultiPropertyManager.registerStaff({
+                            ...staff,
+                            email: `${staff.firstName.toLowerCase()}@samplechain.com`,
+                            phone: `555-010${index + 1}`,
+                            connectionCode: businessResult.connectionCode
+                        });
+                    });
+
+                    console.log('✅ Sample data created successfully');
+                    alert('✅ Sample data created! Connection code: ' + businessResult.connectionCode);
+                } else {
+                    console.log('❌ Failed to create sample business');
+                    alert('❌ Failed to create sample data.');
+                }
+            } catch (error) {
+                console.error('❌ Sample data creation error:', error);
+                alert('❌ Error creating sample data. Check console for details.');
+            }
+        }
+
+        function exportSystemData() {
+            try {
+                const data = {
+                    businesses: MultiPropertyManager.getAllBusinessAccounts(),
+                    staff: MultiPropertyManager.getAllStaff(),
+                    context: {
+                        currentStaffId: localStorage.getItem('currentStaffId'),
+                        currentPropertyId: localStorage.getItem('currentPropertyId')
+                    },
+                    timestamp: new Date().toISOString()
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `multi-property-system-export-${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                console.log('✅ System data exported');
+                alert('✅ System data exported successfully!');
+            } catch (error) {
+                console.error('❌ Export error:', error);
+                alert('❌ Error exporting data. Check console for details.');
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkSystemStatus();
+            console.log('🚀 Multi-Property System Test Launcher Ready');
+            console.log('📋 Use the interface cards to test different components');
+        });
+    </script>
+</body>
+</html>

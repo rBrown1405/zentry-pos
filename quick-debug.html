@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Floor Plan Test</title>
+</head>
+<body>
+    <h1>Quick Floor Plan Debug</h1>
+    <button onclick="createTestData()">Create Test Data</button>
+    <button onclick="checkData()">Check Data</button>
+    <button onclick="openPOS()">Open POS Interface</button>
+    
+    <div id="output"></div>
+
+    <script>
+        function createTestData() {
+            const sampleData = [
+                {
+                    id: 'table-1',
+                    name: 'Circle Table 1',
+                    capacity: '4',
+                    left: '100px',
+                    top: '80px',
+                    width: '80px',
+                    height: '80px',
+                    shapeType: 'circle',
+                    rotationAngle: 0
+                },
+                {
+                    id: 'table-2',
+                    name: 'Rectangle Table 2',
+                    capacity: '6',
+                    left: '250px',
+                    top: '80px',
+                    width: '120px',
+                    height: '70px',
+                    shapeType: 'rectangle',
+                    rotationAngle: 0
+                },
+                {
+                    id: 'table-3',
+                    name: 'Booth Table 3',
+                    capacity: '4',
+                    left: '100px',
+                    top: '200px',
+                    width: '180px',
+                    height: '70px',
+                    shapeType: 'booth',
+                    rotationAngle: 0
+                }
+            ];
+            
+            localStorage.setItem('floorPlan', JSON.stringify(sampleData));
+            console.log('Test data created:', sampleData);
+            document.getElementById('output').innerHTML = '<p style="color: green;">✅ Test data created in localStorage</p>';
+        }
+
+        function checkData() {
+            const savedPlan = localStorage.getItem('floorPlan');
+            const output = document.getElementById('output');
+            
+            if (savedPlan) {
+                try {
+                    const parsed = JSON.parse(savedPlan);
+                    console.log('Found data:', parsed);
+                    
+                    // Test the condition
+                    const hasPositions = parsed.some(table => table.left);
+                    
+                    output.innerHTML = `
+                        <h3>Floor Plan Data Found:</h3>
+                        <p><strong>Tables:</strong> ${parsed.length}</p>
+                        <p><strong>Has positions:</strong> ${hasPositions}</p>
+                        <p><strong>Sample table:</strong></p>
+                        <pre>${JSON.stringify(parsed[0], null, 2)}</pre>
+                    `;
+                } catch (error) {
+                    output.innerHTML = `<p style="color: red;">❌ Error parsing data: ${error.message}</p>`;
+                }
+            } else {
+                output.innerHTML = '<p style="color: orange;">⚠️ No floor plan data found</p>';
+            }
+        }
+
+        function openPOS() {
+            window.open('pos-interface-fixed.html', '_blank');
+        }
+
+        // Auto-check on load
+        window.addEventListener('load', checkData);
+    </script>
+</body>
+</html>
