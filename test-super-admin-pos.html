@@ -72,6 +72,7 @@
             <h3>Step 2: Login as Super Admin</h3>
             <p>Click to simulate super admin login:</p>
             <button class="super-admin-btn" onclick="loginAsSuperAdmin()">👑 Login as Super Admin</button>
+            <button class="super-admin-btn" onclick="loginAsRBrown14()">👑 Login as rBrown14</button>
             <button onclick="clearSession()">🧹 Clear Session</button>
         </div>
         
@@ -138,6 +139,26 @@
             localStorage.setItem('isLoggedIn', 'true');
             
             addTestResult('✅ Super admin login simulated', 'success');
+            updateStatus();
+        }
+        
+        function loginAsRBrown14() {
+            // Simulate rBrown14 super admin login
+            const rBrownAdmin = {
+                id: 'SUPER_ADMIN_002',
+                username: 'rBrown14',
+                firstName: 'R.',
+                lastName: 'Brown',
+                email: 'rbrown14@macrospos.com',
+                role: 'super_admin',
+                accessLevel: 'global',
+                permissions: ['all']
+            };
+            
+            localStorage.setItem('currentUser', JSON.stringify(rBrownAdmin));
+            localStorage.setItem('isLoggedIn', 'true');
+            
+            addTestResult('✅ rBrown14 super admin login simulated', 'success');
             updateStatus();
         }
         

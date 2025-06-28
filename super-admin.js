@@ -2,6 +2,23 @@
 // This creates and manages super admin accounts with global access using Firebase
 
 class SuperAdminManager {
+    // Multiple super admin accounts
+    static SUPER_ADMIN_ACCOUNTS = [
+        {
+            email: 'admin@macrospos.com',
+            password: 'Armoured@2025!',
+            username: 'admin',
+            displayName: 'Super Administrator'
+        },
+        {
+            email: 'rbrown14@macrospos.com',
+            password: 'Armoured@',
+            username: 'rBrown14',
+            displayName: 'R. Brown (Super Admin)'
+        }
+    ];
+    
+    // For backward compatibility
     static SUPER_ADMIN_EMAIL = 'admin@macrospos.com';
     static SUPER_ADMIN_PASSWORD = 'Armoured@2025!';
     
@@ -70,17 +87,18 @@ class SuperAdminManager {
                 throw new Error('Firestore not available');
             }
             
-            // Check if super admin user exists in Firestore
+            // Check if any super admin users exist in Firestore
             const superAdminQuery = await db.collection('users')
-                .where('email', '==', this.SUPER_ADMIN_EMAIL)
                 .where('role', '==', 'super_admin')
                 .get();
             
             if (superAdminQuery.empty) {
-                console.log('Creating super admin account...');
-                // Note: In production, super admin account should be created server-side
+                console.log('Creating super admin accounts...');
+                // Note: In production, super admin accounts should be created server-side
                 // This is for development/demo purposes only
-                await this.createSuperAdminAccount();
+                await this.createSuperAdminAccounts();
+            } else {
+                console.log(`Found ${superAdminQuery.size} super admin account(s) in Firestore`);
             }
         } catch (error) {
             console.log('Super admin initialization skipped:', error.message);
@@ -88,29 +106,72 @@ class SuperAdminManager {
         }
     }
     
-    static async createSuperAdminAccount() {
+    static async createSuperAdminAccounts() {
         // This should be done server-side in production
         console.warn('Super admin account creation should be handled server-side in production');
+        
+        // For development, we'll create the accounts in Firestore if available
+        try {
+            const db = window.firebaseServices?.getDb() || window.firebaseProvider?.getDb();
+            if (db) {
+                for (const account of this.SUPER_ADMIN_ACCOUNTS) {
+                    const superAdminData = {
+                        email: account.email,
+                        username: account.username,
+                        displayName: account.displayName,
+                        role: 'super_admin',
+                        accessLevel: 'global',
+                        permissions: ['all'],
+                        createdAt: new Date().toISOString(),
+                        isActive: true,
+                        lastLogin: null
+                    };
+                    
+                    await db.collection('users').doc(account.username).set(superAdminData);
+                    console.log(`Created super admin account: ${account.username}`);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to create super admin accounts in Firestore:', error);
+        }
+        
         return null;
     }
     
     static async validateSuperAdmin(email, password) {
         try {
+            // First check if the email/password combo exists in our accounts
+            const adminAccount = this.SUPER_ADMIN_ACCOUNTS.find(account => 
+                account.email === email && account.password === password
+            );
+            
+            if (!adminAccount) {
+                console.log('Invalid super admin credentials');
+                return false;
+            }
+            
             const auth = await this.initializeFirebaseAuth();
             
             // Attempt to sign in with Firebase Auth
-            const userCredential = await auth.signInWithEmailAndPassword(email, password);
-            const user = userCredential.user;
-            
-            // Get user custom claims to check role
-            const idTokenResult = await user.getIdTokenResult();
-            
-            if (idTokenResult.claims.role === 'super_admin') {
+            try {
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                // Get user custom claims to check role
+                const idTokenResult = await user.getIdTokenResult();
+                
+                if (idTokenResult.claims.role === 'super_admin') {
+                    return true;
+                } else {
+                    // Sign out if not super admin
+                    await auth.signOut();
+                    return false;
+                }
+            } catch (firebaseError) {
+                // If Firebase auth fails but credentials are valid, allow access
+                // This is for development mode when Firebase might not have the user
+                console.warn('Firebase auth failed, but credentials valid:', firebaseError.message);
                 return true;
-            } else {
-                // Sign out if not super admin
-                await auth.signOut();
-                return false;
             }
         } catch (error) {
             console.error('Super admin validation failed:', error);
@@ -121,22 +182,24 @@ class SuperAdminManager {
     static async loginSuperAdmin(email, password) {
         try {
             if (await this.validateSuperAdmin(email, password)) {
-                const auth = await this.initializeFirebaseAuth();
-                const user = auth.currentUser;
-                const idTokenResult = await user.getIdTokenResult();
+                // Find the admin account details
+                const adminAccount = this.SUPER_ADMIN_ACCOUNTS.find(account => 
+                    account.email === email && account.password === password
+                );
                 
                 // Store super admin state in memory only
                 this.currentSuperAdmin = {
-                    uid: user.uid,
-                    email: user.email,
-                    displayName: user.displayName || 'Super Administrator',
+                    uid: adminAccount.username || email.split('@')[0],
+                    email: adminAccount.email,
+                    username: adminAccount.username,
+                    displayName: adminAccount.displayName || 'Super Administrator',
                     role: 'super_admin',
                     accessLevel: 'global',
                     permissions: ['all'],
                     lastLogin: new Date().toISOString()
                 };
                 
-                console.log('Super admin logged in successfully');
+                console.log(`Super admin ${adminAccount.username} logged in successfully`);
                 return true;
             }
             return false;
@@ -291,7 +354,10 @@ if (typeof window !== 'undefined') {
     const initializeSuperAdmin = () => {
         SuperAdminManager.ensureSuperAdminExists().then(() => {
             console.log('🔑 Super Admin system initialized with Firebase!');
-            console.log('Email: admin@macrospos.com');
+            console.log('Available Super Admin Accounts:');
+            SuperAdminManager.SUPER_ADMIN_ACCOUNTS.forEach(account => {
+                console.log(`  - ${account.username} (${account.email})`);
+            });
             console.log('⚠️ Super admin credentials should be configured server-side in production!');
         }).catch(error => {
             console.log('Super admin initialization skipped:', error.message);

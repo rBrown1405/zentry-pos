@@ -5,12 +5,21 @@ The Super Admin system provides global access to all businesses, properties, and
 
 ## 🔐 Super Admin Login Credentials
 
-**Default Super Admin Account:**
-- **Username:** `superadmin`
-- **Password:** `MacrosPOS2025!`
+**Available Super Admin Accounts:**
+
+**Account 1: Default Admin**
+- **Username:** `admin`
+- **Email:** `admin@macrospos.com`
+- **Password:** `Armoured@2025!`
 - **Access Level:** Global (All businesses and properties)
 
-⚠️ **IMPORTANT:** Change the password in production by modifying the `super-admin.js` file.
+**Account 2: rBrown14**
+- **Username:** `rBrown14`
+- **Email:** `rbrown14@macrospos.com`
+- **Password:** `Armoured@`
+- **Access Level:** Global (All businesses and properties)
+
+⚠️ **IMPORTANT:** Change the passwords in production by modifying the `super-admin.js` file.
 
 ## 🎯 Super Admin Capabilities
 
@@ -44,9 +53,16 @@ The Super Admin system provides global access to all businesses, properties, and
 ### Step 1: Login as Super Admin
 1. Go to the login page
 2. Click the **"Super Admin"** tab
-3. Enter credentials:
-   - Username: `superadmin`
-   - Password: `MacrosPOS2025!`
+3. Enter credentials for one of the available accounts:
+   
+   **Option 1 - Default Admin:**
+   - Email: `admin@macrospos.com`
+   - Password: `Armoured@2025!`
+   
+   **Option 2 - rBrown14:**
+   - Email: `rbrown14@macrospos.com`
+   - Password: `Armoured@`
+
 4. Click **"Super Admin Sign In"**
 
 ### Step 2: Super Admin Dashboard
