@@ -4,7 +4,7 @@
 (function() {
     'use strict';
     
-    const CONFIG_VERSION = '20250627002';
+    const CONFIG_VERSION = '20250627003';
     const CONFIG_KEY = 'firebase_config_version';
     
     // Check if we need to clear cache

@@ -1,6 +1,46 @@
 // Initialize API Manager
 const apiManager = new ApiManager();
 
+// Firebase-aware business account lookup
+async function getBusinessAccountFirebase(businessId) {
+    try {
+        // First check if Firebase services are available
+        if (window.firebaseServices && window.firebaseServices.isInitialized()) {
+            console.log('Looking up business in Firebase:', businessId);
+            
+            const db = window.firebaseServices.getDb();
+            const businessDoc = await db.collection('businesses').doc(businessId).get();
+            
+            if (businessDoc.exists) {
+                console.log('Found business in Firebase');
+                const businessData = businessDoc.data();
+                return {
+                    id: businessId,
+                    businessName: businessData.businessName || businessData.companyName,
+                    businessType: businessData.businessType || 'restaurant',
+                    ownerName: businessData.ownerName,
+                    email: businessData.email,
+                    role: 'admin',
+                    isActive: businessData.isActive !== false,
+                    createdAt: businessData.createdAt
+                };
+            } else {
+                console.log('Business not found in Firebase, checking localStorage');
+            }
+        } else {
+            console.log('Firebase not available, checking localStorage only');
+        }
+        
+        // Fallback to localStorage lookup
+        return MultiPropertyManager.getBusinessAccount(businessId);
+        
+    } catch (error) {
+        console.error('Error looking up business account:', error);
+        // Fallback to localStorage on any error
+        return MultiPropertyManager.getBusinessAccount(businessId);
+    }
+}
+
 // Error display function
 function showError(message) {
     const errorMessage = document.getElementById('errorMessage');
@@ -270,8 +310,8 @@ async function handleCompanyLogin(event) {
         
         console.log('Starting business login process for ID:', businessId);
         
-        // Get business account
-        const businessAccount = MultiPropertyManager.getBusinessAccount(businessId);
+        // Get business account using Firebase-aware lookup
+        const businessAccount = await getBusinessAccountFirebase(businessId);
         console.log('Retrieved business account:', businessAccount);
         
         if (!businessAccount) {
