@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Context Sync Fix - Zentry POS</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .log-area {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        .fix-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .critical-fix {
+            background: #dc3545;
+            border-color: #dc3545;
+        }
+        .critical-fix:hover { background: #c82333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Business Context Sync Fix</h1>
+        <p>This tool will fix the sync issue between Safari and Chrome by ensuring both browsers connect to the same cloud business data.</p>
+
+        <div class="fix-section">
+            <h3>📊 Current State Analysis</h3>
+            <div id="analysisStatus">
+                <div class="status info">Analyzing current state...</div>
+            </div>
+            <button onclick="analyzeCurrentState()">🔍 Analyze Current State</button>
+        </div>
+
+        <div class="fix-section">
+            <h3>🏢 Business Data Sync</h3>
+            <p>This will sync your localStorage business data to Firebase cloud storage so both browsers can access it:</p>
+            <div id="syncStatus"></div>
+            <button onclick="syncBusinessToCloud()" class="critical-fix">🔄 Sync Business Data to Cloud</button>
+        </div>
+
+        <div class="fix-section">
+            <h3>🔗 Force Umbrella Manager Connection</h3>
+            <p>This will force the umbrella manager to connect to the cloud business data:</p>
+            <div id="connectionStatus"></div>
+            <button onclick="forceUmbrellaConnection()" class="critical-fix">🔗 Force Cloud Connection</button>
+        </div>
+
+        <div class="fix-section">
+            <h3>📋 Menu Data Sync</h3>
+            <p>This will sync your menu data between localStorage and cloud:</p>
+            <div id="menuSyncStatus"></div>
+            <button onclick="syncMenuData()">📋 Sync Menu Data</button>
+        </div>
+
+        <div class="fix-section">
+            <h3>✅ Verification</h3>
+            <p>Test if the menu editor now shows cloud connection in both browsers:</p>
+            <div id="verificationStatus"></div>
+            <button onclick="verifySync()">✅ Verify Sync Status</button>
+            <button onclick="openMenuEditor()">🍽️ Open Menu Editor in New Tab</button>
+        </div>
+
+        <div class="log-area" id="logArea">
+            <div>📋 Sync log will appear here...</div>
+        </div>
+
+        <div class="fix-section">
+            <h3>🧹 Emergency Reset</h3>
+            <button onclick="emergencyReset()" style="background: #dc3545;">🚨 Emergency Reset (Clear All Data)</button>
+        </div>
+    </div>
+
+    <!-- Firebase Configuration -->
+    <script type="module">
+        // Firebase config
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyA0VWr-8fVYEOMAkQDhL_K2UJgMCNHiCGU",
+            authDomain: "zentry-pos.firebaseapp.com",
+            projectId: "zentry-pos",
+            storageBucket: "zentry-pos.appspot.com",
+            messagingSenderId: "981018301959",
+            appId: "1:981018301959:web:66606cda1df40c2e4ac507"
+        };
+
+        window.firebaseApp = initializeApp(firebaseConfig);
+        console.log('Firebase app initialized for sync fix');
+    </script>
+
+    <!-- Load Firebase Services -->
+    <script src="js/firebase-services.js?v=20250628002"></script>
+    
+    <!-- Load Umbrella Manager -->
+    <script src="js/umbrella-account-manager.js?v=20250628002"></script>
+
+    <script>
+        let logCount = 0;
+
+        function log(message, type = 'info') {
+            logCount++;
+            const logArea = document.getElementById('logArea');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = {
+                'info': '#00ff00',
+                'warn': '#ffff00', 
+                'error': '#ff5555',
+                'success': '#55ff55'
+            }[type] || '#00ff00';
+            
+            logArea.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function setStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        async function analyzeCurrentState() {
+            log('🔍 Analyzing current business context state...', 'info');
+            
+            // Check localStorage data
+            const currentBusiness = localStorage.getItem('currentBusiness');
+            const currentUser = localStorage.getItem('currentUser');
+            
+            log(`localStorage currentBusiness: ${currentBusiness ? 'EXISTS' : 'MISSING'}`, currentBusiness ? 'success' : 'error');
+            log(`localStorage currentUser: ${currentUser ? 'EXISTS' : 'MISSING'}`, currentUser ? 'success' : 'error');
+            
+            if (currentBusiness) {
+                try {
+                    const businessData = JSON.parse(currentBusiness);
+                    log(`Business Name: ${businessData.name || businessData.businessName || 'Unknown'}`, 'info');
+                    log(`Business ID: ${businessData.id || 'No ID'}`, 'info');
+                } catch (e) {
+                    log(`Error parsing business data: ${e.message}`, 'error');
+                }
+            }
+            
+            // Check Firebase services
+            const firebaseAvailable = window.firebaseServices ? 'AVAILABLE' : 'NOT AVAILABLE';
+            log(`Firebase Services: ${firebaseAvailable}`, firebaseAvailable === 'AVAILABLE' ? 'success' : 'error');
+            
+            // Check umbrella manager
+            const umbrellaAvailable = window.umbrellaManager ? 'AVAILABLE' : 'NOT AVAILABLE';
+            log(`Umbrella Manager: ${umbrellaAvailable}`, umbrellaAvailable === 'AVAILABLE' ? 'success' : 'error');
+            
+            if (window.umbrellaManager) {
+                const hasBusiness = window.umbrellaManager.currentBusiness ? 'HAS BUSINESS' : 'NO BUSINESS';
+                log(`Umbrella Manager Business: ${hasBusiness}`, hasBusiness === 'HAS BUSINESS' ? 'success' : 'warn');
+                
+                if (window.umbrellaManager.currentBusiness) {
+                    log(`Connected Business: ${window.umbrellaManager.currentBusiness.companyName || window.umbrellaManager.currentBusiness.name || 'Unknown'}`, 'success');
+                }
+            }
+            
+            // Check current auth status
+            if (window.firebaseServices) {
+                try {
+                    const auth = window.firebaseServices.getAuth();
+                    const currentUser = auth.currentUser;
+                    log(`Firebase Auth: ${currentUser ? 'AUTHENTICATED' : 'NOT AUTHENTICATED'}`, currentUser ? 'success' : 'warn');
+                    if (currentUser) {
+                        log(`Auth User: ${currentUser.email}`, 'info');
+                    }
+                } catch (e) {
+                    log(`Firebase auth check failed: ${e.message}`, 'error');
+                }
+            }
+            
+            setStatus('analysisStatus', '✅ Analysis complete - check log for details', 'success');
+        }
+
+        async function syncBusinessToCloud() {
+            log('🔄 Starting business data sync to cloud...', 'info');
+            setStatus('syncStatus', '🔄 Syncing business data...', 'info');
+            
+            try {
+                // Get localStorage business data
+                const currentBusiness = localStorage.getItem('currentBusiness');
+                const currentUser = localStorage.getItem('currentUser');
+                
+                if (!currentBusiness || !currentUser) {
+                    throw new Error('No business data found in localStorage. Please log in first.');
+                }
+                
+                const businessData = JSON.parse(currentBusiness);
+                const userData = JSON.parse(currentUser);
+                
+                log(`Found business data: ${businessData.name || businessData.businessName}`, 'success');
+                
+                // Wait for Firebase services
+                if (!window.firebaseServices) {
+                    throw new Error('Firebase services not available');
+                }
+                
+                const db = window.firebaseServices.getDb();
+                if (!db) {
+                    throw new Error('Firebase database not available');
+                }
+                
+                // Create or update business document in Firebase
+                const businessDoc = {
+                    id: businessData.id || `business_${Date.now()}`,
+                    companyName: businessData.name || businessData.businessName || userData.businessName,
+                    businessType: userData.businessType || businessData.type || 'restaurant',
+                    companyEmail: userData.email || businessData.email || '',
+                    companyPhone: userData.phone || businessData.phone || '',
+                    address: businessData.address || {},
+                    isActive: true,
+                    createdAt: businessData.createdAt || new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    source: 'localStorage_sync',
+                    // Ensure we have an owner
+                    ownerId: userData.uid || `user_${Date.now()}`,
+                    ownerEmail: userData.email || ''
+                };
+                
+                // Save to Firebase
+                await db.collection('businesses').doc(businessDoc.id).set(businessDoc);
+                log(`✅ Business saved to Firebase with ID: ${businessDoc.id}`, 'success');
+                
+                // Update localStorage with the synced ID
+                businessData.id = businessDoc.id;
+                localStorage.setItem('currentBusiness', JSON.stringify(businessData));
+                
+                // Create user document if needed
+                if (userData.uid) {
+                    const userDoc = {
+                        uid: userData.uid,
+                        email: userData.email,
+                        role: userData.role || 'owner',
+                        businessId: businessDoc.id,
+                        accessLevel: 'business',
+                        permissions: ['menu_edit', 'orders_view', 'settings_edit'],
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    await db.collection('users').doc(userData.uid).set(userDoc, { merge: true });
+                    log(`✅ User document updated in Firebase`, 'success');
+                }
+                
+                setStatus('syncStatus', '✅ Business data synced to cloud successfully!', 'success');
+                
+            } catch (error) {
+                log(`❌ Sync failed: ${error.message}`, 'error');
+                setStatus('syncStatus', `❌ Sync failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function forceUmbrellaConnection() {
+            log('🔗 Forcing umbrella manager connection to cloud data...', 'info');
+            setStatus('connectionStatus', '🔗 Connecting to cloud...', 'info');
+            
+            try {
+                // Wait for umbrella manager
+                if (!window.umbrellaManager) {
+                    throw new Error('Umbrella manager not available');
+                }
+                
+                // Get business data from localStorage
+                const currentBusiness = localStorage.getItem('currentBusiness');
+                const currentUser = localStorage.getItem('currentUser');
+                
+                if (!currentBusiness || !currentUser) {
+                    throw new Error('No business data in localStorage');
+                }
+                
+                const businessData = JSON.parse(currentBusiness);
+                const userData = JSON.parse(currentUser);
+                
+                // Create compatible business data for umbrella manager
+                const umbrellaBusinessData = {
+                    id: businessData.id,
+                    companyName: businessData.name || businessData.businessName || userData.businessName,
+                    businessType: userData.businessType || 'restaurant',
+                    businessCode: businessData.id,
+                    ownerName: userData.name,
+                    companyEmail: userData.email || '',
+                    companyPhone: userData.phone || '',
+                    isActive: true,
+                    createdAt: businessData.createdAt || new Date().toISOString(),
+                    source: 'sync_fix_forced'
+                };
+                
+                // Force set the business in umbrella manager
+                window.umbrellaManager.setCurrentBusiness(businessData.id, umbrellaBusinessData);
+                
+                log(`✅ Umbrella manager connected to: ${umbrellaBusinessData.companyName}`, 'success');
+                
+                // Dispatch event to notify other components
+                const event = new CustomEvent('businessContextConnected', { 
+                    detail: { 
+                        business: umbrellaBusinessData,
+                        source: 'sync_fix_forced'
+                    } 
+                });
+                document.dispatchEvent(event);
+                
+                setStatus('connectionStatus', `✅ Connected to ${umbrellaBusinessData.companyName}!`, 'success');
+                
+            } catch (error) {
+                log(`❌ Connection failed: ${error.message}`, 'error');
+                setStatus('connectionStatus', `❌ Connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function syncMenuData() {
+            log('📋 Syncing menu data between localStorage and cloud...', 'info');
+            setStatus('menuSyncStatus', '📋 Syncing menu data...', 'info');
+            
+            try {
+                if (!window.firebaseServices) {
+                    throw new Error('Firebase services not available');
+                }
+                
+                if (!window.umbrellaManager || !window.umbrellaManager.currentBusiness) {
+                    throw new Error('No business context. Run "Force Cloud Connection" first.');
+                }
+                
+                const db = window.firebaseServices.getDb();
+                const businessId = window.umbrellaManager.currentBusiness.id;
+                
+                // Get menu from localStorage
+                const localMenu = localStorage.getItem('menuItems');
+                if (localMenu) {
+                    const menuItems = JSON.parse(localMenu);
+                    log(`Found ${menuItems.length} items in localStorage`, 'info');
+                    
+                    // Save to Firebase
+                    const menuDoc = {
+                        businessId: businessId,
+                        menuType: 'restaurant',
+                        items: menuItems,
+                        lastUpdated: new Date().toISOString(),
+                        isActive: true,
+                        editorVersion: '2.0',
+                        totalItems: menuItems.length,
+                        source: 'sync_fix'
+                    };
+                    
+                    await db.collection('menus').doc(`${businessId}_restaurant`).set(menuDoc);
+                    log(`✅ Menu synced to cloud: ${menuItems.length} items`, 'success');
+                    
+                    setStatus('menuSyncStatus', `✅ Menu synced: ${menuItems.length} items uploaded to cloud`, 'success');
+                } else {
+                    // Try to load from cloud
+                    const cloudMenuDoc = await db.collection('menus').doc(`${businessId}_restaurant`).get();
+                    if (cloudMenuDoc.exists) {
+                        const cloudMenu = cloudMenuDoc.data();
+                        localStorage.setItem('menuItems', JSON.stringify(cloudMenu.items || []));
+                        log(`✅ Menu downloaded from cloud: ${cloudMenu.items?.length || 0} items`, 'success');
+                        setStatus('menuSyncStatus', `✅ Menu downloaded from cloud: ${cloudMenu.items?.length || 0} items`, 'success');
+                    } else {
+                        setStatus('menuSyncStatus', '⚠️ No menu data found in localStorage or cloud', 'warning');
+                    }
+                }
+                
+            } catch (error) {
+                log(`❌ Menu sync failed: ${error.message}`, 'error');
+                setStatus('menuSyncStatus', `❌ Menu sync failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function verifySync() {
+            log('✅ Verifying sync status...', 'info');
+            setStatus('verificationStatus', '✅ Verifying...', 'info');
+            
+            try {
+                let allGood = true;
+                let issues = [];
+                
+                // Check localStorage
+                const currentBusiness = localStorage.getItem('currentBusiness');
+                if (!currentBusiness) {
+                    allGood = false;
+                    issues.push('No business data in localStorage');
+                } else {
+                    log('✅ localStorage business data: OK', 'success');
+                }
+                
+                // Check umbrella manager
+                if (!window.umbrellaManager) {
+                    allGood = false;
+                    issues.push('Umbrella manager not available');
+                } else if (!window.umbrellaManager.currentBusiness) {
+                    allGood = false;
+                    issues.push('Umbrella manager has no business context');
+                } else {
+                    log(`✅ Umbrella manager business: ${window.umbrellaManager.currentBusiness.companyName}`, 'success');
+                }
+                
+                // Check Firebase connection
+                if (!window.firebaseServices) {
+                    allGood = false;
+                    issues.push('Firebase services not available');
+                } else {
+                    try {
+                        const db = window.firebaseServices.getDb();
+                        await db.collection('test').limit(1).get();
+                        log('✅ Firebase connection: OK', 'success');
+                    } catch (e) {
+                        allGood = false;
+                        issues.push('Firebase connection failed');
+                    }
+                }
+                
+                if (allGood) {
+                    setStatus('verificationStatus', '✅ All systems synced! Both browsers should now show cloud connection.', 'success');
+                    log('🎉 Sync verification: PASSED! Menu editor should now show cloud connection in both browsers.', 'success');
+                } else {
+                    setStatus('verificationStatus', `❌ Issues found: ${issues.join(', ')}`, 'error');
+                    log(`❌ Sync verification: FAILED. Issues: ${issues.join(', ')}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Verification failed: ${error.message}`, 'error');
+                setStatus('verificationStatus', `❌ Verification failed: ${error.message}`, 'error');
+            }
+        }
+
+        function openMenuEditor() {
+            window.open('menu-editor.html', '_blank');
+            log('📂 Menu editor opened in new tab', 'info');
+        }
+
+        function emergencyReset() {
+            if (confirm('This will clear ALL business and menu data. Are you sure?')) {
+                localStorage.removeItem('currentBusiness');
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('menuItems');
+                localStorage.removeItem('currentBusinessContext');
+                
+                if (window.umbrellaManager) {
+                    window.umbrellaManager.currentBusiness = null;
+                    window.umbrellaManager.currentProperty = null;
+                }
+                
+                log('🚨 Emergency reset completed - all data cleared', 'warn');
+                alert('Emergency reset completed. Please log in again.');
+                
+                // Clear all status displays
+                document.getElementById('analysisStatus').innerHTML = '';
+                document.getElementById('syncStatus').innerHTML = '';
+                document.getElementById('connectionStatus').innerHTML = '';
+                document.getElementById('menuSyncStatus').innerHTML = '';
+                document.getElementById('verificationStatus').innerHTML = '';
+            }
+        }
+
+        // Auto-run analysis when page loads
+        window.addEventListener('load', () => {
+            setTimeout(analyzeCurrentState, 2000);
+        });
+
+        // Listen for business context changes
+        window.addEventListener('businessContextConnected', (event) => {
+            log(`🎉 Business context connected event: ${event.detail?.business?.companyName || 'Unknown'}`, 'success');
+        });
+    </script>
+</body>
+</html>

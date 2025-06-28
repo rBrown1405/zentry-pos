@@ -27,6 +27,10 @@
     <script src="js/api-manager.js?v=20250627004"></script>
     <script src="js/firebase-manager.js?v=20250627004"></script>
     <script src="js/umbrella-account-manager.js?v=20250627004"></script>
+    
+    <!-- Universal Auto-Sync Manager -->
+    <script src="js/universal-auto-sync-manager.js?v=20250628003"></script>
+    
     <script src="multi-property-manager.js?v=20250627004"></script>
     <script src="navigation.js?v=20250627004"></script>
     <script>
@@ -176,6 +180,9 @@
 
             // Initialize the rest of the dashboard
             initializeDashboard();
+            
+            // Initialize always-on sync for business dashboard
+            initializeBusinessDashboardAlwaysOnSync();
         });
 
         function initializeDashboard() {
@@ -188,6 +195,12 @@
         }
 
         function handleLogout() {
+            // Trigger sync before logout
+            if (window.autoSyncManager || window.universalAutoSyncManager) {
+                const syncManager = window.autoSyncManager || window.universalAutoSyncManager;
+                syncManager.forceSyncNow();
+            }
+            
             // Clear business session
             localStorage.removeItem('currentBusiness');
             localStorage.removeItem('isLoggedIn');
@@ -202,6 +215,12 @@
         }
 
         function setCurrentBusinessAndNavigate() {
+            // Trigger sync before navigation
+            if (window.autoSyncManager || window.universalAutoSyncManager) {
+                const syncManager = window.autoSyncManager || window.universalAutoSyncManager;
+                syncManager.forceSyncNow();
+            }
+            
             // Get the current business info from the dashboard context
             const businessInfo = JSON.parse(localStorage.getItem('currentBusiness'));
             if (businessInfo) {
@@ -211,6 +230,219 @@
             }
             navigateWithTransition('business-settings.html');
         }
+
+        // ===== BUSINESS DASHBOARD ALWAYS-ON SYNC INTEGRATION =====
+        
+        function initializeBusinessDashboardAlwaysOnSync() {
+            console.log('🔄 Setting up Business Dashboard Always-On Sync...');
+            
+            // Wait for auto-sync manager to be ready
+            const waitForAutoSync = setInterval(() => {
+                if (window.autoSyncManager || window.universalAutoSyncManager) {
+                    clearInterval(waitForAutoSync);
+                    setupBusinessDashboardSync();
+                }
+            }, 100);
+            
+            // Timeout after 10 seconds
+            setTimeout(() => {
+                clearInterval(waitForAutoSync);
+                console.warn('⚠️ Auto-sync manager not found in business dashboard');
+            }, 10000);
+        }
+        
+        function setupBusinessDashboardSync() {
+            const syncManager = window.autoSyncManager || window.universalAutoSyncManager;
+            
+            console.log('✅ Auto-sync manager found, setting up business dashboard integration');
+            
+            // Override navigation functions to trigger sync
+            const originalNavigateWithTransition = window.navigateWithTransition;
+            if (originalNavigateWithTransition) {
+                window.navigateWithTransition = async function(...args) {
+                    console.log('🔄 Dashboard navigation - triggering sync');
+                    await syncManager.forceSyncNow();
+                    return originalNavigateWithTransition.apply(this, args);
+                };
+            }
+            
+            // Setup dashboard-specific activity monitoring
+            setupDashboardActivityMonitoring(syncManager);
+            
+            // Setup dashboard data refresh with sync
+            setupDashboardDataSyncRefresh(syncManager);
+            
+            // Initial sync
+            setTimeout(() => {
+                console.log('🚀 Business Dashboard initial sync');
+                syncManager.forceSyncNow();
+            }, 1000);
+        }
+        
+        function setupDashboardActivityMonitoring(syncManager) {
+            // Monitor all clickable elements in dashboard
+            document.addEventListener('click', (event) => {
+                const target = event.target;
+                
+                // Monitor action button clicks
+                if (target.matches('.action-button, .menu-button')) {
+                    console.log('🔘 Dashboard action button clicked - triggering sync');
+                    setTimeout(() => syncManager.forceSyncNow(), 300);
+                }
+                
+                // Monitor card interactions
+                if (target.closest('.dashboard-card')) {
+                    console.log('📊 Dashboard card interacted - triggering sync');
+                    setTimeout(() => syncManager.forceSyncNow(), 500);
+                }
+            });
+            
+            // Monitor profile menu interactions
+            const profileMenu = document.getElementById('profileMenu');
+            if (profileMenu) {
+                profileMenu.addEventListener('click', () => {
+                    console.log('👤 Profile menu clicked - triggering sync');
+                    setTimeout(() => syncManager.forceSyncNow(), 200);
+                });
+            }
+            
+            // Monitor window focus/blur for dashboard
+            window.addEventListener('focus', () => {
+                console.log('👁️ Dashboard focused - triggering refresh sync');
+                setTimeout(() => {
+                    syncManager.forceSyncNow();
+                    refreshDashboardData();
+                }, 500);
+            });
+            
+            // Monitor page visibility changes
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    console.log('👁️ Dashboard became visible - triggering sync');
+                    setTimeout(() => {
+                        syncManager.forceSyncNow();
+                        refreshDashboardData();
+                    }, 1000);
+                }
+            });
+        }
+        
+        function setupDashboardDataSyncRefresh(syncManager) {
+            // Refresh dashboard data every 30 seconds with sync
+            setInterval(() => {
+                console.log('🔄 Dashboard periodic refresh with sync');
+                syncManager.forceSyncNow();
+                refreshDashboardData();
+            }, 30000);
+            
+            // Listen for sync completion events
+            window.addEventListener('autoSyncCompleted', (event) => {
+                console.log('✅ Auto-sync completed in dashboard - refreshing data');
+                refreshDashboardData();
+            });
+            
+            window.addEventListener('sync-success', (event) => {
+                console.log('✅ Sync success in dashboard');
+                refreshDashboardData();
+            });
+            
+            window.addEventListener('sync-error', (event) => {
+                console.warn('❌ Sync error in dashboard:', event.detail);
+                // Still refresh with local data
+                refreshDashboardData();
+            });
+        }
+        
+        function refreshDashboardData() {
+            try {
+                console.log('🔄 Refreshing dashboard data...');
+                
+                // Refresh business info display
+                const businessInfo = JSON.parse(localStorage.getItem('currentBusiness'));
+                if (businessInfo) {
+                    const businessNameEl = document.getElementById('businessName');
+                    const businessTypeEl = document.getElementById('businessType');
+                    
+                    if (businessNameEl) {
+                        businessNameEl.textContent = businessInfo.name;
+                    }
+                    if (businessTypeEl) {
+                        businessTypeEl.textContent = 
+                            MultiPropertyManager.PROPERTY_TYPES?.[businessInfo.type] || businessInfo.type;
+                    }
+                }
+                
+                // Refresh sales data if available
+                refreshSalesData();
+                
+                // Refresh staff data if available
+                refreshStaffData();
+                
+                // Refresh table data if available
+                refreshTableData();
+                
+                // Update last refresh time
+                const now = new Date();
+                console.log(`📊 Dashboard data refreshed at ${now.toLocaleTimeString()}`);
+                
+            } catch (error) {
+                console.error('❌ Error refreshing dashboard data:', error);
+            }
+        }
+        
+        function refreshSalesData() {
+            // This would normally fetch real sales data from Firebase
+            // For now, keeping sample data but with sync awareness
+            const salesElement = document.getElementById('todaySales');
+            if (salesElement) {
+                // In a real implementation, this would fetch from Firebase
+                salesElement.textContent = '$1,234.56';
+            }
+        }
+        
+        function refreshStaffData() {
+            // This would normally fetch real staff data from Firebase
+            const staffElement = document.getElementById('activeStaff');
+            if (staffElement) {
+                // Try to get staff data from localStorage or Firebase
+                const businessId = JSON.parse(localStorage.getItem('currentBusiness'))?.id;
+                const staffData = localStorage.getItem(`staffMembers_${businessId}`);
+                
+                if (staffData) {
+                    try {
+                        const staff = JSON.parse(staffData);
+                        const activeCount = staff.filter(member => member.isActive).length;
+                        staffElement.textContent = activeCount.toString();
+                    } catch (e) {
+                        staffElement.textContent = '0';
+                    }
+                } else {
+                    staffElement.textContent = '0';
+                }
+            }
+        }
+        
+        function refreshTableData() {
+            // This would normally fetch real table data
+            const tablesElement = document.getElementById('openTables');
+            if (tablesElement) {
+                // In a real implementation, this would fetch from Firebase
+                tablesElement.textContent = '5/12';
+            }
+        }
+        
+        // Emergency sync on page unload
+        window.addEventListener('beforeunload', () => {
+            console.log('🚨 Business dashboard unloading - emergency sync');
+            if (window.autoSyncManager || window.universalAutoSyncManager) {
+                const syncManager = window.autoSyncManager || window.universalAutoSyncManager;
+                if (syncManager.emergencySync) {
+                    syncManager.emergencySync();
+                }
+            }
+        });
+        
+        console.log('🔄 Business Dashboard Always-On Sync integration initialized');
     </script>
 </body>
 </html>

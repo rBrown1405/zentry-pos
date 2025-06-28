@@ -1572,6 +1572,9 @@
     <script src="js/firebase-manager.js"></script>
     <script src="js/umbrella-account-manager.js"></script>
     
+    <!-- Universal Auto-Sync Manager -->
+    <script src="js/universal-auto-sync-manager.js?v=20250628003"></script>
+    
     <!-- Firebase Configuration -->
     <script>
         // Firebase Configuration
@@ -1660,6 +1663,310 @@
                 return null;
             }
         }
+
+        // ===== POS INTERFACE ALWAYS-ON SYNC INTEGRATION =====
+        
+        function initializePOSAlwaysOnSync() {
+            console.log('🔄 Setting up POS Interface Always-On Sync...');
+            
+            // Wait for auto-sync manager to be ready
+            const waitForAutoSync = setInterval(() => {
+                if (window.autoSyncManager || window.universalAutoSyncManager) {
+                    clearInterval(waitForAutoSync);
+                    setupPOSInterfaceSync();
+                }
+            }, 100);
+            
+            // Timeout after 10 seconds
+            setTimeout(() => {
+                clearInterval(waitForAutoSync);
+                console.warn('⚠️ Auto-sync manager not found in POS interface');
+            }, 10000);
+        }
+        
+        function setupPOSInterfaceSync() {
+            const syncManager = window.autoSyncManager || window.universalAutoSyncManager;
+            
+            console.log('✅ Auto-sync manager found, setting up POS interface integration');
+            
+            // Override critical POS functions to trigger sync
+            overridePOSFunctionsWithSync(syncManager);
+            
+            // Setup POS-specific activity monitoring
+            setupPOSActivityMonitoring(syncManager);
+            
+            // Setup order and transaction sync
+            setupOrderTransactionSync(syncManager);
+            
+            // Initial sync
+            setTimeout(() => {
+                console.log('🚀 POS Interface initial sync');
+                syncManager.forceSyncNow();
+            }, 1000);
+        }
+        
+        function overridePOSFunctionsWithSync(syncManager) {
+            // Override cart functions
+            const originalAddToCart = window.addToCart;
+            if (originalAddToCart) {
+                window.addToCart = function(...args) {
+                    console.log('🛒 addToCart called - triggering sync');
+                    const result = originalAddToCart.apply(this, args);
+                    setTimeout(() => syncManager.forceSyncNow(), 200);
+                    return result;
+                };
+            }
+            
+            const originalRemoveFromCart = window.removeFromCart;
+            if (originalRemoveFromCart) {
+                window.removeFromCart = function(...args) {
+                    console.log('🗑️ removeFromCart called - triggering sync');
+                    const result = originalRemoveFromCart.apply(this, args);
+                    setTimeout(() => syncManager.forceSyncNow(), 200);
+                    return result;
+                };
+            }
+            
+            const originalClearCart = window.clearCart;
+            if (originalClearCart) {
+                window.clearCart = function(...args) {
+                    console.log('🧹 clearCart called - triggering sync');
+                    const result = originalClearCart.apply(this, args);
+                    setTimeout(() => syncManager.forceSyncNow(), 200);
+                    return result;
+                };
+            }
+            
+            // Override payment processing
+            const originalProcessPayment = window.processPayment;
+            if (originalProcessPayment) {
+                window.processPayment = async function(...args) {
+                    console.log('💳 processPayment called - triggering pre-sync');
+                    await syncManager.forceSyncNow();
+                    
+                    const result = await originalProcessPayment.apply(this, args);
+                    
+                    console.log('💳 processPayment completed - triggering post-sync');
+                    setTimeout(() => syncManager.forceSyncNow(), 500);
+                    
+                    return result;
+                };
+            }
+            
+            // Override order completion
+            const originalCompleteOrder = window.completeOrder;
+            if (originalCompleteOrder) {
+                window.completeOrder = async function(...args) {
+                    console.log('✅ completeOrder called - triggering pre-sync');
+                    await syncManager.forceSyncNow();
+                    
+                    const result = await originalCompleteOrder.apply(this, args);
+                    
+                    console.log('✅ completeOrder completed - triggering post-sync');
+                    setTimeout(() => syncManager.forceSyncNow(), 500);
+                    
+                    return result;
+                };
+            }
+            
+            // Override table selection
+            const originalSelectTable = window.selectTable;
+            if (originalSelectTable) {
+                window.selectTable = function(...args) {
+                    console.log('🪑 selectTable called - triggering sync');
+                    const result = originalSelectTable.apply(this, args);
+                    setTimeout(() => syncManager.forceSyncNow(), 200);
+                    return result;
+                };
+            }
+        }
+        
+        function setupPOSActivityMonitoring(syncManager) {
+            // Monitor all button clicks in POS interface
+            document.addEventListener('click', (event) => {
+                const target = event.target;
+                
+                // Monitor menu item clicks
+                if (target.matches('.menu-item, .menu-item-btn')) {
+                    console.log('🍽️ Menu item clicked - triggering sync');
+                    setTimeout(() => syncManager.forceSyncNow(), 300);
+                }
+                
+                // Monitor cart buttons
+                if (target.matches('.cart-btn, .add-to-cart, .remove-item')) {
+                    console.log('🛒 Cart button clicked - triggering sync');
+                    setTimeout(() => syncManager.forceSyncNow(), 200);
+                }
+                
+                // Monitor payment buttons
+                if (target.matches('.payment-btn, .pay-button, .complete-order')) {
+                    console.log('💳 Payment button clicked - triggering sync');
+                    setTimeout(() => syncManager.forceSyncNow(), 100);
+                }
+                
+                // Monitor table buttons
+                if (target.matches('.table-btn, .table-selector')) {
+                    console.log('🪑 Table button clicked - triggering sync');
+                    setTimeout(() => syncManager.forceSyncNow(), 200);
+                }
+                
+                // Monitor navigation buttons
+                if (target.matches('.nav-btn, .section-btn')) {
+                    console.log('🧭 Navigation button clicked - triggering sync');
+                    setTimeout(() => syncManager.forceSyncNow(), 500);
+                }
+            });
+            
+            // Monitor quantity input changes
+            document.addEventListener('input', (event) => {
+                const target = event.target;
+                
+                if (target.matches('input[type="number"], .quantity-input')) {
+                    clearTimeout(target.syncTimeout);
+                    target.syncTimeout = setTimeout(() => {
+                        console.log('🔢 Quantity input changed - triggering sync');
+                        syncManager.forceSyncNow();
+                    }, 1000);
+                }
+            });
+            
+            // Monitor order status changes
+            const orderContainer = document.querySelector('.order-container, .cart-container');
+            if (orderContainer) {
+                const observer = new MutationObserver((mutations) => {
+                    let hasOrderChanges = false;
+                    mutations.forEach((mutation) => {
+                        if (mutation.type === 'childList' && 
+                            (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0)) {
+                            hasOrderChanges = true;
+                        }
+                    });
+                    
+                    if (hasOrderChanges) {
+                        console.log('📋 Order container changed - triggering sync');
+                        setTimeout(() => syncManager.forceSyncNow(), 300);
+                    }
+                });
+                
+                observer.observe(orderContainer, {
+                    childList: true,
+                    subtree: true
+                });
+            }
+            
+            // Monitor POS-specific keyboard shortcuts
+            document.addEventListener('keydown', (event) => {
+                // F1-F12 function keys (common in POS systems)
+                if (event.key.startsWith('F') && event.key.length >= 2) {
+                    console.log(`⌨️ Function key ${event.key} pressed - triggering sync`);
+                    setTimeout(() => syncManager.forceSyncNow(), 200);
+                }
+                
+                // Enter key for completing actions
+                if (event.key === 'Enter' && (event.target.matches('.payment-input, .table-input'))) {
+                    console.log('⌨️ Enter in POS input - triggering sync');
+                    setTimeout(() => syncManager.forceSyncNow(), 200);
+                }
+                
+                // Escape key for canceling
+                if (event.key === 'Escape') {
+                    console.log('⌨️ Escape pressed in POS - triggering sync');
+                    setTimeout(() => syncManager.forceSyncNow(), 200);
+                }
+            });
+        }
+        
+        function setupOrderTransactionSync(syncManager) {
+            // Sync completed orders/transactions
+            const syncOrderData = () => {
+                const orders = JSON.parse(localStorage.getItem('completedOrders') || '[]');
+                const businessId = JSON.parse(localStorage.getItem('currentBusiness'))?.id;
+                
+                if (orders.length > 0 && businessId && window.firebaseServices?.getDb()) {
+                    console.log(`📊 Syncing ${orders.length} completed orders to Firebase`);
+                    
+                    const db = window.firebaseServices.getDb();
+                    orders.forEach(async (order, index) => {
+                        try {
+                            await db.collection('orders').doc(`${businessId}_${order.id || index}`).set({
+                                ...order,
+                                businessId,
+                                syncedAt: new Date().toISOString()
+                            }, { merge: true });
+                        } catch (error) {
+                            console.error('Error syncing order:', error);
+                        }
+                    });
+                }
+            };
+            
+            // Sync sales data
+            const syncSalesData = () => {
+                const salesData = JSON.parse(localStorage.getItem('dailySales') || '{}');
+                const businessId = JSON.parse(localStorage.getItem('currentBusiness'))?.id;
+                
+                if (Object.keys(salesData).length > 0 && businessId && window.firebaseServices?.getDb()) {
+                    console.log('📊 Syncing sales data to Firebase');
+                    
+                    const db = window.firebaseServices.getDb();
+                    db.collection('sales').doc(businessId).set({
+                        ...salesData,
+                        lastUpdated: new Date().toISOString()
+                    }, { merge: true }).catch(error => {
+                        console.error('Error syncing sales data:', error);
+                    });
+                }
+            };
+            
+            // Listen for sync events to trigger order/sales sync
+            window.addEventListener('autoSyncCompleted', () => {
+                console.log('✅ Auto-sync completed in POS - syncing order/sales data');
+                setTimeout(() => {
+                    syncOrderData();
+                    syncSalesData();
+                }, 1000);
+            });
+            
+            // Periodic order/sales data sync
+            setInterval(() => {
+                console.log('🔄 Periodic order/sales sync in POS');
+                syncOrderData();
+                syncSalesData();
+            }, 60000); // Every minute
+        }
+        
+        // Enhanced page visibility handling for POS
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                console.log('👁️ POS interface became visible - triggering comprehensive sync');
+                setTimeout(() => {
+                    if (window.autoSyncManager || window.universalAutoSyncManager) {
+                        const syncManager = window.autoSyncManager || window.universalAutoSyncManager;
+                        syncManager.forceSyncNow();
+                    }
+                }, 500);
+            }
+        });
+        
+        // Emergency sync on POS unload
+        window.addEventListener('beforeunload', () => {
+            console.log('🚨 POS interface unloading - emergency sync');
+            if (window.autoSyncManager || window.universalAutoSyncManager) {
+                const syncManager = window.autoSyncManager || window.universalAutoSyncManager;
+                if (syncManager.emergencySync) {
+                    syncManager.emergencySync();
+                }
+            }
+        });
+        
+        // Initialize POS always-on sync when ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePOSAlwaysOnSync);
+        } else {
+            initializePOSAlwaysOnSync();
+        }
+        
+        console.log('🔄 POS Interface Always-On Sync integration initialized');
     </script>
 </body>
 </html>

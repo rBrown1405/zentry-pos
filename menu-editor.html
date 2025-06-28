@@ -1009,6 +1009,9 @@
     
     <!-- Umbrella Account Manager -->
     <script src="js/umbrella-account-manager.js?v=20250627004"></script>
+    
+    <!-- Universal Auto-Sync Manager -->
+    <script src="js/universal-auto-sync-manager.js?v=20250628003"></script>
 
     <script>        // Menu items data - initialized empty for fresh start
         let menuItems = [];
@@ -1123,6 +1126,108 @@
                 }
             } else {
                 console.log('Business context watcher not needed - Firebase not available');
+            }
+        }
+
+        // Detect and fix sync issues between localStorage and umbrella manager
+        async function detectAndFixSyncIssues() {
+            try {
+                console.log('🔍 Detecting sync issues...');
+                
+                // Trigger universal auto-sync manager sync detection
+                if (window.autoSyncManager) {
+                    await window.autoSyncManager.forceSyncNow();
+                }
+                
+                // Check if we have localStorage business data but no umbrella manager business
+                const localBusiness = localStorage.getItem('currentBusiness');
+                const localUser = localStorage.getItem('currentUser');
+                
+                if (localBusiness && localUser && (!window.umbrellaManager || !window.umbrellaManager.currentBusiness)) {
+                    console.log('🔧 Sync issue detected: localStorage has business data but umbrella manager does not');
+                    
+                    // Wait for umbrella manager to be available
+                    let attempts = 0;
+                    while (!window.umbrellaManager && attempts < 50) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        attempts++;
+                    }
+                    
+                    if (window.umbrellaManager) {
+                        const businessData = JSON.parse(localBusiness);
+                        const userData = JSON.parse(localUser);
+                        
+                        // Create umbrella manager compatible business data
+                        const umbrellaBusinessData = {
+                            id: businessData.id || `business_${Date.now()}`,
+                            companyName: businessData.name || businessData.businessName || userData.businessName,
+                            businessType: userData.businessType || businessData.type || 'restaurant',
+                            businessCode: businessData.id,
+                            ownerName: userData.name,
+                            companyEmail: userData.email || '',
+                            companyPhone: userData.phone || '',
+                            isActive: true,
+                            createdAt: businessData.createdAt || new Date().toISOString(),
+                            source: 'auto_sync_fix'
+                        };
+                        
+                        // Set the business in umbrella manager
+                        window.umbrellaManager.setCurrentBusiness(umbrellaBusinessData.id, umbrellaBusinessData);
+                        
+                        console.log('✅ Auto-sync fix applied:', umbrellaBusinessData.companyName);
+                        
+                        // Show notification
+                        showNotification(`Auto-synced business context: ${umbrellaBusinessData.companyName}`, 'success');
+                        
+                        // Trigger comprehensive sync after fix
+                        if (window.autoSyncManager) {
+                            setTimeout(() => window.autoSyncManager.forceSyncNow(), 500);
+                        }
+                        
+                        return true;
+                    }
+                }
+                
+                // Also check reverse scenario - umbrella manager has business but localStorage doesn't
+                if (window.umbrellaManager?.currentBusiness && (!localBusiness || !localUser)) {
+                    console.log('🔧 Reverse sync issue: Umbrella manager has business but localStorage missing');
+                    
+                    const business = window.umbrellaManager.currentBusiness;
+                    
+                    // Sync umbrella manager data to localStorage
+                    const localBusinessData = {
+                        id: business.id,
+                        name: business.companyName,
+                        businessName: business.companyName,
+                        type: business.businessType,
+                        createdAt: business.createdAt || new Date().toISOString()
+                    };
+                    
+                    const localUserData = {
+                        name: business.ownerName,
+                        email: business.companyEmail,
+                        businessName: business.companyName,
+                        businessType: business.businessType
+                    };
+                    
+                    localStorage.setItem('currentBusiness', JSON.stringify(localBusinessData));
+                    localStorage.setItem('currentUser', JSON.stringify(localUserData));
+                    
+                    console.log('✅ Reverse sync fix applied:', business.companyName);
+                    showNotification(`Synced from umbrella manager: ${business.companyName}`, 'success');
+                    
+                    // Trigger sync after reverse fix
+                    if (window.autoSyncManager) {
+                        setTimeout(() => window.autoSyncManager.forceSyncNow(), 500);
+                    }
+                    
+                    return true;
+                }
+                
+                return false;
+            } catch (error) {
+                console.warn('Auto-sync fix failed:', error.message);
+                return false;
             }
         }
         
@@ -1442,6 +1547,11 @@
         // Save menu data to Firebase cloud storage via umbrella account system
         async function saveMenuData() {
             try {
+                // Trigger auto-sync before saving
+                if (window.autoSyncManager) {
+                    await window.autoSyncManager.forceSyncNow();
+                }
+                
                 // Check if Firebase and business context are available
                 if (window.firebaseServices && window.firebaseServices.getDb()) {
                     // Check for business context
@@ -1456,6 +1566,11 @@
                         saveMenuToLocalStorage();
                         
                         console.log("✅ Menu data saved to cloud and local storage");
+                        
+                        // Trigger sync after saving
+                        if (window.autoSyncManager) {
+                            setTimeout(() => window.autoSyncManager.forceSyncNow(), 500);
+                        }
                     } else {
                         // Firebase available but no business context - save locally only
                         console.log("Firebase available but no business context - saving locally only");
@@ -2317,6 +2432,9 @@
         // Check Firebase connection status
         async function checkFirebaseConnection() {
             try {
+                // Add sync detection and auto-fix
+                await detectAndFixSyncIssues();
+                
                 if (!window.firebaseServices) {
                     updateCloudStatus('offline', 'Firebase not available');
                     return false;
@@ -2418,6 +2536,246 @@
         window.saveModifiers = saveModifiers;
         window.addModifierGroup = addModifierGroup;
         window.toggleDayAvailability = toggleDayAvailability;
+
+        // ===== UNIVERSAL ALWAYS-ON SYNC INTEGRATION =====
+        
+        // Setup comprehensive sync monitoring for menu editor
+        function setupMenuEditorAlwaysOnSync() {
+            console.log('🔄 Setting up Menu Editor Always-On Sync...');
+            
+            // Wait for auto-sync manager to be ready
+            const waitForAutoSync = setInterval(() => {
+                if (window.autoSyncManager || window.universalAutoSyncManager) {
+                    clearInterval(waitForAutoSync);
+                    initializeMenuEditorSync();
+                }
+            }, 100);
+            
+            // Timeout after 10 seconds
+            setTimeout(() => {
+                clearInterval(waitForAutoSync);
+                console.warn('⚠️ Auto-sync manager not found, proceeding without');
+            }, 10000);
+        }
+        
+        function initializeMenuEditorSync() {
+            const syncManager = window.autoSyncManager || window.universalAutoSyncManager;
+            
+            console.log('✅ Auto-sync manager found, setting up menu editor integration');
+            
+            // Override menu-specific functions to trigger sync
+            const originalSaveMenuData = window.saveMenuData;
+            window.saveMenuData = async function(...args) {
+                console.log('🔄 saveMenuData called - triggering pre-sync');
+                await syncManager.forceSyncNow();
+                
+                const result = await originalSaveMenuData.apply(this, args);
+                
+                console.log('🔄 saveMenuData completed - triggering post-sync');
+                setTimeout(() => syncManager.forceSyncNow(), 500);
+                
+                return result;
+            };
+            
+            // Override menu item functions
+            const originalAddNewItem = window.addNewItem;
+            window.addNewItem = function(...args) {
+                console.log('🔄 addNewItem called - triggering sync');
+                const result = originalAddNewItem.apply(this, args);
+                setTimeout(() => syncManager.forceSyncNow(), 200);
+                return result;
+            };
+            
+            const originalEditItem = window.editItem;
+            window.editItem = function(...args) {
+                console.log('🔄 editItem called - triggering sync');
+                const result = originalEditItem.apply(this, args);
+                setTimeout(() => syncManager.forceSyncNow(), 200);
+                return result;
+            };
+            
+            const originalDeleteItem = window.deleteItem;
+            window.deleteItem = function(...args) {
+                console.log('🔄 deleteItem called - triggering sync');
+                const result = originalDeleteItem.apply(this, args);
+                setTimeout(() => syncManager.forceSyncNow(), 200);
+                return result;
+            };
+            
+            const originalDuplicateItem = window.duplicateItem;
+            window.duplicateItem = function(...args) {
+                console.log('🔄 duplicateItem called - triggering sync');
+                const result = originalDuplicateItem.apply(this, args);
+                setTimeout(() => syncManager.forceSyncNow(), 200);
+                return result;
+            };
+            
+            const originalToggleEightySix = window.toggleEightySix;
+            window.toggleEightySix = function(...args) {
+                console.log('🔄 toggleEightySix called - triggering sync');
+                const result = originalToggleEightySix.apply(this, args);
+                setTimeout(() => syncManager.forceSyncNow(), 200);
+                return result;
+            };
+            
+            // Setup enhanced activity monitoring specifically for menu editor
+            setupMenuEditorActivityMonitoring(syncManager);
+            
+            // Setup periodic sync status checking
+            setupMenuEditorSyncStatusMonitoring(syncManager);
+            
+            // Initial sync
+            setTimeout(() => {
+                console.log('🚀 Menu Editor initial sync');
+                syncManager.forceSyncNow();
+            }, 1000);
+        }
+        
+        function setupMenuEditorActivityMonitoring(syncManager) {
+            // Monitor all form inputs in the editor
+            const menuForm = document.getElementById('editForm');
+            if (menuForm) {
+                const inputs = menuForm.querySelectorAll('input, textarea, select');
+                inputs.forEach(input => {
+                    let inputTimeout;
+                    input.addEventListener('input', () => {
+                        clearTimeout(inputTimeout);
+                        inputTimeout = setTimeout(() => {
+                            console.log('📝 Menu form input detected - triggering sync');
+                            syncManager.forceSyncNow();
+                        }, 2000); // 2 second delay after input stops
+                    });
+                    
+                    input.addEventListener('change', () => {
+                        console.log('📝 Menu form change detected - triggering sync');
+                        setTimeout(() => syncManager.forceSyncNow(), 500);
+                    });
+                });
+            }
+            
+            // Monitor menu item list changes
+            const menuItemsList = document.getElementById('menuItemsList');
+            if (menuItemsList) {
+                const observer = new MutationObserver((mutations) => {
+                    let hasMenuChanges = false;
+                    mutations.forEach((mutation) => {
+                        if (mutation.type === 'childList' && 
+                            (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0)) {
+                            hasMenuChanges = true;
+                        }
+                    });
+                    
+                    if (hasMenuChanges) {
+                        console.log('📋 Menu items list changed - triggering sync');
+                        setTimeout(() => syncManager.forceSyncNow(), 500);
+                    }
+                });
+                
+                observer.observe(menuItemsList, {
+                    childList: true,
+                    subtree: true
+                });
+            }
+            
+            // Monitor save button clicks specifically
+            const saveButton = document.querySelector('.save-button');
+            if (saveButton) {
+                saveButton.addEventListener('click', () => {
+                    console.log('💾 Save button clicked - triggering immediate sync');
+                    syncManager.forceSyncNow();
+                });
+            }
+            
+            // Monitor any button clicks that might change menu data
+            document.addEventListener('click', (event) => {
+                const target = event.target;
+                if (target.matches('.add-item-btn, .edit-btn, .delete-btn, .duplicate-btn, .eighty-six-btn')) {
+                    console.log('🔘 Menu action button clicked - triggering sync');
+                    setTimeout(() => syncManager.forceSyncNow(), 300);
+                }
+            });
+            
+            // Monitor keyboard shortcuts
+            document.addEventListener('keydown', (event) => {
+                // Ctrl+S or Cmd+S
+                if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+                    event.preventDefault();
+                    console.log('⌨️ Save shortcut detected - triggering sync and save');
+                    syncManager.forceSyncNow();
+                    setTimeout(() => saveMenuData(), 200);
+                }
+            });
+        }
+        
+        function setupMenuEditorSyncStatusMonitoring(syncManager) {
+            // Update cloud status with sync information
+            setInterval(() => {
+                if (syncManager.getSyncStatus) {
+                    const status = syncManager.getSyncStatus();
+                    
+                    if (status.syncInProgress) {
+                        updateCloudStatus('connecting', '🔄 Syncing...');
+                    } else if (status.lastSyncTime) {
+                        const timeSinceSync = Date.now() - status.lastSyncTime.getTime();
+                        if (timeSinceSync < 30000) { // Less than 30 seconds
+                            updateCloudStatus('connected', `✅ Synced ${Math.round(timeSinceSync/1000)}s ago`);
+                        } else {
+                            updateCloudStatus('warning', `⚠️ Last sync ${Math.round(timeSinceSync/60000)}m ago`);
+                        }
+                    }
+                }
+            }, 5000); // Check every 5 seconds
+            
+            // Listen for sync events
+            window.addEventListener('autoSyncCompleted', (event) => {
+                console.log('✅ Auto-sync completed in menu editor');
+                updateCloudStatus('connected', '✅ Sync complete');
+            });
+            
+            window.addEventListener('sync-success', (event) => {
+                console.log('✅ Sync success event received');
+                showNotification('Menu data synchronized successfully', 'success');
+            });
+            
+            window.addEventListener('sync-error', (event) => {
+                console.warn('❌ Sync error event received:', event.detail);
+                showNotification('Sync failed - Menu saved locally', 'warning');
+            });
+        }
+        
+        // Initialize always-on sync when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupMenuEditorAlwaysOnSync);
+        } else {
+            setupMenuEditorAlwaysOnSync();
+        }
+        
+        // Also trigger sync on page visibility changes specific to menu editor
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                console.log('👁️ Menu editor became visible - triggering sync check');
+                setTimeout(async () => {
+                    await detectAndFixSyncIssues();
+                    if (window.autoSyncManager || window.universalAutoSyncManager) {
+                        const syncManager = window.autoSyncManager || window.universalAutoSyncManager;
+                        syncManager.forceSyncNow();
+                    }
+                }, 500);
+            }
+        });
+        
+        // Emergency sync on page unload
+        window.addEventListener('beforeunload', () => {
+            console.log('🚨 Menu editor unloading - emergency sync');
+            if (window.autoSyncManager || window.universalAutoSyncManager) {
+                const syncManager = window.autoSyncManager || window.universalAutoSyncManager;
+                if (syncManager.emergencySync) {
+                    syncManager.emergencySync();
+                }
+            }
+        });
+        
+        console.log('🔄 Menu Editor Always-On Sync integration initialized');
     </script>
 </body>
 </html>

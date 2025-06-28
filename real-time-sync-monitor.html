@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Sync Monitor - Zentry POS</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .monitor-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .monitor-panel {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .sync-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .sync-indicator.active { background: #28a745; animation: pulse 2s infinite; }
+        .sync-indicator.error { background: #dc3545; }
+        .sync-indicator.warning { background: #ffc107; }
+        .sync-indicator.offline { background: #6c757d; }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .log-area {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .metric:last-child { border-bottom: none; }
+        .metric-value {
+            font-weight: bold;
+            color: #007bff;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .emergency { background: #dc3545; }
+        .emergency:hover { background: #c82333; }
+        .sync-status-bar {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Real-Time Sync Monitor</h1>
+        <p>Live monitoring of business context synchronization across all browsers and sessions.</p>
+
+        <div class="sync-status-bar">
+            <div>
+                <span class="sync-indicator" id="globalSyncIndicator"></span>
+                <strong>Auto-Sync Status: </strong>
+                <span id="globalSyncStatus">Initializing...</span>
+            </div>
+            <div>
+                <span>Last Sync: </span>
+                <span id="lastSyncTime">Never</span>
+            </div>
+        </div>
+
+        <div class="monitor-grid">
+            <div class="monitor-panel">
+                <h3>🏢 Business Context Monitor</h3>
+                <div id="businessContextStatus">
+                    <div class="metric">
+                        <span>localStorage Business:</span>
+                        <span class="metric-value" id="localBusinessStatus">Unknown</span>
+                    </div>
+                    <div class="metric">
+                        <span>Umbrella Manager:</span>
+                        <span class="metric-value" id="umbrellaBusinessStatus">Unknown</span>
+                    </div>
+                    <div class="metric">
+                        <span>Firebase Sync:</span>
+                        <span class="metric-value" id="firebaseBusinessStatus">Unknown</span>
+                    </div>
+                    <div class="metric">
+                        <span>Sync State:</span>
+                        <span class="metric-value" id="businessSyncState">Unknown</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="monitor-panel">
+                <h3>📋 Menu Data Monitor</h3>
+                <div id="menuDataStatus">
+                    <div class="metric">
+                        <span>Local Menu Items:</span>
+                        <span class="metric-value" id="localMenuCount">0</span>
+                    </div>
+                    <div class="metric">
+                        <span>Cloud Menu Items:</span>
+                        <span class="metric-value" id="cloudMenuCount">0</span>
+                    </div>
+                    <div class="metric">
+                        <span>Last Local Update:</span>
+                        <span class="metric-value" id="localMenuUpdate">Never</span>
+                    </div>
+                    <div class="metric">
+                        <span>Last Cloud Update:</span>
+                        <span class="metric-value" id="cloudMenuUpdate">Never</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="monitor-panel">
+            <h3>🔧 Sync Controls</h3>
+            <button onclick="forceSyncNow()">🚀 Force Sync Now</button>
+            <button onclick="enableAutoSync()">✅ Enable Auto-Sync</button>
+            <button onclick="disableAutoSync()">⏸️ Disable Auto-Sync</button>
+            <button onclick="resetSyncManager()">🔄 Reset Sync Manager</button>
+            <button onclick="clearAllData()" class="emergency">🚨 Clear All Data</button>
+        </div>
+
+        <div class="monitor-panel">
+            <h3>📊 Real-Time Metrics</h3>
+            <div id="syncMetrics">
+                <div class="metric">
+                    <span>Total Syncs:</span>
+                    <span class="metric-value" id="totalSyncs">0</span>
+                </div>
+                <div class="metric">
+                    <span>Sync Errors:</span>
+                    <span class="metric-value" id="syncErrors">0</span>
+                </div>
+                <div class="metric">
+                    <span>Avg Sync Time:</span>
+                    <span class="metric-value" id="avgSyncTime">0ms</span>
+                </div>
+                <div class="metric">
+                    <span>Auto-Sync Interval:</span>
+                    <span class="metric-value" id="syncInterval">30s</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="log-area" id="logArea">
+            <div>📋 Real-time sync log will appear here...</div>
+        </div>
+
+        <div class="monitor-panel">
+            <h3>🌐 Multi-Browser Test</h3>
+            <p>Open these links in different browsers to test cross-browser sync:</p>
+            <button onclick="openInNewTab('menu-editor.html')">📝 Menu Editor</button>
+            <button onclick="openInNewTab('business-dashboard.html')">🏢 Business Dashboard</button>
+            <button onclick="openInNewTab('pos-interface.html')">💰 POS Interface</button>
+            <button onclick="openInNewTab('business-settings.html')">⚙️ Business Settings</button>
+        </div>
+    </div>
+
+    <!-- Firebase Configuration -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyA0VWr-8fVYEOMAkQDhL_K2UJgMCNHiCGU",
+            authDomain: "zentry-pos.firebaseapp.com",
+            projectId: "zentry-pos",
+            storageBucket: "zentry-pos.appspot.com",
+            messagingSenderId: "981018301959",
+            appId: "1:981018301959:web:66606cda1df40c2e4ac507"
+        };
+
+        window.firebaseApp = initializeApp(firebaseConfig);
+    </script>
+
+    <!-- Firebase Services -->
+    <script src="js/firebase-services.js?v=20250628003"></script>
+    
+    <!-- Umbrella Manager -->
+    <script src="js/umbrella-account-manager.js?v=20250628003"></script>
+    
+    <!-- Universal Auto-Sync Manager -->
+    <script src="js/universal-auto-sync-manager.js?v=20250628003"></script>
+
+    <script>
+        let monitoringActive = false;
+        let monitorInterval = null;
+        let metrics = {
+            totalSyncs: 0,
+            syncErrors: 0,
+            syncTimes: [],
+            lastSyncTime: null
+        };
+
+        function log(message, type = 'info') {
+            const logArea = document.getElementById('logArea');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = {
+                'info': '#00ff00',
+                'warn': '#ffff00', 
+                'error': '#ff5555',
+                'success': '#55ff55'
+            }[type] || '#00ff00';
+            
+            logArea.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function updateSyncIndicator(status) {
+            const indicator = document.getElementById('globalSyncIndicator');
+            const statusText = document.getElementById('globalSyncStatus');
+            
+            indicator.className = `sync-indicator ${status}`;
+            
+            switch (status) {
+                case 'active':
+                    statusText.textContent = 'Active - Syncing';
+                    break;
+                case 'error':
+                    statusText.textContent = 'Error - Sync Failed';
+                    break;
+                case 'warning':
+                    statusText.textContent = 'Warning - Partial Sync';
+                    break;
+                case 'offline':
+                    statusText.textContent = 'Offline - No Connection';
+                    break;
+                default:
+                    statusText.textContent = 'Unknown';
+            }
+        }
+
+        function updateMetrics() {
+            document.getElementById('totalSyncs').textContent = metrics.totalSyncs;
+            document.getElementById('syncErrors').textContent = metrics.syncErrors;
+            
+            const avgTime = metrics.syncTimes.length > 0 
+                ? Math.round(metrics.syncTimes.reduce((a, b) => a + b, 0) / metrics.syncTimes.length)
+                : 0;
+            document.getElementById('avgSyncTime').textContent = `${avgTime}ms`;
+            
+            if (metrics.lastSyncTime) {
+                document.getElementById('lastSyncTime').textContent = metrics.lastSyncTime.toLocaleTimeString();
+            }
+        }
+
+        async function monitorSyncStatus() {
+            try {
+                // Check localStorage business data
+                const localBusiness = localStorage.getItem('currentBusiness');
+                document.getElementById('localBusinessStatus').textContent = localBusiness ? 'Present' : 'Missing';
+                
+                // Check umbrella manager
+                const umbrellaManager = window.umbrellaManager;
+                document.getElementById('umbrellaBusinessStatus').textContent = 
+                    umbrellaManager?.currentBusiness ? 'Connected' : 'Not Connected';
+                
+                // Check local menu
+                const localMenu = localStorage.getItem('menuItems');
+                const localMenuItems = localMenu ? JSON.parse(localMenu) : [];
+                document.getElementById('localMenuCount').textContent = localMenuItems.length;
+                
+                // Check Firebase status
+                if (window.firebaseServices?.getDb()) {
+                    document.getElementById('firebaseBusinessStatus').textContent = 'Available';
+                    
+                    // Try to check cloud menu if we have business context
+                    if (umbrellaManager?.currentBusiness) {
+                        try {
+                            const db = window.firebaseServices.getDb();
+                            const businessId = umbrellaManager.currentBusiness.id;
+                            const cloudMenuDoc = await db.collection('menus').doc(`${businessId}_restaurant`).get();
+                            
+                            if (cloudMenuDoc.exists) {
+                                const cloudMenu = cloudMenuDoc.data();
+                                document.getElementById('cloudMenuCount').textContent = cloudMenu.items?.length || 0;
+                                if (cloudMenu.lastUpdated) {
+                                    document.getElementById('cloudMenuUpdate').textContent = 
+                                        new Date(cloudMenu.lastUpdated).toLocaleTimeString();
+                                }
+                            } else {
+                                document.getElementById('cloudMenuCount').textContent = '0';
+                            }
+                        } catch (e) {
+                            document.getElementById('cloudMenuCount').textContent = 'Error';
+                        }
+                    }
+                } else {
+                    document.getElementById('firebaseBusinessStatus').textContent = 'Not Available';
+                }
+                
+                // Determine overall sync state
+                let syncState = 'Unknown';
+                if (localBusiness && umbrellaManager?.currentBusiness && window.firebaseServices?.getDb()) {
+                    syncState = 'Fully Synced';
+                    updateSyncIndicator('active');
+                } else if (localBusiness && umbrellaManager?.currentBusiness) {
+                    syncState = 'Partially Synced';
+                    updateSyncIndicator('warning');
+                } else if (localBusiness) {
+                    syncState = 'Local Only';
+                    updateSyncIndicator('offline');
+                } else {
+                    syncState = 'No Data';
+                    updateSyncIndicator('error');
+                }
+                
+                document.getElementById('businessSyncState').textContent = syncState;
+                
+            } catch (error) {
+                log(`Monitor error: ${error.message}`, 'error');
+                updateSyncIndicator('error');
+            }
+        }
+
+        async function forceSyncNow() {
+            log('🚀 Force sync requested...', 'info');
+            updateSyncIndicator('active');
+            
+            const startTime = Date.now();
+            
+            try {
+                if (window.autoSyncManager) {
+                    await window.autoSyncManager.forceSyncNow();
+                    metrics.totalSyncs++;
+                    metrics.lastSyncTime = new Date();
+                    const syncTime = Date.now() - startTime;
+                    metrics.syncTimes.push(syncTime);
+                    if (metrics.syncTimes.length > 10) metrics.syncTimes.shift();
+                    
+                    log(`✅ Force sync completed in ${syncTime}ms`, 'success');
+                } else {
+                    throw new Error('Auto-sync manager not available');
+                }
+            } catch (error) {
+                metrics.syncErrors++;
+                log(`❌ Force sync failed: ${error.message}`, 'error');
+                updateSyncIndicator('error');
+            }
+            
+            updateMetrics();
+            await monitorSyncStatus();
+        }
+
+        function enableAutoSync() {
+            if (window.autoSyncManager) {
+                log('✅ Auto-sync enabled', 'success');
+                updateSyncIndicator('active');
+            } else {
+                log('❌ Auto-sync manager not available', 'error');
+            }
+        }
+
+        function disableAutoSync() {
+            log('⏸️ Auto-sync disabled', 'warn');
+            updateSyncIndicator('offline');
+        }
+
+        function resetSyncManager() {
+            log('🔄 Resetting sync manager...', 'info');
+            if (window.autoSyncManager) {
+                window.autoSyncManager.destroy();
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+        }
+
+        function clearAllData() {
+            if (confirm('This will clear ALL data. Are you sure?')) {
+                localStorage.clear();
+                if (window.umbrellaManager) {
+                    window.umbrellaManager.currentBusiness = null;
+                }
+                log('🚨 All data cleared', 'error');
+                setTimeout(() => window.location.reload(), 1000);
+            }
+        }
+
+        function openInNewTab(url) {
+            window.open(url, '_blank');
+            log(`📂 Opened ${url} in new tab`, 'info');
+        }
+
+        // Initialize monitoring
+        window.addEventListener('load', async () => {
+            log('🔄 Real-time sync monitor initializing...', 'info');
+            
+            // Wait for dependencies
+            let attempts = 0;
+            while (!window.firebaseServices && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            // Start monitoring
+            monitoringActive = true;
+            monitorInterval = setInterval(monitorSyncStatus, 2000);
+            
+            // Initial status check
+            await monitorSyncStatus();
+            
+            log('✅ Real-time sync monitor active', 'success');
+        });
+
+        // Listen for sync events
+        window.addEventListener('autoSyncCompleted', (event) => {
+            metrics.totalSyncs++;
+            metrics.lastSyncTime = event.detail.timestamp;
+            log('🎉 Auto-sync completed', 'success');
+            updateMetrics();
+        });
+
+        window.addEventListener('businessContextConnected', (event) => {
+            log(`🏢 Business context connected: ${event.detail?.business?.companyName || 'Unknown'}`, 'success');
+            monitorSyncStatus();
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (monitorInterval) {
+                clearInterval(monitorInterval);
+            }
+        });
+    </script>
+</body>
+</html>
