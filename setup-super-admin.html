@@ -149,7 +149,7 @@
     <script src="js/firebase-manager.js"></script>
     
     <script>
-        let auth, db;
+        let firebaseAuth, firebaseDb;
         
         document.addEventListener('DOMContentLoaded', async function() {
             await initializeFirebase();
@@ -162,10 +162,10 @@
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 
                 if (window.firebaseServices) {
-                    auth = window.firebaseServices.getAuth();
-                    db = window.firebaseServices.getDb();
+                    firebaseAuth = window.firebaseServices.getAuth();
+                    firebaseDb = window.firebaseServices.getDb();
                     
-                    if (auth && db) {
+                    if (firebaseAuth && firebaseDb) {
                         log('✅ Firebase services initialized successfully', 'success');
                         return;
                     }
@@ -180,7 +180,7 @@
         function checkFirebaseStatus() {
             const statusDiv = document.getElementById('firebaseStatus');
             
-            if (auth && db) {
+            if (firebaseAuth && firebaseDb) {
                 statusDiv.innerHTML = `
                     <div class="status-item">
                         <span class="status-icon">✅</span>
@@ -219,7 +219,7 @@
             try {
                 log('🚀 Starting super admin setup...', 'info');
                 
-                if (!auth || !db) {
+                if (!firebaseAuth || !firebaseDb) {
                     throw new Error('Firebase services not available');
                 }
                 
@@ -246,13 +246,13 @@
                         // Create user in Firebase Auth
                         let userCredential;
                         try {
-                            userCredential = await auth.createUserWithEmailAndPassword(admin.email, admin.password);
+                            userCredential = await firebaseAuth.createUserWithEmailAndPassword(admin.email, admin.password);
                             log(`✅ Firebase Auth user created: ${admin.email}`, 'success');
                         } catch (authError) {
                             if (authError.code === 'auth/email-already-in-use') {
                                 log(`ℹ️ User already exists in Firebase Auth: ${admin.email}`, 'info');
                                 // Try to sign in to get the user
-                                userCredential = await auth.signInWithEmailAndPassword(admin.email, admin.password);
+                                userCredential = await firebaseAuth.signInWithEmailAndPassword(admin.email, admin.password);
                             } else {
                                 throw authError;
                             }
@@ -272,11 +272,11 @@
                             uid: userCredential.user.uid
                         };
                         
-                        await db.collection('users').doc(admin.username).set(superAdminData);
+                        await firebaseDb.collection('users').doc(admin.username).set(superAdminData);
                         log(`✅ Firestore document created: ${admin.username}`, 'success');
                         
                         // Also create by UID for faster lookups
-                        await db.collection('users').doc(userCredential.user.uid).set(superAdminData);
+                        await firebaseDb.collection('users').doc(userCredential.user.uid).set(superAdminData);
                         
                         log(`🎉 Successfully setup: ${admin.displayName}`, 'success');
                         
@@ -286,7 +286,7 @@
                 }
                 
                 // Sign out after setup
-                await auth.signOut();
+                await firebaseAuth.signOut();
                 
                 log('🎉 Super admin setup completed!', 'success');
                 log('📍 You can now login with rbrown14@macrospos.com', 'info');
@@ -310,11 +310,11 @@
                 log('🧪 Testing super admin login...', 'info');
                 
                 // Test login with rbrown14@macrospos.com
-                const userCredential = await auth.signInWithEmailAndPassword('rbrown14@macrospos.com', 'Armoured@');
+                const userCredential = await firebaseAuth.signInWithEmailAndPassword('rbrown14@macrospos.com', 'Armoured@');
                 log('✅ Authentication successful', 'success');
                 
                 // Check Firestore document
-                const userDoc = await db.collection('users').doc('rBrown14').get();
+                const userDoc = await firebaseDb.collection('users').doc('rBrown14').get();
                 if (userDoc.exists) {
                     const userData = userDoc.data();
                     if (userData.role === 'super_admin') {
@@ -328,7 +328,7 @@
                 }
                 
                 // Sign out after test
-                await auth.signOut();
+                await firebaseAuth.signOut();
                 
             } catch (error) {
                 log(`❌ Test login failed: ${error.message}`, 'error');
