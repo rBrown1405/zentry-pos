@@ -1077,7 +1077,82 @@
             
             initializeDayAvailability();
             initializeMenuImport(); // Initialize import functionality
+            
+            // Set up periodic business context checking if Firebase is available but no context found
+            setupBusinessContextWatcher();
         });
+        
+        // Set up a watcher for business context changes
+        function setupBusinessContextWatcher() {
+            // Only set up watcher if Firebase is available but no business context was found
+            if (window.firebaseServices && window.firebaseServices.getDb()) {
+                const currentStatus = document.getElementById('cloudStatusText').textContent;
+                if (currentStatus.includes('No business context') || currentStatus.includes('No business selected')) {
+                    console.log('Setting up business context watcher...');
+                    
+                    // Check every 5 seconds for business context changes
+                    const contextWatcher = setInterval(async () => {
+                        console.log('Checking for business context...');
+                        const hasContext = await checkForBusinessContext();
+                        if (hasContext) {
+                            console.log('Business context found! Re-initializing Firebase connection...');
+                            clearInterval(contextWatcher);
+                            
+                            // Re-check Firebase connection and potentially reload from cloud
+                            const isConnected = await checkFirebaseConnection();
+                            if (isConnected && menuItems.length === 0) {
+                                // Try to load from Firebase if we haven't loaded anything yet
+                                const firebaseLoaded = await loadMenuFromFirebase();
+                                if (firebaseLoaded) {
+                                    renderMenuItems();
+                                }
+                            }
+                        }
+                    }, 5000);
+                    
+                    // Stop checking after 2 minutes
+                    setTimeout(() => {
+                        clearInterval(contextWatcher);
+                        console.log('Business context watcher stopped');
+                    }, 120000);
+                }
+            }
+        }
+        
+        // Check if business context is available
+        async function checkForBusinessContext() {
+            // Check umbrella manager
+            if (window.umbrellaManager && window.umbrellaManager.currentBusiness) {
+                return true;
+            }
+            
+            // Check super admin
+            if (window.SuperAdminManager) {
+                try {
+                    const context = window.SuperAdminManager.getCurrentBusinessContext();
+                    if (context && context.businessID) {
+                        return true;
+                    }
+                } catch (e) {
+                    // Ignore error
+                }
+            }
+            
+            // Check localStorage
+            const storedContext = localStorage.getItem('currentBusinessContext');
+            if (storedContext) {
+                try {
+                    const contextData = JSON.parse(storedContext);
+                    if (contextData.businessID || contextData.id) {
+                        return true;
+                    }
+                } catch (e) {
+                    // Ignore error
+                }
+            }
+            
+            return false;
+        }
         
         // Initialize menu editor with Firebase integration
         async function initializeMenuEditor() {
@@ -1085,11 +1160,20 @@
                 // Wait a bit for Firebase services to load
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 
-                // Check Firebase connection
+                // Check Firebase connection first
+                console.log('Checking Firebase connection...');
                 const isConnected = await checkFirebaseConnection();
+                console.log('Firebase connection result:', isConnected);
                 
-                // Load menu data (Firebase first, then localStorage fallback)
+                // Load menu data (Firebase first if connected, then localStorage fallback)
                 await loadMenuData();
+                
+                // Re-check connection status after loading
+                if (isConnected) {
+                    console.log('Firebase is connected, checking if menu was loaded from cloud...');
+                    // If we have business context and Firebase is available, update status to connected
+                    await checkFirebaseConnection();
+                }
                 
                 console.log('Menu editor initialized successfully');
             } catch (error) {
@@ -1170,9 +1254,9 @@
         // Load menu from Firebase via umbrella account system
         async function loadMenuFromFirebase() {
             try {
-                // Check if Firebase services and umbrella manager are available
-                if (!window.firebaseServices || !window.umbrellaManager) {
-                    console.log("Firebase services or umbrella manager not available - using localStorage");
+                // Check if Firebase services are available
+                if (!window.firebaseServices) {
+                    console.log("Firebase services not available - using localStorage");
                     updateCloudStatus('offline', 'Firebase not available');
                     return false;
                 }
@@ -1184,15 +1268,72 @@
                     return false;
                 }
 
-                // Get current business context
-                const currentBusiness = window.umbrellaManager.currentBusiness;
+                // Get current business context from multiple sources
+                let currentBusiness = null;
+                let businessSource = 'none';
+
+                // 1. Try umbrella manager first
+                if (window.umbrellaManager && window.umbrellaManager.currentBusiness) {
+                    currentBusiness = window.umbrellaManager.currentBusiness;
+                    businessSource = 'umbrella_manager';
+                    console.log('Found business context from umbrella manager:', currentBusiness.companyName);
+                }
+
+                // 2. Try super admin business context
+                if (!currentBusiness && window.SuperAdminManager) {
+                    try {
+                        const superAdminContext = window.SuperAdminManager.getCurrentBusinessContext();
+                        if (superAdminContext && superAdminContext.businessID) {
+                            currentBusiness = {
+                                id: superAdminContext.businessID,
+                                companyName: superAdminContext.companyName || 'Super Admin Business'
+                            };
+                            businessSource = 'super_admin';
+                            console.log('Found business context from super admin:', currentBusiness.companyName);
+                        }
+                    } catch (e) {
+                        console.warn('Error getting super admin context:', e.message);
+                    }
+                }
+
+                // 3. Try localStorage business context
+                if (!currentBusiness) {
+                    const storedContext = localStorage.getItem('currentBusinessContext');
+                    if (storedContext) {
+                        try {
+                            const contextData = JSON.parse(storedContext);
+                            if (contextData.businessID || contextData.id) {
+                                currentBusiness = {
+                                    id: contextData.businessID || contextData.id,
+                                    companyName: contextData.companyName || contextData.businessName || 'Current Business'
+                                };
+                                businessSource = 'localStorage';
+                                console.log('Found business context from localStorage:', currentBusiness.companyName);
+                            }
+                        } catch (e) {
+                            console.warn('Failed to parse business context from localStorage');
+                        }
+                    }
+                }
+
                 if (!currentBusiness || !currentBusiness.id) {
-                    console.log("No current business context - using localStorage");
+                    console.log("No current business context available - using localStorage");
                     updateCloudStatus('offline', 'No business selected');
                     return false;
                 }
 
                 const businessId = currentBusiness.id;
+                console.log(`Loading menu from Firebase for business: ${businessId} (source: ${businessSource})`);
+                
+                // Test Firebase connection first
+                try {
+                    await db.collection('businesses').doc(businessId).get();
+                    console.log('Firebase connection verified');
+                } catch (connectionError) {
+                    console.error('Firebase connection test failed:', connectionError);
+                    updateCloudStatus('error', 'Connection failed');
+                    return false;
+                }
                 
                 // Load menu from Firebase
                 const menuDoc = await db.collection('menus').doc(`${businessId}_restaurant`).get();
@@ -1201,12 +1342,12 @@
                     const menuData = menuDoc.data();
                     menuItems = menuData.items || [];
                     console.log(`✅ Menu loaded from Firebase for business: ${businessId} (${menuItems.length} items)`);
-                    updateCloudStatus('connected', `Loaded from ${currentBusiness.companyName || 'Cloud'}`);
+                    updateCloudStatus('connected', `Connected to ${currentBusiness.companyName} (${businessSource})`);
                     showNotification(`Menu loaded from cloud (${menuItems.length} items)`, 'success');
                     return true;
                 } else {
                     console.log("No menu found in Firebase for this business - using localStorage");
-                    updateCloudStatus('offline', 'No cloud menu found');
+                    updateCloudStatus('connected', `Connected to ${currentBusiness.companyName} (${businessSource}) - No cloud menu`);
                     return false;
                 }
                 
@@ -1232,7 +1373,13 @@
                     if (savedMenu) {
                         menuItems = JSON.parse(savedMenu);
                         console.log(`Loaded menu data for property: ${propertyContext.name} (ID: ${propertyContext.id})`);
-                        updateCloudStatus('offline', 'Using local data');
+                        
+                        // Check if Firebase is available but business context is missing
+                        if (window.firebaseServices && window.firebaseServices.getDb()) {
+                            updateCloudStatus('offline', 'Firebase ready - No business context');
+                        } else {
+                            updateCloudStatus('offline', 'Using local data');
+                        }
                         return;
                     }
                 }
@@ -1242,7 +1389,13 @@
                 if (uploadedMenu) {
                     menuItems = JSON.parse(uploadedMenu);
                     console.log("Loaded menu data from uploaded menu (menuData)");
-                    updateCloudStatus('offline', 'Using local data');
+                    
+                    // Check if Firebase is available but business context is missing
+                    if (window.firebaseServices && window.firebaseServices.getDb()) {
+                        updateCloudStatus('offline', 'Firebase ready - No business context');
+                    } else {
+                        updateCloudStatus('offline', 'Using local data');
+                    }
                     return;
                 }
                 
@@ -1251,14 +1404,26 @@
                 if (globalMenu) {
                     menuItems = JSON.parse(globalMenu);
                     console.log("Loaded menu data from global storage");
-                    updateCloudStatus('offline', 'Using local data');
+                    
+                    // Check if Firebase is available but business context is missing
+                    if (window.firebaseServices && window.firebaseServices.getDb()) {
+                        updateCloudStatus('offline', 'Firebase ready - No business context');
+                    } else {
+                        updateCloudStatus('offline', 'Using local data');
+                    }
                     return;
                 }
                 
                 // No menu data found
                 menuItems = [];
                 console.log("No menu data found in localStorage - starting with empty menu");
-                updateCloudStatus('offline', 'No menu data');
+                
+                // Check if Firebase is available but business context is missing
+                if (window.firebaseServices && window.firebaseServices.getDb()) {
+                    updateCloudStatus('offline', 'Firebase ready - No business context');
+                } else {
+                    updateCloudStatus('offline', 'No menu data');
+                }
                 
             } catch (error) {
                 console.error("Error loading menu from localStorage:", error);
@@ -1288,9 +1453,9 @@
         // Save menu to Firebase via umbrella account system
         async function saveMenuToFirebase() {
             try {
-                // Check if Firebase services and umbrella manager are available
-                if (!window.firebaseServices || !window.umbrellaManager) {
-                    console.warn("Firebase services or umbrella manager not available");
+                // Check if Firebase services are available
+                if (!window.firebaseServices) {
+                    console.warn("Firebase services not available");
                     updateCloudStatus('offline', 'Firebase not available');
                     return;
                 }
@@ -1302,8 +1467,51 @@
                     return;
                 }
 
-                // Get current business context
-                const currentBusiness = window.umbrellaManager.currentBusiness;
+                // Get current business context from multiple sources
+                let currentBusiness = null;
+                let businessSource = 'none';
+
+                // 1. Try umbrella manager first
+                if (window.umbrellaManager && window.umbrellaManager.currentBusiness) {
+                    currentBusiness = window.umbrellaManager.currentBusiness;
+                    businessSource = 'umbrella_manager';
+                }
+
+                // 2. Try super admin business context
+                if (!currentBusiness && window.SuperAdminManager) {
+                    try {
+                        const superAdminContext = window.SuperAdminManager.getCurrentBusinessContext();
+                        if (superAdminContext && superAdminContext.businessID) {
+                            currentBusiness = {
+                                id: superAdminContext.businessID,
+                                companyName: superAdminContext.companyName || 'Super Admin Business'
+                            };
+                            businessSource = 'super_admin';
+                        }
+                    } catch (e) {
+                        console.warn('Error getting super admin context:', e.message);
+                    }
+                }
+
+                // 3. Try localStorage business context
+                if (!currentBusiness) {
+                    const storedContext = localStorage.getItem('currentBusinessContext');
+                    if (storedContext) {
+                        try {
+                            const contextData = JSON.parse(storedContext);
+                            if (contextData.businessID || contextData.id) {
+                                currentBusiness = {
+                                    id: contextData.businessID || contextData.id,
+                                    companyName: contextData.companyName || contextData.businessName || 'Current Business'
+                                };
+                                businessSource = 'localStorage';
+                            }
+                        } catch (e) {
+                            console.warn('Failed to parse business context from localStorage');
+                        }
+                    }
+                }
+
                 if (!currentBusiness || !currentBusiness.id) {
                     console.warn("No current business context available");
                     updateCloudStatus('offline', 'No business selected');
@@ -1311,6 +1519,7 @@
                 }
 
                 const businessId = currentBusiness.id;
+                console.log(`Saving menu to Firebase for business: ${businessId} (source: ${businessSource})`);
                 
                 // Save menu to Firebase under the business's restaurant menu
                 const menuData = {
@@ -1326,7 +1535,7 @@
                 await db.collection('menus').doc(`${businessId}_restaurant`).set(menuData);
                 console.log(`✅ Menu successfully saved to Firebase for business: ${businessId}`);
                 
-                updateCloudStatus('connected', `Saved to ${currentBusiness.companyName || 'Cloud'}`);
+                updateCloudStatus('connected', `Connected to ${currentBusiness.companyName} (${businessSource})`);
                 showNotification('Menu saved to cloud successfully!', 'success');
                 
             } catch (error) {
@@ -2081,7 +2290,7 @@
         // Check Firebase connection status
         async function checkFirebaseConnection() {
             try {
-                if (!window.firebaseServices || !window.umbrellaManager) {
+                if (!window.firebaseServices) {
                     updateCloudStatus('offline', 'Firebase not available');
                     return false;
                 }
@@ -2092,15 +2301,56 @@
                     return false;
                 }
 
-                const currentBusiness = window.umbrellaManager.currentBusiness;
+                // Get current business context from multiple sources
+                let currentBusiness = null;
+                let businessSource = 'none';
+
+                // 1. Try umbrella manager first
+                if (window.umbrellaManager && window.umbrellaManager.currentBusiness) {
+                    currentBusiness = window.umbrellaManager.currentBusiness;
+                    businessSource = 'umbrella_manager';
+                }
+
+                // 2. Try super admin business context
+                if (!currentBusiness && window.SuperAdminManager) {
+                    const superAdminContext = window.SuperAdminManager.getCurrentBusinessContext();
+                    if (superAdminContext && superAdminContext.businessID) {
+                        currentBusiness = {
+                            id: superAdminContext.businessID,
+                            companyName: superAdminContext.companyName || 'Super Admin Business'
+                        };
+                        businessSource = 'super_admin';
+                    }
+                }
+
+                // 3. Try localStorage business context  
+                if (!currentBusiness) {
+                    const storedContext = localStorage.getItem('currentBusinessContext');
+                    if (storedContext) {
+                        try {
+                            const contextData = JSON.parse(storedContext);
+                            if (contextData.businessID || contextData.id) {
+                                currentBusiness = {
+                                    id: contextData.businessID || contextData.id,
+                                    companyName: contextData.companyName || contextData.businessName || 'Current Business'
+                                };
+                                businessSource = 'localStorage';
+                            }
+                        } catch (e) {
+                            console.warn('Failed to parse business context from localStorage');
+                        }
+                    }
+                }
+
                 if (!currentBusiness || !currentBusiness.id) {
+                    // Firebase is available but no business context
                     updateCloudStatus('offline', 'No business selected');
                     return false;
                 }
 
                 // Test connection with a simple read
                 await db.collection('businesses').doc(currentBusiness.id).get();
-                updateCloudStatus('connected', `Connected to ${currentBusiness.companyName || 'Cloud'}`);
+                updateCloudStatus('connected', `Connected to ${currentBusiness.companyName || 'Cloud'} (${businessSource})`);
                 return true;
                 
             } catch (error) {

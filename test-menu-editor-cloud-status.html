@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu Editor Cloud Status Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border: 2px solid #000;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.success { background: #ecfdf5; color: #059669; border: 1px solid #10b981; }
+        .status.error { background: #fef2f2; color: #dc2626; border: 1px solid #ef4444; }
+        .status.warning { background: #fffbeb; color: #d97706; border: 1px solid #f59e0b; }
+        .status.info { background: #eff6ff; color: #2563eb; border: 1px solid #3b82f6; }
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: 2px solid #000;
+            padding: 10px 20px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #2563eb;
+        }
+        pre {
+            background: #f1f5f9;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Menu Editor Cloud Status Test</h1>
+        <p>This page tests whether the menu editor properly detects cloud connectivity in different contexts.</p>
+        
+        <div class="test-section">
+            <h3>1. System Status Check</h3>
+            <div id="systemStatus" class="status info">Checking system components...</div>
+            <button class="btn" onclick="checkSystemStatus()">🔍 Check System Status</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>2. Business Context Detection</h3>
+            <div id="businessStatus" class="status info">Checking business context...</div>
+            <button class="btn" onclick="checkBusinessContext()">🏢 Check Business Context</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>3. Firebase Connection Test</h3>
+            <div id="firebaseStatus" class="status info">Checking Firebase connection...</div>
+            <button class="btn" onclick="checkFirebaseConnection()">☁️ Test Firebase Connection</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>4. Menu Editor Test</h3>
+            <div id="menuEditorStatus" class="status info">Ready to test menu editor...</div>
+            <button class="btn" onclick="testMenuEditor()">🍽️ Test Menu Editor</button>
+            <button class="btn" onclick="openMenuEditor()">📝 Open Menu Editor</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>5. Debug Log</h3>
+            <pre id="debugLog">Test page loaded. Ready for testing...\n</pre>
+            <button class="btn" onclick="clearLog()">🗑️ Clear Log</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="js/firebase-config.js?v=20250628001"></script>
+    
+    <!-- Firebase Services -->
+    <script src="js/firebase-services.js?v=20250628001"></script>
+    
+    <!-- Firebase Manager -->
+    <script src="js/firebase-manager.js?v=20250628001"></script>
+    
+    <!-- Umbrella Account Manager -->
+    <script src="js/umbrella-account-manager.js?v=20250628001"></script>
+    
+    <!-- Super Admin Manager -->
+    <script src="super-admin.js?v=20250628001"></script>
+
+    <script>
+        const debugLog = document.getElementById('debugLog');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            debugLog.textContent += `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            debugLog.scrollTop = debugLog.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        function updateStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.className = `status ${type}`;
+            element.textContent = message;
+        }
+        
+        function clearLog() {
+            debugLog.textContent = 'Debug log cleared.\n';
+        }
+        
+        function checkSystemStatus() {
+            log('Checking system status...');
+            updateStatus('systemStatus', 'Checking...', 'info');
+            
+            let status = [];
+            
+            // Check Firebase SDK
+            if (typeof firebase !== 'undefined') {
+                status.push('✅ Firebase SDK loaded');
+                log('Firebase SDK: Available');
+            } else {
+                status.push('❌ Firebase SDK not loaded');
+                log('Firebase SDK: NOT AVAILABLE', 'error');
+            }
+            
+            // Check Firebase Services
+            if (window.firebaseServices) {
+                status.push('✅ Firebase Services available');
+                log('Firebase Services: Available');
+            } else {
+                status.push('❌ Firebase Services not available');
+                log('Firebase Services: NOT AVAILABLE', 'error');
+            }
+            
+            // Check Super Admin Manager
+            if (typeof SuperAdminManager !== 'undefined') {
+                status.push('✅ SuperAdminManager loaded');
+                log('SuperAdminManager: Available');
+            } else {
+                status.push('❌ SuperAdminManager not loaded');
+                log('SuperAdminManager: NOT AVAILABLE', 'error');
+            }
+            
+            // Check Umbrella Manager
+            if (window.umbrellaManager) {
+                status.push('✅ Umbrella Manager available');
+                log('Umbrella Manager: Available');
+            } else {
+                status.push('⚠️ Umbrella Manager not available');
+                log('Umbrella Manager: Not available', 'warning');
+            }
+            
+            const allGood = status.every(s => s.includes('✅'));
+            updateStatus('systemStatus', status.join(' | '), allGood ? 'success' : 'warning');
+        }
+        
+        function checkBusinessContext() {
+            log('Checking business context...');
+            updateStatus('businessStatus', 'Checking...', 'info');
+            
+            let businessFound = false;
+            let businessSource = 'none';
+            let businessInfo = '';
+            
+            // Check umbrella manager
+            if (window.umbrellaManager && window.umbrellaManager.currentBusiness) {
+                businessFound = true;
+                businessSource = 'Umbrella Manager';
+                businessInfo = window.umbrellaManager.currentBusiness.companyName || 'Unknown';
+                log(`Business context found in Umbrella Manager: ${businessInfo}`);
+            }
+            
+            // Check super admin
+            if (!businessFound && typeof SuperAdminManager !== 'undefined') {
+                try {
+                    const context = SuperAdminManager.getCurrentBusinessContext();
+                    if (context && context.businessID) {
+                        businessFound = true;
+                        businessSource = 'Super Admin';
+                        businessInfo = context.companyName || context.businessID;
+                        log(`Business context found in Super Admin: ${businessInfo}`);
+                    }
+                } catch (e) {
+                    log(`Super Admin context check failed: ${e.message}`, 'warning');
+                }
+            }
+            
+            // Check localStorage
+            if (!businessFound) {
+                const storedContext = localStorage.getItem('currentBusinessContext');
+                if (storedContext) {
+                    try {
+                        const contextData = JSON.parse(storedContext);
+                        if (contextData.businessID || contextData.id) {
+                            businessFound = true;
+                            businessSource = 'localStorage';
+                            businessInfo = contextData.companyName || contextData.businessName || contextData.businessID || contextData.id;
+                            log(`Business context found in localStorage: ${businessInfo}`);
+                        }
+                    } catch (e) {
+                        log(`localStorage context parse failed: ${e.message}`, 'warning');
+                    }
+                }
+            }
+            
+            if (businessFound) {
+                updateStatus('businessStatus', `✅ Business: ${businessInfo} (${businessSource})`, 'success');
+                log(`Business context available: ${businessInfo} from ${businessSource}`, 'success');
+            } else {
+                updateStatus('businessStatus', '❌ No business context found', 'error');
+                log('No business context found in any source', 'error');
+            }
+        }
+        
+        async function checkFirebaseConnection() {
+            log('Testing Firebase connection...');
+            updateStatus('firebaseStatus', 'Testing...', 'info');
+            
+            try {
+                if (!window.firebaseServices) {
+                    throw new Error('Firebase services not available');
+                }
+                
+                const db = window.firebaseServices.getDb();
+                if (!db) {
+                    throw new Error('Firestore database not available');
+                }
+                
+                // Test connection with a simple read
+                await db.collection('test').limit(1).get();
+                
+                updateStatus('firebaseStatus', '✅ Firebase connection successful', 'success');
+                log('Firebase connection test: SUCCESS', 'success');
+                
+            } catch (error) {
+                updateStatus('firebaseStatus', `❌ Firebase connection failed: ${error.message}`, 'error');
+                log(`Firebase connection test: FAILED - ${error.message}`, 'error');
+            }
+        }
+        
+        function testMenuEditor() {
+            log('Testing menu editor cloud status detection...');
+            updateStatus('menuEditorStatus', 'Simulating menu editor...', 'info');
+            
+            // Simulate the menu editor's business context detection logic
+            let currentBusiness = null;
+            let businessSource = 'none';
+            
+            // 1. Try umbrella manager first
+            if (window.umbrellaManager && window.umbrellaManager.currentBusiness) {
+                currentBusiness = window.umbrellaManager.currentBusiness;
+                businessSource = 'umbrella_manager';
+            }
+            
+            // 2. Try super admin business context
+            if (!currentBusiness && typeof SuperAdminManager !== 'undefined') {
+                try {
+                    const superAdminContext = SuperAdminManager.getCurrentBusinessContext();
+                    if (superAdminContext && superAdminContext.businessID) {
+                        currentBusiness = {
+                            id: superAdminContext.businessID,
+                            companyName: superAdminContext.companyName || 'Super Admin Business'
+                        };
+                        businessSource = 'super_admin';
+                    }
+                } catch (e) {
+                    log(`Super admin context error: ${e.message}`, 'warning');
+                }
+            }
+            
+            // 3. Try localStorage business context
+            if (!currentBusiness) {
+                const storedContext = localStorage.getItem('currentBusinessContext');
+                if (storedContext) {
+                    try {
+                        const contextData = JSON.parse(storedContext);
+                        if (contextData.businessID || contextData.id) {
+                            currentBusiness = {
+                                id: contextData.businessID || contextData.id,
+                                companyName: contextData.companyName || contextData.businessName || 'Current Business'
+                            };
+                            businessSource = 'localStorage';
+                        }
+                    } catch (e) {
+                        log(`localStorage context parse error: ${e.message}`, 'warning');
+                    }
+                }
+            }
+            
+            if (currentBusiness && currentBusiness.id) {
+                const expectedStatus = `Connected to ${currentBusiness.companyName} (${businessSource})`;
+                updateStatus('menuEditorStatus', `✅ Expected cloud status: ${expectedStatus}`, 'success');
+                log(`Menu editor should show: ${expectedStatus}`, 'success');
+            } else {
+                updateStatus('menuEditorStatus', '⚠️ Menu editor should show offline status', 'warning');
+                log('Menu editor should show offline status due to no business context', 'warning');
+            }
+        }
+        
+        function openMenuEditor() {
+            log('Opening menu editor in new tab...');
+            window.open('menu-editor.html', '_blank');
+        }
+        
+        // Auto-run checks on load
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Page loaded, waiting for services to initialize...');
+            
+            setTimeout(() => {
+                checkSystemStatus();
+                checkBusinessContext();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
