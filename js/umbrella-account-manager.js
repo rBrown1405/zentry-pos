@@ -293,13 +293,23 @@ class UmbrellaAccountManager {
      */
     async createProperty(businessId, propertyData) {
         try {
-            const user = this.firebaseManager.getCurrentUser();
-            if (!user) throw new Error('No authenticated user');
+            const authUser = this.firebaseManager.auth.currentUser;
+            if (!authUser) throw new Error('No authenticated user');
+            
+            // Get user data from Firestore (including role)
+            const userDoc = await this.db.collection('users').doc(authUser.uid).get();
+            if (!userDoc.exists) {
+                throw new Error('User document not found in Firestore');
+            }
+            
+            const user = { uid: authUser.uid, ...userDoc.data() };
             
             // Check permissions
             if (user.role !== 'super_admin' && user.role !== 'owner') {
-                throw new Error('Insufficient permissions to create a property');
+                throw new Error(`Insufficient permissions to create a property. User role: ${user.role}`);
             }
+            
+            console.log(`Creating property with user role: ${user.role}`);
             
             // Get the business
             const businessDoc = await this.db.collection('businesses').doc(businessId).get();
@@ -349,6 +359,13 @@ class UmbrellaAccountManager {
             return propertyRef.id;
         } catch (error) {
             console.error('Error creating property:', error);
+            console.error('Error details:', {
+                message: error.message,
+                code: error.code,
+                stack: error.stack,
+                propertyData: propertyData,
+                businessId: businessId
+            });
             throw error;
         }
     }
@@ -882,6 +899,12 @@ class UmbrellaAccountManager {
 
         } catch (error) {
             console.error('Error creating business account:', error);
+            console.error('Business creation error details:', {
+                message: error.message,
+                code: error.code,
+                stack: error.stack,
+                businessData: businessData
+            });
             return {
                 success: false,
                 message: 'Failed to create business account: ' + error.message
