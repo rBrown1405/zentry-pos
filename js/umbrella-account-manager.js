@@ -1226,17 +1226,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize after a short delay to ensure Firebase is ready
     const initUmbrellaManager = () => {
         try {
-            console.log('Initializing umbrella account manager...');
+            // Only log on first attempt
+            if (typeof initUmbrellaManager.firstAttempt === 'undefined') {
+                console.log('Initializing umbrella account manager...');
+                initUmbrellaManager.firstAttempt = false;
+            }
             
             // Check if Firebase services are available
             if (!window.firebaseServices) {
-                console.log('Firebase services not available');
                 return false;
             }
             
             // Check if Firebase manager is available
             if (!window.firebaseManager) {
-                console.log('Firebase manager not available');
                 return false;
             }
             
@@ -1264,7 +1266,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!initUmbrellaManager()) {
         // If initial attempt fails, listen for Firebase manager ready event
         let attempts = 0;
-        const maxAttempts = 50; // 5 seconds max
+        const maxAttempts = 25; // 5 seconds max (200ms intervals)
         
         const retryInit = () => {
             attempts++;
@@ -1274,7 +1276,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (attempts < maxAttempts) {
-                setTimeout(retryInit, 100);
+                // Only log every 10 attempts to reduce spam
+                if (attempts % 10 === 0) {
+                    console.log(`Waiting for Firebase manager... (attempt ${attempts})`);
+                }
+                setTimeout(retryInit, 200); // Increased interval
             } else {
                 console.warn('Umbrella manager initialization failed after 5 seconds - continuing without it');
             }

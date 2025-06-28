@@ -13,6 +13,9 @@ const firebaseConfig = {
 // Initialize Firebase using compat mode
 console.log('🔥 Firebase config script loading...');
 
+// Initialize Firebase services variables
+let app, auth, db, storage;
+
 // Check if Firebase is available
 if (typeof firebase === 'undefined') {
   console.error('❌ Firebase SDK not loaded! Make sure Firebase scripts are included before firebase-config.js');
@@ -26,16 +29,21 @@ if (typeof firebase === 'undefined') {
     
   } catch (error) {
     console.error('❌ Failed to initialize Firebase app:', error);
+    // Set app to null to indicate failure
+    app = null;
   }
 }
-
-// Initialize Firebase services
-let app, auth, db, storage;
 
 function initializeFirebase() {
   return new Promise((resolve, reject) => {
     try {
       console.log('🔥 Starting Firebase services initialization...');
+      
+      // Check if Firebase app was successfully initialized
+      if (!app) {
+        reject(new Error('Firebase app not initialized'));
+        return;
+      }
       
       // Initialize Firebase services with timeout protection
       const initTimeout = setTimeout(() => {
@@ -119,6 +127,14 @@ initializeFirebaseWithRetry()
   .then(() => {
     console.log('✅ Firebase configuration script loaded successfully');
     
+    // Debug: Check variable states before creating provider
+    console.log('🔍 Firebase state before provider creation:', {
+      app: !!app,
+      auth: !!auth, 
+      db: !!db,
+      storage: !!storage
+    });
+    
     // Create Firebase provider object
     window.firebaseProvider = {
       initialized: true,
@@ -128,7 +144,16 @@ initializeFirebaseWithRetry()
       db: db,
       storage: storage,
       isReady: () => {
-        return !!(auth && db && app);
+        const ready = !!(auth && db && app);
+        if (!ready) {
+          console.debug('Firebase provider not ready:', { 
+            app: !!app, 
+            auth: !!auth, 
+            db: !!db,
+            storage: !!storage 
+          });
+        }
+        return ready;
       },
       getApp: () => app,
       getAuth: () => auth,
