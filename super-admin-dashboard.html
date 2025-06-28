@@ -1005,7 +1005,7 @@
             localStorage.setItem('superAdminMode', 'true');
             
             // Navigate to POS interface
-            navigateWithTransition('pos-interface-fixed.html');
+            window.location.href = 'pos-interface-fixed.html';
         }
         
         function manageBusiness(businessId) {
@@ -1016,14 +1016,14 @@
             localStorage.setItem('superAdminMode', 'true');
             
             // Navigate to business settings/dashboard
-            navigateWithTransition('assets/backend/client-example/businesses.html');
+            window.location.href = 'assets/backend/client-example/businesses.html';
         }
         
         function accessPOS() {
             console.log('Accessing POS system...');
             
             // Navigate directly to POS interface
-            navigateWithTransition('pos-interface-fixed.html');
+            window.location.href = 'pos-interface-fixed.html';
         }
         
         function showBusinessSelectionModal(businesses) {
@@ -1161,7 +1161,7 @@
             // Use SuperAdminManager to switch business context (no localStorage)
             if (SuperAdminManager.switchToBusiness(businessId)) {
                 // Navigate to POS interface
-                navigateWithTransition('pos-interface-fixed.html');
+                window.location.href = 'pos-interface-fixed.html';
             } else {
                 alert('Unable to access business. Business may not exist.');
                 return;
@@ -1174,8 +1174,8 @@
         }
         
         function viewAllStaff() {
-            // Navigate to enhanced staff management view
-            navigateWithTransition('staff-management.html');
+            // Navigate to staff/user management view
+            window.location.href = 'assets/backend/client-example/users.html';
         }
         
         function systemSettings() {
@@ -1198,7 +1198,7 @@
                 localStorage.removeItem('firstLogin');
                 
                 // Navigate to login
-                navigateWithTransition('login.html');
+                window.location.href = 'login.html';
             }
         }
     </script>

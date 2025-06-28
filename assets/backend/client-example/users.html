@@ -310,10 +310,15 @@
         </div>
     </div>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
     <script type="module">
-        import SuperAdminManager from './SuperAdminManager.js';
-        
-        const manager = new SuperAdminManager();
+        import FirebaseSuperAdminManager from './FirebaseSuperAdminManager.js?v=2';
+
+        const manager = new FirebaseSuperAdminManager();
         
         // Check if authenticated
         if (!manager.isAuthenticated()) {
