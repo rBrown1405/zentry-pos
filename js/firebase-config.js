@@ -1,13 +1,13 @@
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyD3VrvARQ8Am4uRAQUxOk0BeVGUvcRIGLs",
-  authDomain: "zentry-pos-d10b5.firebaseapp.com",
-  projectId: "zentry-pos-d10b5",
-  storageBucket: "zentry-pos-d10b5.appspot.com",
-  messagingSenderId: "129749186855",
-  appId: "1:129749186855:web:9197c7d4717616d0d99102",
-  measurementId: "G-SKRP6M7Y88"
+  apiKey: "AIzaSyAl5d3kJsCYGJ_PpkLhvYYQr9cQq9kuAVE",
+  authDomain: "zentry-pos-b737b.firebaseapp.com",
+  projectId: "zentry-pos-b737b",
+  storageBucket: "zentry-pos-b737b.firebasestorage.app",
+  messagingSenderId: "67930798018",
+  appId: "1:67930798018:web:9fdc2413f766731c7d485b",
+  measurementId: "G-7W2PYQ63T4"
 };
 
 // Initialize Firebase using compat mode
