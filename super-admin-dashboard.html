@@ -676,35 +676,97 @@
         </div>
     </div>
     
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
     <script src="super-admin.js"></script>
     <script src="navigation.js"></script>
     <script>
+        // Firebase configuration for zentry-pos-2dc89
+        const firebaseConfig = {
+            apiKey: "AIzaSyDQg7wyKKw-yQzFn7ZeE_zzZGGn7gFWD3Y",
+            authDomain: "zentry-pos-2dc89.firebaseapp.com",
+            projectId: "zentry-pos-2dc89",
+            storageBucket: "zentry-pos-2dc89.firebasestorage.app",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abc123def456"
+        };
+
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
         document.addEventListener('DOMContentLoaded', function() {
-            // Wait for super admin system to be ready
-            const checkSuperAdminAccess = () => {
-                try {
-                    if (typeof SuperAdminManager !== 'undefined' && SuperAdminManager.isSuperAdmin()) {
-                        loadDashboard();
-                    } else {
-                        console.log('Super admin check failed - user not authenticated or not super admin');
-                        showSetupDialog();
-                    }
-                } catch (error) {
-                    console.error('Super admin check failed:', error);
-                    showSetupDialog();
-                }
-            };
+            console.log('Dashboard loaded, checking Firebase authentication...');
             
-            // If SuperAdminManager is already available, check immediately
-            if (typeof SuperAdminManager !== 'undefined') {
-                // Wait a bit for Firebase to be ready
-                setTimeout(checkSuperAdminAccess, 1000);
-            } else {
-                // Wait for SuperAdminManager to load
-                setTimeout(checkSuperAdminAccess, 2000);
-            }
+            // Wait for Firebase to initialize and check authentication
+            setTimeout(checkFirebaseAuth, 1000);
         });
-        
+
+        async function checkFirebaseAuth() {
+            try {
+                console.log('Checking Firebase auth state...');
+                
+                // Check if user is signed in
+                const user = auth.currentUser;
+                console.log('Current Firebase user:', user);
+                
+                // Also check localStorage for session
+                const storedUser = localStorage.getItem('firebase_super_admin');
+                console.log('Stored user session:', storedUser);
+                
+                if (user) {
+                    // User is signed in, check their role in Firestore
+                    const userDoc = await db.collection('users').doc(user.uid).get();
+                    
+                    if (userDoc.exists) {
+                        const userData = userDoc.data();
+                        console.log('User data from Firestore:', userData);
+                        
+                        if (userData.role === 'super_admin') {
+                            console.log('Super admin authenticated, loading dashboard...');
+                            loadDashboard();
+                            return;
+                        } else {
+                            console.log('User is not a super admin:', userData.role);
+                        }
+                    } else {
+                        console.log('User document not found in Firestore');
+                    }
+                } else if (storedUser) {
+                    // Check stored session
+                    const userInfo = JSON.parse(storedUser);
+                    const sessionAge = Date.now() - userInfo.loginTime;
+                    const maxSessionAge = 24 * 60 * 60 * 1000; // 24 hours
+                    
+                    if (sessionAge < maxSessionAge && userInfo.role === 'super_admin') {
+                        console.log('Valid stored session found, loading dashboard...');
+                        loadDashboard();
+                        return;
+                    } else {
+                        console.log('Stored session expired or invalid');
+                        localStorage.removeItem('firebase_super_admin');
+                    }
+                } else {
+                    console.log('No Firebase user signed in and no stored session');
+                }
+                
+                // If we get here, authentication failed
+                console.log('Super admin check failed - user not authenticated or not super admin');
+                showSetupDialog();
+                
+            } catch (error) {
+                console.error('Firebase auth check failed:', error);
+                showSetupDialog();
+            }
+        }
+
         function showSetupDialog() {
             const setupNeeded = confirm(
                 'Access denied. Super admin privileges required.\n\n' +
@@ -715,39 +777,176 @@
             if (setupNeeded) {
                 window.location.href = 'setup-super-admin.html';
             } else {
-                window.location.href = 'login.html';
+                window.location.href = 'assets/backend/client-example/login.html';
             }
         }
         
-        function loadDashboard() {
-            const stats = SuperAdminManager.getSystemStats();
-            
-            // Update statistics
-            document.getElementById('totalBusinesses').textContent = stats.totalBusinesses;
-            document.getElementById('totalStaff').textContent = stats.totalStaff;
-            document.getElementById('activeBusinesses').textContent = stats.activeBusinesses;
-            document.getElementById('activeStaff').textContent = stats.activeStaff;
-            
-            // Load businesses
-            loadBusinesses();
-            
-            // Load system information
-            loadSystemInfo(stats);
-            
-            // Update user info
-            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-            document.getElementById('userInfo').textContent = 
-                `${currentUser.firstName} ${currentUser.lastName} - Super Admin`;
+        async function loadDashboard() {
+            try {
+                console.log('Loading Firebase dashboard data...');
+                
+                // Get user info from Firebase or localStorage
+                let currentUser = {};
+                
+                if (auth.currentUser) {
+                    const userDoc = await db.collection('users').doc(auth.currentUser.uid).get();
+                    if (userDoc.exists) {
+                        currentUser = userDoc.data();
+                    }
+                } else {
+                    const storedUser = localStorage.getItem('firebase_super_admin');
+                    if (storedUser) {
+                        currentUser = JSON.parse(storedUser);
+                    }
+                }
+                
+                // Update user info
+                document.getElementById('userInfo').textContent = 
+                    `${currentUser.displayName || currentUser.username || 'Super Admin'} - Super Admin`;
+                
+                // Load businesses and properties
+                await Promise.all([
+                    loadFirebaseBusinesses(),
+                    loadFirebaseSystemInfo()
+                ]);
+                
+                console.log('Dashboard loaded successfully');
+                
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                
+                // Fallback to localStorage data
+                loadLocalStorageFallback();
+            }
         }
-        
-        function loadBusinesses() {
-            const businesses = SuperAdminManager.getAllBusinesses();
+
+        async function loadFirebaseBusinesses() {
+            try {
+                console.log('Loading businesses from Firebase...');
+                
+                const businessesSnapshot = await db.collection('businesses').limit(5).get();
+                const businesses = [];
+                businessesSnapshot.forEach(doc => {
+                    businesses.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Update stats
+                const allBusinessesSnapshot = await db.collection('businesses').get();
+                const totalBusinesses = allBusinessesSnapshot.size;
+                const activeBusinesses = allBusinessesSnapshot.docs.filter(doc => doc.data().isActive !== false).length;
+                
+                document.getElementById('totalBusinesses').textContent = totalBusinesses;
+                document.getElementById('activeBusinesses').textContent = activeBusinesses;
+                
+                // Update business list
+                const businessList = document.getElementById('businessList');
+                
+                if (businesses.length === 0) {
+                    businessList.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: #6b7280;">
+                            <p>No businesses registered yet.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                businessList.innerHTML = businesses.map(business => `
+                    <div class="business-item">
+                        <div class="business-info">
+                            <h4>${business.name || business.companyName || 'Unknown Business'}</h4>
+                            <p>ID: ${business.id} | Type: ${business.businessType || 'Restaurant'}</p>
+                            <p>Email: ${business.email || 'N/A'}</p>
+                        </div>
+                        <div class="business-actions">
+                            <button class="action-btn access" onclick="accessBusiness('${business.id}')">
+                                Access POS
+                            </button>
+                            <button class="action-btn manage" onclick="manageBusiness('${business.id}')">
+                                Manage
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                console.log('Businesses loaded from Firebase:', businesses.length);
+                
+            } catch (error) {
+                console.warn('Failed to load from Firebase, using localStorage fallback:', error);
+                loadLocalStorageBusinesses();
+            }
+        }
+
+        async function loadFirebaseSystemInfo() {
+            try {
+                console.log('Loading system info from Firebase...');
+                
+                // Get properties count
+                const propertiesSnapshot = await db.collection('properties').get();
+                const totalProperties = propertiesSnapshot.size;
+                
+                // Get users count
+                const usersSnapshot = await db.collection('users').get();
+                const totalStaff = usersSnapshot.size;
+                const activeStaff = usersSnapshot.docs.filter(doc => doc.data().isActive !== false).length;
+                
+                document.getElementById('totalStaff').textContent = totalStaff;
+                document.getElementById('activeStaff').textContent = activeStaff;
+                
+                // Update system info
+                const systemInfo = document.getElementById('systemInfo');
+                systemInfo.innerHTML = `
+                    <div class="info-item">
+                        <div class="info-value">${totalProperties}</div>
+                        <div class="info-label">Properties</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">${totalStaff}</div>
+                        <div class="info-label">Total Users</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">${activeStaff}</div>
+                        <div class="info-label">Active Users</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">Firebase</div>
+                        <div class="info-label">Database</div>
+                    </div>
+                `;
+                
+                console.log('System info loaded from Firebase');
+                
+            } catch (error) {
+                console.warn('Failed to load system info from Firebase:', error);
+                loadLocalStorageSystemInfo();
+            }
+        }
+
+        function loadLocalStorageFallback() {
+            console.log('Using localStorage fallback for dashboard data...');
+            
+            // Load from localStorage as fallback
+            const businesses = JSON.parse(localStorage.getItem('businesses') || '[]');
+            const properties = JSON.parse(localStorage.getItem('properties') || '[]');
+            
+            // Update stats with localStorage data
+            document.getElementById('totalBusinesses').textContent = businesses.length;
+            document.getElementById('activeBusinesses').textContent = businesses.filter(b => b.isActive !== false).length;
+            document.getElementById('totalStaff').textContent = '0';
+            document.getElementById('activeStaff').textContent = '0';
+            
+            loadLocalStorageBusinesses();
+            loadLocalStorageSystemInfo();
+        }
+
+        function loadLocalStorageBusinesses() {
+            const businesses = JSON.parse(localStorage.getItem('businesses') || '[]');
             const businessList = document.getElementById('businessList');
             
             if (businesses.length === 0) {
                 businessList.innerHTML = `
                     <div style="text-align: center; padding: 2rem; color: #6b7280;">
-                        <p>No businesses registered yet.</p>
+                        <p>No businesses found in localStorage.</p>
+                        <p style="margin-top: 1rem; font-size: 0.9rem;">Add some businesses in the POS system to see them here.</p>
                     </div>
                 `;
                 return;
@@ -756,77 +955,74 @@
             businessList.innerHTML = businesses.slice(0, 5).map(business => `
                 <div class="business-item">
                     <div class="business-info">
-                        <h4>${business.companyName || 'Unknown Business'}</h4>
-                        <p>ID: ${business.businessID} | Type: ${business.businessType || 'N/A'}</p>
-                        <p>Owner: ${business.ownerName || 'N/A'}</p>
+                        <h4>${business.name || business.companyName || 'Unknown Business'}</h4>
+                        <p>ID: ${business.id || business._id} | Type: ${business.businessType || 'Restaurant'}</p>
+                        <p>Email: ${business.email || 'N/A'}</p>
                     </div>
                     <div class="business-actions">
-                        <button class="action-btn access" onclick="accessBusiness('${business.businessID}')">
+                        <button class="action-btn access" onclick="accessBusiness('${business.id || business._id}')">
                             Access POS
                         </button>
-                        <button class="action-btn manage" onclick="manageBusiness('${business.businessID}')">
+                        <button class="action-btn manage" onclick="manageBusiness('${business.id || business._id}')">
                             Manage
                         </button>
                     </div>
                 </div>
             `).join('');
         }
-        
-        function loadSystemInfo(stats) {
+
+        function loadLocalStorageSystemInfo() {
+            const businesses = JSON.parse(localStorage.getItem('businesses') || '[]');
+            const properties = JSON.parse(localStorage.getItem('properties') || '[]');
+            
             const systemInfo = document.getElementById('systemInfo');
-            
-            const businessTypes = Object.entries(stats.businessTypes);
-            const roleDistribution = Object.entries(stats.roleDistribution);
-            
             systemInfo.innerHTML = `
                 <div class="info-item">
-                    <div class="info-value">${businessTypes.length}</div>
-                    <div class="info-label">Business Types</div>
+                    <div class="info-value">${properties.length}</div>
+                    <div class="info-label">Properties</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-value">${roleDistribution.length}</div>
-                    <div class="info-label">Staff Roles</div>
+                    <div class="info-value">${businesses.length}</div>
+                    <div class="info-label">Total Businesses</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-value">${new Date().toLocaleDateString()}</div>
-                    <div class="info-label">Last Updated</div>
+                    <div class="info-value">Local</div>
+                    <div class="info-label">Storage Mode</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-value">Online</div>
+                    <div class="info-value">Active</div>
                     <div class="info-label">System Status</div>
                 </div>
             `;
         }
         
         function accessBusiness(businessId) {
-            if (SuperAdminManager.switchToBusiness(businessId)) {
-                // Navigate to POS interface with business context
-                navigateWithTransition('pos-interface-fixed.html');
-            } else {
-                alert('Unable to access business. Business may not exist.');
-            }
+            console.log('Accessing business:', businessId);
+            
+            // Store the selected business in localStorage for the POS interface
+            localStorage.setItem('selectedBusinessId', businessId);
+            localStorage.setItem('superAdminMode', 'true');
+            
+            // Navigate to POS interface
+            navigateWithTransition('pos-interface-fixed.html');
         }
         
         function manageBusiness(businessId) {
-            // Switch to business context and go to settings
-            if (SuperAdminManager.switchToBusiness(businessId)) {
-                navigateWithTransition('business-settings.html');
-            } else {
-                alert('Unable to manage business. Business may not exist.');
-            }
+            console.log('Managing business:', businessId);
+            
+            // Store the selected business in localStorage
+            localStorage.setItem('selectedBusinessId', businessId);
+            localStorage.setItem('superAdminMode', 'true');
+            
+            // Navigate to business settings/dashboard
+            navigateWithTransition('assets/backend/client-example/businesses.html');
         }
         
         function accessPOS() {
-            // Get all businesses for selection
-            const businesses = SuperAdminManager.getAllBusinesses();
+            console.log('Accessing POS system...');
             
-            if (businesses.length === 0) {
-                alert('No businesses available. Please create a business first.');
-                return;
-            }
-            
-            // Create business selection modal
-            showBusinessSelectionModal(businesses);
+            // Navigate directly to POS interface
+            navigateWithTransition('pos-interface-fixed.html');
         }
         
         function showBusinessSelectionModal(businesses) {
