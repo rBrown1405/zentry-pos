@@ -5,141 +5,213 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Setup Super Admin - Zentry POS</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #f8fafc;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 2rem;
         }
         
         .setup-container {
             background: white;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            border: 3px solid #000;
+            border-radius: 8px;
+            padding: 2rem;
             max-width: 600px;
             width: 100%;
         }
         
         .setup-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid #e2e8f0;
         }
         
         .setup-title {
-            color: #333;
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 10px;
+            color: #2d3748;
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            letter-spacing: 1px;
         }
         
         .setup-subtitle {
-            color: #666;
-            font-size: 16px;
+            color: #4a5568;
+            font-size: 1rem;
         }
         
         .status-section {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .status-section h3 {
+            color: #2d3748;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 1rem;
         }
         
         .status-item {
             display: flex;
             align-items: center;
-            margin-bottom: 10px;
-            font-size: 14px;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            color: #4a5568;
         }
         
         .status-icon {
-            margin-right: 10px;
-            font-size: 16px;
+            margin-right: 0.75rem;
+            font-size: 1rem;
         }
         
         .setup-button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #2d3748;
             color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            border: 2px solid #000;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 500;
             cursor: pointer;
             width: 100%;
-            margin-bottom: 15px;
-            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+            transition: all 0.2s ease;
+            font-family: 'Courier New', monospace;
         }
         
         .setup-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            background: #1a202c;
         }
         
         .setup-button:disabled {
-            background: #ccc;
+            background: #cbd5e0;
+            color: #6b7280;
             cursor: not-allowed;
-            transform: none;
+            border-color: #cbd5e0;
+        }
+        
+        .setup-button.secondary {
+            background: #4a5568;
+        }
+        
+        .setup-button.secondary:hover {
+            background: #2d3748;
         }
         
         .log-section {
-            background: #f1f3f4;
-            padding: 15px;
+            background: #1a202c;
+            color: #e2e8f0;
+            border: 2px solid #000;
             border-radius: 8px;
-            margin-top: 20px;
+            padding: 1rem;
+            margin-top: 1.5rem;
             max-height: 300px;
             overflow-y: auto;
             font-family: 'Courier New', monospace;
-            font-size: 12px;
+            font-size: 0.8rem;
         }
         
-        .success { color: #28a745; }
-        .error { color: #dc3545; }
-        .info { color: #007bff; }
-        .warning { color: #ffc107; }
+        .success { color: #16a34a; font-weight: bold; }
+        .error { color: #dc2626; font-weight: bold; }
+        .info { color: #2563eb; font-weight: bold; }
+        .warning { color: #ea580c; font-weight: bold; }
         
         .form-section {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        
+        .form-section h3 {
+            color: #2d3748;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 1rem;
         }
         
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 1rem;
         }
         
         .form-group label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #333;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #2d3748;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
         .form-group input {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-            box-sizing: border-box;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-family: 'Courier New', monospace;
+            background: white;
+            color: #2d3748;
         }
         
         .form-group input:focus {
             outline: none;
-            border-color: #007bff;
-            box-shadow: 0 0 5px rgba(0,123,255,0.25);
+            border-color: #2d3748;
+            background: #f8fafc;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 1.5rem 0;
+            color: #6b7280;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .back-link {
+            text-decoration: none;
+            text-align: center;
+            display: block;
+            background: #e2e8f0;
+            color: #2d3748;
+            border: 2px solid #000;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            font-family: 'Courier New', monospace;
+        }
+
+        .back-link:hover {
+            background: #cbd5e0;
         }
     </style>
 </head>
 <body>
     <div class="setup-container">
         <div class="setup-header">
-            <h1 class="setup-title">🔧 Super Admin Setup</h1>
+            <h1 class="setup-title">⚡ SUPER ADMIN SETUP</h1>
             <p class="setup-subtitle">Create your custom super admin account for the new Firebase project</p>
         </div>
         
@@ -159,44 +231,44 @@
             <form id="adminForm" onsubmit="createCustomAdmin(event)">
                 <div class="form-group">
                     <label for="adminEmail">Email Address:</label>
-                    <input type="email" id="adminEmail" required placeholder="Enter your email address" style="width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px;">
+                    <input type="email" id="adminEmail" required placeholder="Enter your email address">
                 </div>
                 
                 <div class="form-group">
                     <label for="adminPassword">Password:</label>
-                    <input type="password" id="adminPassword" required placeholder="Enter a strong password (min 6 characters)" minlength="6" style="width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px;">
+                    <input type="password" id="adminPassword" required placeholder="Enter a strong password (min 6 characters)" minlength="6">
                 </div>
                 
                 <div class="form-group">
                     <label for="adminDisplayName">Display Name:</label>
-                    <input type="text" id="adminDisplayName" required placeholder="Enter your display name" style="width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px;">
+                    <input type="text" id="adminDisplayName" required placeholder="Enter your display name">
                 </div>
                 
                 <div class="form-group">
                     <label for="adminUsername">Username:</label>
-                    <input type="text" id="adminUsername" required placeholder="Enter a username (no spaces)" style="width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px;">
+                    <input type="text" id="adminUsername" required placeholder="Enter a username (no spaces)">
                 </div>
                 
                 <button type="submit" class="setup-button" id="createAdminBtn">
-                    � Create Super Admin Account
+                    🔐 CREATE SUPER ADMIN ACCOUNT
                 </button>
             </form>
             
-            <div style="text-align: center; margin: 20px 0; color: #666;">
+            <div class="divider">
                 <span>OR</span>
             </div>
             
-            <button onclick="createDefaultAdmins()" class="setup-button" id="createDefaultBtn" style="background: #6c757d;">
-                🚀 Create Default Admin Accounts
+            <button onclick="createDefaultAdmins()" class="setup-button secondary" id="createDefaultBtn">
+                🚀 CREATE DEFAULT ADMIN ACCOUNTS
             </button>
         </div>
         
         <button id="testBtn" class="setup-button" onclick="testCustomLogin()" disabled>
-            🧪 Test Login
+            🧪 TEST LOGIN
         </button>
         
-        <a href="login.html" class="setup-button" style="text-decoration: none; text-align: center; display: block;">
-            ← Back to Login
+        <a href="login.html" class="back-link">
+            ← BACK TO LOGIN
         </a>
         
         <div class="log-section" id="logSection">

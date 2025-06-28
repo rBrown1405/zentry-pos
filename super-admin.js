@@ -140,38 +140,78 @@ class SuperAdminManager {
     
     static async validateSuperAdmin(email, password) {
         try {
-            // First check if the email/password combo exists in our accounts
-            const adminAccount = this.SUPER_ADMIN_ACCOUNTS.find(account => 
-                account.email === email && account.password === password
-            );
-            
-            if (!adminAccount) {
-                console.log('Invalid super admin credentials');
-                return false;
-            }
+            console.log(`Attempting super admin validation for: ${email}`);
             
             const auth = await this.initializeFirebaseAuth();
             
-            // Attempt to sign in with Firebase Auth
+            // Attempt to sign in with Firebase Auth first
             try {
                 const userCredential = await auth.signInWithEmailAndPassword(email, password);
                 const user = userCredential.user;
                 
-                // Get user custom claims to check role
-                const idTokenResult = await user.getIdTokenResult();
+                console.log('Firebase authentication successful, checking Firestore role...');
                 
-                if (idTokenResult.claims.role === 'super_admin') {
+                // Check Firestore for super admin role
+                const db = window.firebaseServices.getDb();
+                
+                // Try to find user by username (extracted from email)
+                let username = email.split('@')[0];
+                if (username === 'rbrown14') {
+                    username = 'rBrown14'; // Handle specific case
+                }
+                
+                let userDoc = await db.collection('users').doc(username).get();
+                
+                // If not found by username, try by UID
+                if (!userDoc.exists) {
+                    userDoc = await db.collection('users').doc(user.uid).get();
+                }
+                
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    console.log('Found user document, role:', userData.role);
+                    
+                    if (userData.role === 'super_admin') {
+                        console.log('✅ Valid super admin confirmed from Firestore');
+                        return true;
+                    } else {
+                        console.log('❌ User exists but is not super admin:', userData.role);
+                        await auth.signOut();
+                        return false;
+                    }
+                } else {
+                    console.log('❌ User document not found in Firestore');
+                    
+                    // Fallback: check if email/password matches hardcoded accounts
+                    const adminAccount = this.SUPER_ADMIN_ACCOUNTS.find(account => 
+                        account.email === email && account.password === password
+                    );
+                    
+                    if (adminAccount) {
+                        console.log('✅ Valid hardcoded super admin account');
+                        return true;
+                    } else {
+                        console.log('❌ Not found in hardcoded accounts either');
+                        await auth.signOut();
+                        return false;
+                    }
+                }
+                
+            } catch (firebaseError) {
+                console.warn('Firebase auth failed:', firebaseError.message);
+                
+                // Fallback to hardcoded accounts if Firebase fails
+                const adminAccount = this.SUPER_ADMIN_ACCOUNTS.find(account => 
+                    account.email === email && account.password === password
+                );
+                
+                if (adminAccount) {
+                    console.log('✅ Valid hardcoded super admin account (Firebase fallback)');
                     return true;
                 } else {
-                    // Sign out if not super admin
-                    await auth.signOut();
+                    console.log('❌ Invalid credentials for both Firebase and hardcoded accounts');
                     return false;
                 }
-            } catch (firebaseError) {
-                // If Firebase auth fails but credentials are valid, allow access
-                // This is for development mode when Firebase might not have the user
-                console.warn('Firebase auth failed, but credentials valid:', firebaseError.message);
-                return true;
             }
         } catch (error) {
             console.error('Super admin validation failed:', error);
@@ -182,24 +222,77 @@ class SuperAdminManager {
     static async loginSuperAdmin(email, password) {
         try {
             if (await this.validateSuperAdmin(email, password)) {
-                // Find the admin account details
-                const adminAccount = this.SUPER_ADMIN_ACCOUNTS.find(account => 
+                console.log('Super admin validation successful, setting up session...');
+                
+                // Try to find admin account details from hardcoded accounts first
+                let adminAccount = this.SUPER_ADMIN_ACCOUNTS.find(account => 
                     account.email === email && account.password === password
                 );
                 
+                // If not found in hardcoded accounts, get from Firebase
+                if (!adminAccount) {
+                    console.log('Not a hardcoded account, fetching from Firebase...');
+                    
+                    try {
+                        const auth = window.firebaseServices.getAuth();
+                        const db = window.firebaseServices.getDb();
+                        
+                        // Get current user from Firebase Auth
+                        const user = auth.currentUser;
+                        if (user) {
+                            // Try to get user document from Firestore
+                            let username = email.split('@')[0];
+                            if (username === 'rbrown14') {
+                                username = 'rBrown14'; // Handle specific case
+                            }
+                            
+                            let userDoc = await db.collection('users').doc(username).get();
+                            
+                            // If not found by username, try by UID
+                            if (!userDoc.exists) {
+                                userDoc = await db.collection('users').doc(user.uid).get();
+                            }
+                            
+                            if (userDoc.exists) {
+                                const userData = userDoc.data();
+                                adminAccount = {
+                                    email: userData.email,
+                                    username: userData.username,
+                                    displayName: userData.displayName,
+                                    uid: userData.uid || user.uid
+                                };
+                                console.log('Retrieved admin account from Firebase:', adminAccount.displayName);
+                            }
+                        }
+                    } catch (firebaseError) {
+                        console.warn('Error fetching from Firebase, using fallback data:', firebaseError.message);
+                    }
+                }
+                
+                // Fallback if still no account found
+                if (!adminAccount) {
+                    console.log('Using fallback admin account data');
+                    adminAccount = {
+                        email: email,
+                        username: email.split('@')[0],
+                        displayName: 'Super Administrator'
+                    };
+                }
+                
                 // Store super admin state in memory only
                 this.currentSuperAdmin = {
-                    uid: adminAccount.username || email.split('@')[0],
+                    uid: adminAccount.uid || adminAccount.username || email.split('@')[0],
                     email: adminAccount.email,
                     username: adminAccount.username,
                     displayName: adminAccount.displayName || 'Super Administrator',
                     role: 'super_admin',
                     accessLevel: 'global',
                     permissions: ['all'],
-                    lastLogin: new Date().toISOString()
+                    lastLogin: new Date().toISOString(),
+                    isCustomAccount: !this.SUPER_ADMIN_ACCOUNTS.find(account => account.email === email)
                 };
                 
-                console.log(`Super admin ${adminAccount.username} logged in successfully`);
+                console.log(`✅ Super admin ${adminAccount.displayName} logged in successfully`);
                 return true;
             }
             return false;
