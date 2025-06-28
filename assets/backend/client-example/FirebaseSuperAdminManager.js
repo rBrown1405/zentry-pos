@@ -26,10 +26,19 @@ class FirebaseSuperAdminManager {
                 measurementId: "G-QEYMJQE480"
             };
 
-            // Initialize Firebase
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
+            console.log('🔥 Initializing Firebase with API key:', firebaseConfig.apiKey);
+
+            // Clear any existing Firebase apps to prevent conflicts
+            if (firebase.apps.length > 0) {
+                console.log('🔄 Clearing existing Firebase apps');
+                firebase.apps.forEach(app => {
+                    if (app) app.delete();
+                });
             }
+
+            // Initialize Firebase
+            firebase.initializeApp(firebaseConfig);
+            console.log('✅ Firebase initialized successfully');
 
             this.auth = firebase.auth();
             this.db = firebase.firestore();

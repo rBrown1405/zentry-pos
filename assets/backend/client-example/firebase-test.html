@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Configuration Test</title>
+</head>
+<body>
+    <h1>Firebase Configuration Test</h1>
+    <div id="output"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(message) {
+            console.log(message);
+            output.innerHTML += '<p>' + message + '</p>';
+        }
+        
+        try {
+            // Firebase configuration for zentry-pos-2dc89 project
+            const firebaseConfig = {
+                apiKey: "AIzaSyBLDZV5wXtWzrCcs8GknPyH_OxB_9uhjzg",
+                authDomain: "zentry-pos-2dc89.firebaseapp.com",
+                projectId: "zentry-pos-2dc89",
+                storageBucket: "zentry-pos-2dc89.firebasestorage.app",
+                messagingSenderId: "215458190528",
+                appId: "1:215458190528:web:61365cce55690e8983c925",
+                measurementId: "G-QEYMJQE480"
+            };
+
+            log('🔥 Testing Firebase configuration...');
+            log('API Key: ' + firebaseConfig.apiKey);
+            log('Project ID: ' + firebaseConfig.projectId);
+            log('Auth Domain: ' + firebaseConfig.authDomain);
+
+            // Clear any existing Firebase apps
+            if (firebase.apps.length > 0) {
+                log('🔄 Clearing existing Firebase apps: ' + firebase.apps.length);
+                firebase.apps.forEach(app => {
+                    if (app) app.delete();
+                });
+            }
+
+            // Initialize Firebase
+            const app = firebase.initializeApp(firebaseConfig);
+            log('✅ Firebase initialized successfully');
+            
+            const auth = firebase.auth();
+            const db = firebase.firestore();
+            
+            log('✅ Auth service initialized: ' + (auth ? 'Yes' : 'No'));
+            log('✅ Firestore service initialized: ' + (db ? 'Yes' : 'No'));
+            
+            // Test auth state listener
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    log('✅ User authenticated: ' + user.email);
+                } else {
+                    log('ℹ️ No user authenticated');
+                }
+            });
+            
+            log('🎯 Configuration test completed successfully');
+            
+        } catch (error) {
+            log('❌ Error during Firebase initialization: ' + error.message);
+            console.error('Full error:', error);
+        }
+    </script>
+</body>
+</html>
