@@ -778,7 +778,9 @@
             if (setupNeeded) {
                 window.location.href = 'setup-super-admin.html';
             } else {
-                window.location.href = 'assets/backend/client-example/login.html';
+                // Redirect to the main login - you'll need to create a simple login.html in the root
+                alert('Please create your super admin account using the setup page first.');
+                window.location.href = 'setup-super-admin.html';
             }
         }
         
@@ -1015,8 +1017,10 @@
             localStorage.setItem('selectedBusinessId', businessId);
             localStorage.setItem('superAdminMode', 'true');
             
-            // Navigate to business settings/dashboard
-            window.location.href = 'assets/backend/client-example/businesses.html';
+            // For now, show business management info instead of navigating to separate page
+            alert(`Business Management\n\nBusiness ID: ${businessId}\n\nThis will open a business management interface.\n\nFeature coming soon.`);
+            
+            // TODO: Implement inline business management or create a dedicated business-management.html file
         }
         
         function accessPOS() {
@@ -1174,8 +1178,10 @@
         }
         
         function viewAllStaff() {
-            // Navigate to staff/user management view
-            window.location.href = 'assets/backend/client-example/users.html';
+            // For now, show a simple staff management interface
+            alert('Staff Management Feature\n\nThis feature will show all staff members across all businesses.\n\nComing soon: Full staff management interface.');
+            
+            // TODO: Implement inline staff management or create a dedicated staff-management.html file
         }
         
         function systemSettings() {
@@ -1197,8 +1203,8 @@
                 localStorage.removeItem('propertyName');
                 localStorage.removeItem('firstLogin');
                 
-                // Navigate to login
-                window.location.href = 'login.html';
+                // Navigate to setup page (since we're keeping the original single admin system)
+                window.location.href = 'setup-super-admin.html';
             }
         }
     </script>
