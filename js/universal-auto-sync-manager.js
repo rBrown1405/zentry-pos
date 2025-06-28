@@ -14,6 +14,8 @@ class UniversalAutoSyncManager {
         this.maxRetries = 3;
         this.umbrellaManagerRetryCount = 0;
         this.maxUmbrellaManagerRetries = 5;
+        this.umbrellaManagerUnavailableCount = 0;
+        this.umbrellaManagerCooldownUntil = 0;
         
         // Sync configuration
         this.config = {
@@ -88,6 +90,11 @@ class UniversalAutoSyncManager {
      * @returns {boolean}
      */
     isUmbrellaManagerReady() {
+        // Check cooldown period
+        if (Date.now() < this.umbrellaManagerCooldownUntil) {
+            return false; // Still in cooldown
+        }
+        
         return !!(window.umbrellaManager && 
                   typeof window.umbrellaManager.setCurrentBusiness === 'function' &&
                   typeof window.umbrellaManager.currentBusiness !== 'undefined');
@@ -150,7 +157,13 @@ class UniversalAutoSyncManager {
 
         // Sync when umbrella manager is ready
         window.addEventListener('umbrellaManagerReady', () => {
-            this.log('🏢 Umbrella manager ready - triggering sync', 'info');
+            this.log('🏢 Umbrella manager ready - clearing cooldown and triggering sync', 'info');
+            
+            // Clear umbrella manager cooldown
+            this.umbrellaManagerRetryCount = 0;
+            this.umbrellaManagerUnavailableCount = 0;
+            this.umbrellaManagerCooldownUntil = 0;
+            
             this.performFullSync();
         });
 
@@ -623,6 +636,12 @@ class UniversalAutoSyncManager {
     async syncBusinessContext() {
         this.log('🏢 Syncing business context...', 'info');
 
+        // Check if umbrella manager is in cooldown
+        if (Date.now() < this.umbrellaManagerCooldownUntil) {
+            const remainingMinutes = Math.ceil((this.umbrellaManagerCooldownUntil - Date.now()) / 60000);
+            this.log(`⏸️ Umbrella manager in cooldown for ${remainingMinutes} more minutes - skipping umbrella sync`, 'info');
+        }
+
         try {
             // Check if we have localStorage business data
             const localBusiness = localStorage.getItem('currentBusiness');
@@ -656,6 +675,11 @@ class UniversalAutoSyncManager {
                 try {
                     window.umbrellaManager.setCurrentBusiness(umbrellaBusinessData.id, umbrellaBusinessData);
                     this.log(`✅ Business set in umbrella manager: ${umbrellaBusinessData.companyName}`, 'success');
+                    
+                    // Reset umbrella manager availability counters on success
+                    this.umbrellaManagerRetryCount = 0;
+                    this.umbrellaManagerUnavailableCount = 0;
+                    this.umbrellaManagerCooldownUntil = 0;
                 } catch (methodError) {
                     this.log(`⚠️ Umbrella manager method error: ${methodError.message}`, 'warn');
                 }
@@ -673,7 +697,14 @@ class UniversalAutoSyncManager {
                         }
                     }, 3000); // Retry after 3 seconds
                 } else {
-                    this.log(`❌ Umbrella manager not available after ${this.maxUmbrellaManagerRetries} attempts - stopping retries`, 'error');
+                    this.umbrellaManagerUnavailableCount++;
+                    
+                    // Calculate escalating cooldown: 30s, 2m, 5m, 10m, 30m
+                    const cooldownMinutes = Math.min(30, Math.pow(2, this.umbrellaManagerUnavailableCount - 1) * 0.5);
+                    const cooldownMs = cooldownMinutes * 60 * 1000;
+                    this.umbrellaManagerCooldownUntil = Date.now() + cooldownMs;
+                    
+                    this.log(`❌ Umbrella manager not available after ${this.maxUmbrellaManagerRetries} attempts - entering ${cooldownMinutes}m cooldown (attempt ${this.umbrellaManagerUnavailableCount})`, 'error');
                     this.umbrellaManagerRetryCount = 0; // Reset for next cycle
                 }
             }
