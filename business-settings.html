@@ -605,27 +605,104 @@
             try {
                 let businessSettings = {};
                 
-                // Check if we have umbrella manager and current business
-                if (!window.umbrellaManager) {
-                    console.error('Umbrella Manager not available');
-                    showSetupMessage('Umbrella Manager not initialized. Please reload the page.');
-                    return;
+                // Wait a moment for systems to initialize
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Try multiple sources for business data
+                let currentBusiness = null;
+                let businessSource = 'none';
+                
+                // 1. Check Super Admin Manager first (highest priority)
+                if (window.SuperAdminManager) {
+                    // Try multiple methods to get super admin business context
+                    let superAdminContext = null;
+                    
+                    if (window.SuperAdminManager.getCurrentBusinessContext) {
+                        superAdminContext = window.SuperAdminManager.getCurrentBusinessContext();
+                    }
+                    
+                    // Also check for currentBusiness property
+                    if (!superAdminContext && window.SuperAdminManager.currentBusiness) {
+                        superAdminContext = window.SuperAdminManager.currentBusiness;
+                    }
+                    
+                    // Check localStorage for super admin business context
+                    if (!superAdminContext) {
+                        const storedContext = localStorage.getItem('superAdminBusinessContext');
+                        if (storedContext) {
+                            try {
+                                superAdminContext = JSON.parse(storedContext);
+                            } catch (e) {
+                                console.warn('Failed to parse super admin context:', e);
+                            }
+                        }
+                    }
+                    
+                    if (superAdminContext && (superAdminContext.businessID || superAdminContext.id)) {
+                        currentBusiness = {
+                            id: superAdminContext.businessID || superAdminContext.id,
+                            businessCode: superAdminContext.businessCode,
+                            companyName: superAdminContext.companyName || superAdminContext.businessName || 'Super Admin Business'
+                        };
+                        businessSource = 'super_admin';
+                        console.log('Using Super Admin business context:', currentBusiness);
+                    }
                 }
-
-                // If no current business, try to load available businesses and let user select
-                if (!window.umbrellaManager.currentBusiness) {
-                    console.warn('No current business selected');
+                
+                // 2. Check Umbrella Manager (if available)
+                if (!currentBusiness && window.umbrellaManager && window.umbrellaManager.currentBusiness) {
+                    currentBusiness = window.umbrellaManager.currentBusiness;
+                    businessSource = 'umbrella_manager';
+                    console.log('Using Umbrella Manager business:', currentBusiness);
+                }
+                
+                // 3. Check localStorage for regular business users
+                if (!currentBusiness) {
+                    const storedUser = localStorage.getItem('currentUser');
+                    if (storedUser) {
+                        const userData = JSON.parse(storedUser);
+                        if (userData.businessCode || userData.businessID) {
+                            currentBusiness = {
+                                id: userData.businessID || userData.businessCode,
+                                businessCode: userData.businessCode,
+                                companyName: userData.businessName || 'Current Business'
+                            };
+                            businessSource = 'localStorage';
+                            console.log('Using localStorage business data:', currentBusiness);
+                        }
+                    }
+                }
+                
+                // 3.5. Special check for super admin accessing business settings
+                if (!currentBusiness) {
+                    const storedUser = localStorage.getItem('currentUser');
+                    if (storedUser) {
+                        const userData = JSON.parse(storedUser);
+                        if (userData.userRole === 'super_admin' || userData.role === 'super_admin') {
+                            console.log('Super admin detected, will load business selection modal');
+                            // Don't set currentBusiness - let it fall through to business selection
+                        }
+                    }
+                }
+                
+                // 4. If still no business, try to load available businesses
+                if (!currentBusiness) {
+                    console.warn(`No current business found from any source. Checked:
+                        - SuperAdminManager: ${!!window.SuperAdminManager}
+                        - UmbrellaManager: ${!!window.umbrellaManager} (current business: ${!!window.umbrellaManager?.currentBusiness})
+                        - localStorage currentUser: ${!!localStorage.getItem('currentUser')}`);
+                    console.log('Attempting to load available businesses for selection...');
                     await tryLoadAvailableBusinesses();
                     return;
                 }
                 
-                // Only load from Firebase - no localStorage fallback
-                if (window.firebaseServices && window.umbrellaManager.currentBusiness) {
+                // Load business settings from Firebase
+                if (window.firebaseServices && currentBusiness) {
                     try {
                         const db = window.firebaseServices.getDb();
-                        const businessId = window.umbrellaManager.currentBusiness.id;
+                        const businessId = currentBusiness.id || currentBusiness.businessCode || currentBusiness.businessID;
                         
-                        console.log('Loading business settings from Firebase for business:', businessId);
+                        console.log(`Loading business settings from Firebase for business: ${businessId} (source: ${businessSource})`);
                         
                         const businessDoc = await db.collection('businesses').doc(businessId).get();
                         
@@ -1126,10 +1203,28 @@
         // Try to load available businesses and let user select
         async function tryLoadAvailableBusinesses() {
             try {
+                console.log('Attempting to load available businesses...');
+                
+                // First try using umbrella manager if available
+                if (window.umbrellaManager) {
+                    try {
+                        const businesses = await window.umbrellaManager.getAvailableBusinesses();
+                        if (businesses && businesses.length > 0) {
+                            console.log(`Found ${businesses.length} businesses via umbrella manager`);
+                            showBusinessSelectionModal(businesses);
+                            return;
+                        }
+                    } catch (umbrellaError) {
+                        console.warn('Umbrella manager query failed:', umbrellaError);
+                    }
+                }
+                
+                // Fallback: direct Firebase query for super admin access
                 const db = window.firebaseServices.getDb();
-                const businessesSnapshot = await db.collection('businesses').limit(10).get();
+                const businessesSnapshot = await db.collection('businesses').limit(50).get();
                 
                 if (businessesSnapshot.empty) {
+                    console.warn('No businesses found in Firebase');
                     showSetupMessage('No businesses found in database. Please run the Firebase setup tool to create demo data.');
                     return;
                 }
@@ -1139,7 +1234,8 @@
                     id: doc.id,
                     ...doc.data()
                 }));
-
+                
+                console.log(`Found ${businesses.length} businesses via direct Firebase query`);
                 showBusinessSelectionModal(businesses);
                 
             } catch (error) {
