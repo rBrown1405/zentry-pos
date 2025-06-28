@@ -1090,31 +1090,52 @@
             return item.dayAvailability[today] !== false;
         }
 
-        // Load menu items from localStorage
+        // Load menu items - Primary localStorage with optional cloud check
         async function loadMenuItems() {
-            // Try to load from Firebase first
-            const firebaseMenu = await loadMenuFromFirebase();
-            if (firebaseMenu && firebaseMenu.length > 0) {
-                menuItems = firebaseMenu;
-                console.log("Loaded menu data from Firebase");
-                renderMenuGrid();
-                return;
-            }
+            // Load from localStorage first (primary storage)
+            loadFromLocalStorageOnly();
             
+            // Optionally check cloud for updates (but don't auto-load)
+            await checkCloudForUpdates();
+            
+            renderMenuGrid();
+        }
+
+        // Load from localStorage only
+        function loadFromLocalStorageOnly() {
             // Clear any existing demo data first
             if (!localStorage.getItem('menuCleared')) {
                 localStorage.removeItem('menuItems');
                 localStorage.setItem('menuCleared', 'true');
             }
             
-            const savedMenu = localStorage.getItem('menuItems');
+            // Try different localStorage keys
+            const savedMenu = localStorage.getItem('menuItems') || 
+                             localStorage.getItem('menuData');
+            
             if (savedMenu) {
                 menuItems = JSON.parse(savedMenu);
                 console.log("Loaded menu data from localStorage");
             } else {
                 console.log("No menu data found");
             }
-            renderMenuGrid();
+        }
+
+        // Check cloud for updates without auto-loading
+        async function checkCloudForUpdates() {
+            try {
+                const firebaseMenu = await loadMenuFromFirebase();
+                if (firebaseMenu && firebaseMenu.length > 0) {
+                    const cloudCount = firebaseMenu.length;
+                    const localCount = menuItems.length;
+                    
+                    if (cloudCount !== localCount && cloudCount > 0) {
+                        console.log(`Cloud has ${cloudCount} items vs local ${localCount}. Manual refresh available.`);
+                    }
+                }
+            } catch (error) {
+                console.warn('Error checking cloud updates:', error);
+            }
         }
 
         // Render menu grid
@@ -1579,13 +1600,13 @@
     <script>
         // Firebase Configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyAl5d3kJsCYGJ_PpkLhvYYQr9cQq9kuAVE",
-            authDomain: "zentry-pos-b737b.firebaseapp.com",
-            projectId: "zentry-pos-b737b",
-            storageBucket: "zentry-pos-b737b.firebasestorage.app",
-            messagingSenderId: "67930798018",
-            appId: "1:67930798018:web:9fdc2413f766731c7d485b",
-            measurementId: "G-7W2PYQ63T4"
+            apiKey: "AIzaSyAHgBZ2pZmXuubRXN1gTLb_kQctmLusNkM",
+            authDomain: "zentry-pos-demo.firebaseapp.com",
+            projectId: "zentry-pos-demo",
+            storageBucket: "zentry-pos-demo.firebasestorage.app",
+            messagingSenderId: "1034151152516",
+            appId: "1:1034151152516:web:2d67a0e860b3ae42106bd1",
+            measurementId: "G-ZR8GSW7LQE"
         };
 
         // Initialize Firebase

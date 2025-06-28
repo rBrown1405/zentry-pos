@@ -823,6 +823,8 @@
                 <input type="file" id="menuImportInput" accept=".json,.csv" style="display:none" />
                 <button class="back-button" onclick="document.getElementById('menuImportInput').click()">📁 Import Menu</button>
                 <button class="back-button" onclick="exportMenu()">📤 Export Menu</button>
+                <button class="back-button" onclick="syncToCloud()" title="Backup menu to cloud storage">☁️ Sync to Cloud</button>
+                <button class="back-button" onclick="loadFromCloud()" title="Load latest menu from cloud">⬇️ Load from Cloud</button>
                 <a href="settings.html" class="back-button">← Back to Settings</a>
                 <button class="save-button" onclick="saveAllChanges()">💾 Save Changes</button>
             </div>
@@ -1269,6 +1271,9 @@
         // Initialize menu editor with Firebase integration
         async function initializeMenuEditor() {
             try {
+                // Show optimization notice
+                showNotification('🔄 Menu Editor - Optimized for Firebase free plan! Data saves locally first, use "Sync to Cloud" for backup.', 'info');
+                
                 // Wait a bit for Firebase services to load
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 
@@ -1277,7 +1282,7 @@
                 const isConnected = await checkFirebaseConnection();
                 console.log('Firebase connection result:', isConnected);
                 
-                // Load menu data (Firebase first if connected, then localStorage fallback)
+                // Load menu data (localStorage first, then check cloud for updates)
                 await loadMenuData();
                 
                 // Re-check connection status after loading
@@ -1327,18 +1332,16 @@
             return 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         }
 
-        // Load menu data from Firebase cloud storage first, then fallback to localStorage
+        // Load menu data - Primary localStorage with optional cloud sync
         async function loadMenuData() {
             try {
                 console.log('Loading menu data...');
                 
-                // First try to load from Firebase
-                const firebaseMenuLoaded = await loadMenuFromFirebase();
+                // First load from localStorage (primary storage)
+                loadMenuFromLocalStorage();
                 
-                if (!firebaseMenuLoaded) {
-                    // Fallback to localStorage
-                    loadMenuFromLocalStorage();
-                }
+                // Then optionally check cloud for newer data (but don't auto-load)
+                await checkCloudForUpdates();
                 
                 // Ensure all items have unique IDs
                 menuItems = menuItems.map((item, index) => {
@@ -1360,6 +1363,44 @@
                 // Final fallback to localStorage
                 loadMenuFromLocalStorage();
                 renderMenuItems();
+            }
+        }
+
+        // Check cloud for updates without auto-loading
+        async function checkCloudForUpdates() {
+            try {
+                if (!window.firebaseServices || !window.firebaseServices.getDb()) {
+                    updateCloudStatus('offline', 'Firebase not available');
+                    return;
+                }
+
+                const currentBusiness = await getCurrentBusinessContext();
+                if (!currentBusiness) {
+                    updateCloudStatus('offline', 'No business context');
+                    return;
+                }
+
+                const db = window.firebaseServices.getDb();
+                const menuDoc = await db.collection('menus').doc(`${currentBusiness.id}_restaurant`).get();
+                
+                if (menuDoc.exists) {
+                    const cloudData = menuDoc.data();
+                    const cloudItemCount = cloudData.totalItems || 0;
+                    const localItemCount = menuItems.length;
+                    
+                    if (cloudItemCount !== localItemCount) {
+                        updateCloudStatus('connected', `${currentBusiness.companyName} - Cloud has updates (${cloudItemCount} items)`);
+                        showNotification(`Cloud has ${cloudItemCount} items vs local ${localItemCount}. Use "Load from Cloud" to sync.`, 'info');
+                    } else {
+                        updateCloudStatus('connected', `${currentBusiness.companyName} - In sync`);
+                    }
+                } else {
+                    updateCloudStatus('connected', `${currentBusiness.companyName} - No cloud data`);
+                }
+                
+            } catch (error) {
+                console.warn('Error checking cloud updates:', error);
+                updateCloudStatus('error', 'Connection check failed');
             }
         }
 
@@ -1544,153 +1585,185 @@
             }
         }
 
-        // Save menu data to Firebase cloud storage via umbrella account system
-        async function saveMenuData() {
+        // Optimized save menu data - Primary localStorage with optional cloud sync
+        async function saveMenuData(forceCloudSync = false) {
             try {
-                // Trigger auto-sync before saving
-                if (window.autoSyncManager) {
-                    await window.autoSyncManager.forceSyncNow();
-                }
+                // Always save to localStorage first (primary storage)
+                saveMenuToLocalStorage();
+                console.log("✅ Menu data saved to local storage");
                 
-                // Check if Firebase and business context are available
-                if (window.firebaseServices && window.firebaseServices.getDb()) {
-                    // Check for business context
-                    const hasBusinessContext = await checkForBusinessContext();
-                    
-                    if (hasBusinessContext) {
-                        // Save to Firebase first (cloud storage)
-                        console.log("Saving to Firebase cloud storage...");
-                        await saveMenuToFirebase();
-                        
-                        // Keep localStorage as backup/cache for offline access
-                        saveMenuToLocalStorage();
-                        
-                        console.log("✅ Menu data saved to cloud and local storage");
-                        
-                        // Trigger sync after saving
-                        if (window.autoSyncManager) {
-                            setTimeout(() => window.autoSyncManager.forceSyncNow(), 500);
-                        }
-                    } else {
-                        // Firebase available but no business context - save locally only
-                        console.log("Firebase available but no business context - saving locally only");
-                        saveMenuToLocalStorage();
-                        showNotification('Saved locally - Connect to a business for cloud sync', 'warning');
-                    }
+                // Only sync to cloud if explicitly requested or during manual sync
+                if (forceCloudSync) {
+                    await saveMenuToFirebase(true);
                 } else {
-                    // Firebase not available - save locally only
-                    console.log("Firebase not available - saving locally only");
-                    saveMenuToLocalStorage();
-                    showNotification('Saved locally - Firebase not available', 'warning');
+                    console.log("🔄 Cloud sync skipped - use 'Sync to Cloud' button for cloud backup");
+                    showNotification('Saved locally - Use "Sync to Cloud" for backup', 'success');
                 }
                 
             } catch (error) {
                 console.error("Error saving menu data:", error);
-                // Fallback to localStorage only if Firebase fails
+                // Ensure localStorage save still works
                 saveMenuToLocalStorage();
-                showNotification('Save failed - Menu saved locally instead', 'error');
+                showNotification('Saved locally with errors', 'warning');
             }
         }
 
-        // Save menu to Firebase via umbrella account system
-        async function saveMenuToFirebase() {
+        // Optimized Firebase save - only when explicitly requested
+        async function saveMenuToFirebase(skipChangeDetection = false) {
             try {
                 // Check if Firebase services are available
                 if (!window.firebaseServices) {
-                    console.warn("Firebase services not available");
+                    console.log("Firebase services not available");
                     updateCloudStatus('offline', 'Firebase not available');
                     return;
                 }
 
                 const db = window.firebaseServices.getDb();
                 if (!db) {
-                    console.warn("Firebase database not available");
+                    console.log("Firebase database not available");
                     updateCloudStatus('offline', 'Database not available');
                     return;
                 }
 
-                // Get current business context from multiple sources
-                let currentBusiness = null;
-                let businessSource = 'none';
-
-                // 1. Try umbrella manager first
-                if (window.umbrellaManager && window.umbrellaManager.currentBusiness) {
-                    currentBusiness = window.umbrellaManager.currentBusiness;
-                    businessSource = 'umbrella_manager';
-                }
-
-                // 2. Try super admin business context
-                if (!currentBusiness && window.SuperAdminManager) {
-                    try {
-                        const superAdminContext = window.SuperAdminManager.getCurrentBusinessContext();
-                        if (superAdminContext && superAdminContext.businessID) {
-                            currentBusiness = {
-                                id: superAdminContext.businessID,
-                                companyName: superAdminContext.companyName || 'Super Admin Business'
-                            };
-                            businessSource = 'super_admin';
-                        }
-                    } catch (e) {
-                        console.warn('Error getting super admin context:', e.message);
-                    }
-                }
-
-                // 3. Try localStorage business context
-                if (!currentBusiness) {
-                    const storedContext = localStorage.getItem('currentBusinessContext');
-                    if (storedContext) {
-                        try {
-                            const contextData = JSON.parse(storedContext);
-                            if (contextData.businessID || contextData.id) {
-                                currentBusiness = {
-                                    id: contextData.businessID || contextData.id,
-                                    companyName: contextData.companyName || contextData.businessName || 'Current Business'
-                                };
-                                businessSource = 'localStorage';
-                            }
-                        } catch (e) {
-                            console.warn('Failed to parse business context from localStorage');
-                        }
-                    }
-                }
+                // Get current business context
+                let currentBusiness = await getCurrentBusinessContext();
 
                 if (!currentBusiness || !currentBusiness.id) {
-                    console.warn("No current business context available");
+                    console.log("No current business context available");
                     updateCloudStatus('offline', 'No business selected');
+                    showNotification('No business context - cannot sync to cloud', 'warning');
                     return;
                 }
 
                 const businessId = currentBusiness.id;
-                console.log(`Saving menu to Firebase for business: ${businessId} (source: ${businessSource})`);
                 
-                // Save menu to Firebase under the business's restaurant menu
+                // Check if data has actually changed (unless skipped)
+                if (!skipChangeDetection) {
+                    const hasChanges = await checkForCloudChanges(businessId, db);
+                    if (!hasChanges) {
+                        console.log("No changes detected - skipping cloud save");
+                        updateCloudStatus('connected', `${currentBusiness.companyName} - Up to date`);
+                        showNotification('No changes to sync', 'info');
+                        return;
+                    }
+                }
+                
+                console.log(`Syncing menu to Firebase for business: ${businessId}`);
+                
+                // Create optimized menu data with minimal metadata
                 const menuData = {
                     businessId: businessId,
-                    menuType: 'restaurant',
                     items: menuItems,
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                    isActive: true,
-                    editorVersion: '2.0',
-                    totalItems: menuItems.length
+                    totalItems: menuItems.length,
+                    version: Date.now() // Simple version tracking
                 };
 
                 await db.collection('menus').doc(`${businessId}_restaurant`).set(menuData);
-                console.log(`✅ Menu successfully saved to Firebase for business: ${businessId}`);
+                console.log(`✅ Menu successfully synced to Firebase for business: ${businessId}`);
                 
-                updateCloudStatus('connected', `Connected to ${currentBusiness.companyName} (${businessSource})`);
-                showNotification('Menu saved to cloud successfully!', 'success');
+                updateCloudStatus('connected', `${currentBusiness.companyName} - Synced`);
+                showNotification('Menu synced to cloud successfully!', 'success');
+                
+                // Store last sync info in localStorage
+                localStorage.setItem('lastCloudSync', JSON.stringify({
+                    timestamp: Date.now(),
+                    businessId: businessId,
+                    itemCount: menuItems.length
+                }));
                 
             } catch (error) {
-                console.error("Error saving menu to Firebase:", error);
-                updateCloudStatus('error', 'Save failed');
-                showNotification('Failed to save to cloud, saved locally instead', 'warning');
+                console.error("Error syncing menu to Firebase:", error);
+                updateCloudStatus('error', 'Sync failed');
+                showNotification('Failed to sync to cloud - data saved locally', 'error');
                 throw error;
             }
         }
 
-        // Save menu to localStorage (backup/cache)
+        // Check if local data differs from cloud data
+        async function checkForCloudChanges(businessId, db) {
+            try {
+                const menuDoc = await db.collection('menus').doc(`${businessId}_restaurant`).get();
+                
+                if (!menuDoc.exists) {
+                    return true; // No cloud data exists, so local data is a change
+                }
+                
+                const cloudData = menuDoc.data();
+                const localItemCount = menuItems.length;
+                const cloudItemCount = cloudData.totalItems || 0;
+                
+                // Simple change detection based on item count and last local modification
+                if (localItemCount !== cloudItemCount) {
+                    return true;
+                }
+                
+                // Check last sync timestamp
+                const lastSync = localStorage.getItem('lastCloudSync');
+                if (lastSync) {
+                    const syncInfo = JSON.parse(lastSync);
+                    const lastModified = localStorage.getItem('lastMenuModified');
+                    
+                    if (lastModified && parseInt(lastModified) > syncInfo.timestamp) {
+                        return true; // Local changes since last sync
+                    }
+                }
+                
+                return false; // No significant changes detected
+                
+            } catch (error) {
+                console.warn("Error checking for changes:", error);
+                return true; // On error, assume changes exist
+            }
+        }
+
+        // Get current business context from available sources
+        async function getCurrentBusinessContext() {
+            // 1. Try umbrella manager first
+            if (window.umbrellaManager && window.umbrellaManager.currentBusiness) {
+                return window.umbrellaManager.currentBusiness;
+            }
+
+            // 2. Try super admin business context
+            if (window.SuperAdminManager) {
+                try {
+                    const superAdminContext = window.SuperAdminManager.getCurrentBusinessContext();
+                    if (superAdminContext && superAdminContext.businessID) {
+                        return {
+                            id: superAdminContext.businessID,
+                            companyName: superAdminContext.companyName || 'Super Admin Business'
+                        };
+                    }
+                } catch (e) {
+                    console.warn('Error getting super admin context:', e.message);
+                }
+            }
+
+            // 3. Try localStorage business context
+            const storedContext = localStorage.getItem('currentBusinessContext');
+            if (storedContext) {
+                try {
+                    const contextData = JSON.parse(storedContext);
+                    if (contextData.businessID || contextData.id) {
+                        return {
+                            id: contextData.businessID || contextData.id,
+                            companyName: contextData.companyName || contextData.businessName || 'Current Business'
+                        };
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse business context from localStorage');
+                }
+            }
+
+            return null;
+        }
+
+        // Save menu to localStorage (primary storage) with modification tracking
         function saveMenuToLocalStorage() {
             try {
+                // Mark modification time for change detection
+                localStorage.setItem('lastMenuModified', Date.now().toString());
+                
                 // Get current property context for backward compatibility
                 const propertyContext = getPropertyContext();
                 
@@ -1897,11 +1970,43 @@
             // Toggle today's availability
             item.dayAvailability[today] = !item.dayAvailability[today];
             
-            saveMenuData();
+            // Mark modification time for change detection
+            localStorage.setItem('lastMenuModified', Date.now().toString());
+            
+            saveMenuData(); // Save locally only
             renderMenuItems();
             
             const status = item.dayAvailability[today] ? 'available' : '86\'d';
             showNotification(`${item.name} is now ${status} for today`);
+        }
+
+        // Manual cloud sync function
+        async function syncToCloud() {
+            try {
+                updateCloudStatus('connecting', 'Syncing to cloud...');
+                await saveMenuToFirebase(true); // Force sync to cloud
+            } catch (error) {
+                console.error('Manual cloud sync failed:', error);
+                showNotification('Cloud sync failed - check connection', 'error');
+            }
+        }
+
+        // Manual cloud load function
+        async function loadFromCloud() {
+            try {
+                updateCloudStatus('connecting', 'Loading from cloud...');
+                
+                const cloudMenuLoaded = await loadMenuFromFirebase();
+                if (cloudMenuLoaded) {
+                    renderMenuItems();
+                    showNotification('Menu loaded from cloud successfully!', 'success');
+                } else {
+                    showNotification('No cloud menu found or connection failed', 'warning');
+                }
+            } catch (error) {
+                console.error('Manual cloud load failed:', error);
+                showNotification('Failed to load from cloud', 'error');
+            }
         }
 
         // Show notification message
@@ -1910,29 +2015,41 @@
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
             notification.textContent = message;
+            
+            let backgroundColor;
+            switch(type) {
+                case 'success': backgroundColor = '#10b981'; break;
+                case 'warning': backgroundColor = '#f59e0b'; break;
+                case 'error': backgroundColor = '#ef4444'; break;
+                case 'info': backgroundColor = '#3b82f6'; break;
+                default: backgroundColor = '#10b981';
+            }
+            
             notification.style.cssText = `
                 position: fixed;
                 top: 20px;
                 right: 20px;
-                background: ${type === 'success' ? '#10b981' : type === 'warning' ? '#f59e0b' : '#ef4444'};
+                background: ${backgroundColor};
                 color: white;
                 padding: 12px 20px;
                 border-radius: 8px;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
                 z-index: 1000;
                 font-size: 14px;
-                max-width: 300px;
+                max-width: 400px;
                 word-wrap: break-word;
+                line-height: 1.4;
             `;
             
             document.body.appendChild(notification);
             
-            // Remove after 3 seconds
+            // Remove after 5 seconds for info messages, 3 seconds for others
+            const duration = type === 'info' ? 5000 : 3000;
             setTimeout(() => {
                 if (notification.parentNode) {
                     notification.parentNode.removeChild(notification);
                 }
-            }, 3000);
+            }, duration);
         }
 
         // Initialize menu import functionality
@@ -2151,10 +2268,27 @@
             document.getElementById('saveBtn').textContent = 'Save Item';
         }
 
-        // Save all changes and sync with POS
+        // Save all changes - local save with optional cloud sync prompt
         function saveAllChanges() {
+            // Mark modification time
+            localStorage.setItem('lastMenuModified', Date.now().toString());
+            
+            // Save locally first
             saveMenuData();
-            showNotification('All changes saved successfully!');
+            
+            // Check if user wants to sync to cloud
+            const lastSync = localStorage.getItem('lastCloudSync');
+            const shouldPromptSync = !lastSync || (Date.now() - JSON.parse(lastSync).timestamp > 300000); // 5 minutes
+            
+            if (shouldPromptSync) {
+                setTimeout(() => {
+                    if (confirm('Would you like to backup your changes to the cloud? (This will use Firebase quota)')) {
+                        syncToCloud();
+                    }
+                }, 1000);
+            }
+            
+            showNotification('All changes saved locally!');
         }
 
         // Export menu function
@@ -2175,6 +2309,9 @@
         // Handle form submission
         document.getElementById('itemForm').addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            // Mark modification time for change detection
+            localStorage.setItem('lastMenuModified', Date.now().toString());
             
             // Get day availability
             const dayAvailability = {};
