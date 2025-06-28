@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Super Admin Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-container { max-width: 600px; margin: 0 auto; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        input { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        .form-group { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔐 Simple Super Admin Login Test</h1>
+        
+        <div class="result" id="status">Loading...</div>
+        
+        <div class="form-group">
+            <h3>Test Super Admin Login</h3>
+            <p>Try logging in with these credentials:</p>
+            <ul>
+                <li><strong>Admin:</strong> admin@macrospos.com / Armoured@2025!</li>
+                <li><strong>rBrown14:</strong> rbrown14@macrospos.com / Armoured@</li>
+            </ul>
+            
+            <div>
+                <input type="email" id="testEmail" placeholder="Email" value="admin@macrospos.com">
+                <input type="password" id="testPassword" placeholder="Password" value="Armoured@2025!">
+                <button class="btn-primary" onclick="testLogin()">🔑 Test Login</button>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <h3>Quick Tests</h3>
+            <button class="btn-success" onclick="testAdminLogin()">Test Default Admin</button>
+            <button class="btn-success" onclick="testRBrown14Login()">Test rBrown14</button>
+            <button onclick="checkSuperAdminStatus()">Check Status</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    <script src="js/firebase-services.js"></script>
+    <script src="js/firebase-manager.js"></script>
+    <script src="super-admin.js"></script>
+
+    <script>
+        let testResults = [];
+
+        function addResult(message, type = 'success') {
+            testResults.push({ message, type, time: new Date().toLocaleTimeString() });
+            updateResultsDisplay();
+        }
+
+        function updateResultsDisplay() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = testResults.map(result => 
+                `<div class="result ${result.type}">[${result.time}] ${result.message}</div>`
+            ).join('');
+        }
+
+        function updateStatus(message, type = 'warning') {
+            document.getElementById('status').innerHTML = `<span class="${type}">${message}</span>`;
+            document.getElementById('status').className = `result ${type}`;
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            
+            if (!email || !password) {
+                addResult('Please enter both email and password', 'error');
+                return;
+            }
+            
+            try {
+                addResult(`Attempting login with: ${email}`, 'warning');
+                
+                if (typeof SuperAdminManager === 'undefined') {
+                    addResult('SuperAdminManager not available', 'error');
+                    return;
+                }
+                
+                const success = await SuperAdminManager.loginSuperAdmin(email, password);
+                
+                if (success) {
+                    addResult(`✅ Login successful for ${email}`, 'success');
+                    checkSuperAdminStatus();
+                } else {
+                    addResult(`❌ Login failed for ${email}`, 'error');
+                }
+            } catch (error) {
+                addResult(`Login error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAdminLogin() {
+            document.getElementById('testEmail').value = 'admin@macrospos.com';
+            document.getElementById('testPassword').value = 'Armoured@2025!';
+            await testLogin();
+        }
+
+        async function testRBrown14Login() {
+            document.getElementById('testEmail').value = 'rbrown14@macrospos.com';
+            document.getElementById('testPassword').value = 'Armoured@';
+            await testLogin();
+        }
+
+        function checkSuperAdminStatus() {
+            try {
+                if (typeof SuperAdminManager === 'undefined') {
+                    addResult('SuperAdminManager not loaded', 'error');
+                    return;
+                }
+
+                const isSuper = SuperAdminManager.isSuperAdmin();
+                if (isSuper) {
+                    const admin = SuperAdminManager.getCurrentSuperAdmin();
+                    addResult(`✅ Currently logged in as: ${admin.username} (${admin.email})`, 'success');
+                } else {
+                    addResult('❌ Not currently logged in as super admin', 'warning');
+                }
+            } catch (error) {
+                addResult(`Status check error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus('Initializing...', 'warning');
+            
+            // Check if components are loading
+            setTimeout(() => {
+                let status = [];
+                
+                if (typeof firebase !== 'undefined') {
+                    status.push('✅ Firebase SDK loaded');
+                } else {
+                    status.push('❌ Firebase SDK not loaded');
+                }
+                
+                if (window.firebaseServices) {
+                    status.push('✅ Firebase Services available');
+                } else {
+                    status.push('❌ Firebase Services not available');
+                }
+                
+                if (typeof SuperAdminManager !== 'undefined') {
+                    status.push('✅ SuperAdminManager loaded');
+                } else {
+                    status.push('❌ SuperAdminManager not loaded');
+                }
+                
+                updateStatus(status.join(' | '), status.every(s => s.includes('✅')) ? 'success' : 'error');
+                
+                // Add initial check
+                addResult('Test page loaded. Ready for testing.', 'success');
+                checkSuperAdminStatus();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
