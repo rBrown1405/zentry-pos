@@ -1091,7 +1091,16 @@
         }
 
         // Load menu items from localStorage
-        function loadMenuItems() {
+        async function loadMenuItems() {
+            // Try to load from Firebase first
+            const firebaseMenu = await loadMenuFromFirebase();
+            if (firebaseMenu && firebaseMenu.length > 0) {
+                menuItems = firebaseMenu;
+                console.log("Loaded menu data from Firebase");
+                renderMenuGrid();
+                return;
+            }
+            
             // Clear any existing demo data first
             if (!localStorage.getItem('menuCleared')) {
                 localStorage.removeItem('menuItems');
@@ -1101,6 +1110,9 @@
             const savedMenu = localStorage.getItem('menuItems');
             if (savedMenu) {
                 menuItems = JSON.parse(savedMenu);
+                console.log("Loaded menu data from localStorage");
+            } else {
+                console.log("No menu data found");
             }
             renderMenuGrid();
         }
@@ -1536,11 +1548,118 @@
             });
             updateTableIndicator();
         }        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            loadMenuItems(); // Load menu from localStorage
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Initialize Firebase
+            initializeFirebase();
+            
+            // Wait a bit for Firebase initialization
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Load menu from Firebase first, then localStorage
+            await loadMenuItems();
             updateCartDisplay();
             updateKitchenDisplay();
         });
+    </script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    
+    <!-- Business Management Scripts -->
+    <script src="js/firebase-manager.js"></script>
+    <script src="js/umbrella-account-manager.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAl5d3kJsCYGJ_PpkLhvYYQr9cQq9kuAVE",
+            authDomain: "zentry-pos-b737b.firebaseapp.com",
+            projectId: "zentry-pos-b737b",
+            storageBucket: "zentry-pos-b737b.firebasestorage.app",
+            messagingSenderId: "67930798018",
+            appId: "1:67930798018:web:9fdc2413f766731c7d485b",
+            measurementId: "G-7W2PYQ63T4"
+        };
+
+        // Initialize Firebase
+        let db = null;
+        let auth = null;
+        let isFirebaseConnected = false;
+
+        function initializeFirebase() {
+            try {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                db = firebase.firestore();
+                auth = firebase.auth();
+                isFirebaseConnected = true;
+                console.log('🔥 Firebase initialized successfully');
+            } catch (error) {
+                console.error('❌ Firebase initialization failed:', error);
+                isFirebaseConnected = false;
+            }
+        }
+
+        // Helper function to get current business ID
+        async function getCurrentBusinessId() {
+            try {
+                // Try to get from umbrella account manager
+                if (typeof getBusinessData === 'function') {
+                    const businessData = await getBusinessData();
+                    if (businessData && businessData.id) {
+                        return businessData.id;
+                    }
+                }
+                
+                // Fallback to stored business ID
+                const storedBusinessId = localStorage.getItem('currentBusinessId');
+                if (storedBusinessId) {
+                    return storedBusinessId;
+                }
+                
+                console.warn('No business ID found');
+                return null;
+            } catch (error) {
+                console.error('Error getting business ID:', error);
+                return null;
+            }
+        }
+
+        // Load menu from Firebase
+        async function loadMenuFromFirebase() {
+            if (!isFirebaseConnected || !db) {
+                console.log('Firebase not connected, falling back to localStorage');
+                return null;
+            }
+
+            try {
+                // Get current business ID using umbrella account manager
+                const currentBusinessId = await getCurrentBusinessId();
+                if (!currentBusinessId) {
+                    console.log('No business ID found, falling back to localStorage');
+                    return null;
+                }
+
+                const menuDocId = `${currentBusinessId}_restaurant`;
+                const doc = await db.collection('menus').doc(menuDocId).get();
+                
+                if (doc.exists && doc.data().items) {
+                    console.log(`Menu loaded from Firebase for business: ${currentBusinessId}`);
+                    return doc.data().items;
+                }
+                
+                console.log('No menu data found in Firebase, falling back to localStorage');
+                return null;
+            } catch (error) {
+                console.error('Error loading menu from Firebase:', error);
+                return null;
+            }
+        }
     </script>
 </body>
 </html>
