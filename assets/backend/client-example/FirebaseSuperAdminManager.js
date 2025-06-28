@@ -128,28 +128,33 @@ class FirebaseSuperAdminManager {
      */
     isAuthenticated() {
         try {
-            // Check Firebase auth state
-            if (this.auth && this.auth.currentUser) {
-                const storedUser = localStorage.getItem('firebase_super_admin');
-                if (storedUser) {
-                    const userInfo = JSON.parse(storedUser);
-                    return userInfo.role === 'super_admin';
-                }
-            }
+            console.log('🔍 Checking authentication status...');
             
-            // Also check localStorage for session
+            // First check Firebase auth state
+            const firebaseUser = this.auth && this.auth.currentUser;
+            console.log('Firebase currentUser:', firebaseUser ? firebaseUser.email : 'null');
+            
+            // Check localStorage for session
             const storedUser = localStorage.getItem('firebase_super_admin');
+            console.log('localStorage super admin data:', storedUser ? 'exists' : 'null');
+            
             if (storedUser) {
                 const userInfo = JSON.parse(storedUser);
+                console.log('Stored user role:', userInfo.role);
+                
                 // Check if session is not too old (24 hours)
                 const sessionAge = Date.now() - userInfo.loginTime;
                 const maxSessionAge = 24 * 60 * 60 * 1000; // 24 hours
                 
+                console.log('Session age:', Math.floor(sessionAge / (1000 * 60)), 'minutes');
+                
                 if (sessionAge < maxSessionAge && userInfo.role === 'super_admin') {
+                    console.log('✅ Authentication successful');
                     return true;
                 }
             }
             
+            console.log('❌ Authentication failed');
             return false;
         } catch (error) {
             console.error('Auth check error:', error);

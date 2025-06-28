@@ -235,10 +235,22 @@
             </div>
 
             <div class="main-content">
-                <div class="page-header">
-                    <h1>User Management</h1>
-                    <button id="addUserBtn" class="primary">Add User</button>
+                <div id="loadingIndicator" style="text-align: center; padding: 2rem; display: block;">
+                    <div style="display: inline-block; width: 30px; height: 30px; border: 3px solid #f3f3f3; border-top: 3px solid #4285f4; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <p style="margin-top: 1rem; color: #666;">Checking authentication...</p>
+                    <style>
+                        @keyframes spin {
+                            0% { transform: rotate(0deg); }
+                            100% { transform: rotate(360deg); }
+                        }
+                    </style>
                 </div>
+                
+                <div id="mainContent" style="display: none;">
+                    <div class="page-header">
+                        <h1>User Management</h1>
+                        <button id="addUserBtn" class="primary">Add User</button>
+                    </div>
                 
                 <div class="user-filters">
                     <div class="form-group">
@@ -254,6 +266,7 @@
                         <div class="spinner"></div>
                     </div>
                 </div>
+                </div> <!-- End mainContent -->
             </div>
         </div>
     </div>
@@ -320,10 +333,40 @@
 
         const manager = new FirebaseSuperAdminManager();
         
-        // Check if authenticated
-        if (!manager.isAuthenticated()) {
-            window.location.href = 'login.html';
-        }
+        // Wait for Firebase to initialize before checking authentication
+        setTimeout(async () => {
+            try {
+                // Check if authenticated
+                if (!manager.isAuthenticated()) {
+                    console.log('❌ Primary auth check failed');
+                    
+                    // Try alternative authentication check via Firebase Auth state
+                    if (manager.auth && manager.auth.currentUser) {
+                        console.log('🔄 Trying Firebase Auth state check...');
+                        try {
+                            const user = await manager.getUserProfile();
+                            if (user && user.role === 'super_admin') {
+                                console.log('✅ Alternative auth successful - loading staff management');
+                                loadStaffManagement();
+                                return;
+                            }
+                        } catch (error) {
+                            console.log('❌ Alternative auth failed:', error.message);
+                        }
+                    }
+                    
+                    console.log('❌ All authentication methods failed, redirecting to login...');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                console.log('✅ Primary authentication successful, loading staff management...');
+                loadStaffManagement();
+            } catch (error) {
+                console.error('Authentication error:', error);
+                window.location.href = 'login.html';
+            }
+        }, 1500); // Give Firebase more time to initialize
         
         // DOM Elements
         const userDisplay = document.getElementById('userDisplay');
@@ -411,6 +454,32 @@
         businessFilter.addEventListener('change', () => {
             loadUsers(businessFilter.value);
         });
+        
+        // Initialize staff management
+        async function loadStaffManagement() {
+            try {
+                console.log('Loading staff management for super admin...');
+                
+                // Hide loading indicator and show main content
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                
+                await loadData();
+            } catch (error) {
+                console.error('Error initializing staff management:', error);
+                
+                // Show error message
+                document.getElementById('loadingIndicator').innerHTML = `
+                    <div style="color: #dc2626; text-align: center; padding: 2rem;">
+                        <h3>⚠️ Error Loading Staff Management</h3>
+                        <p>${error.message}</p>
+                        <button onclick="location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4285f4; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Refresh Page
+                        </button>
+                    </div>
+                `;
+            }
+        }
         
         // Load user profile, businesses and users
         async function loadData() {
