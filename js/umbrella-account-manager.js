@@ -1244,6 +1244,31 @@ class UmbrellaAccountManager {
     }
 }
 
+// Initialize global business context connector
+const initializeBusinessContextConnector = () => {
+    try {
+        // Check if the global connector script is loaded
+        if (typeof GlobalBusinessContextConnector !== 'undefined') {
+            console.log('Initializing global business context connector...');
+            new GlobalBusinessContextConnector();
+        } else {
+            // Try to load the connector script dynamically
+            const script = document.createElement('script');
+            script.src = 'js/global-business-context-connector.js?v=' + Date.now();
+            script.onload = () => {
+                console.log('Global business context connector script loaded, initializing...');
+                new GlobalBusinessContextConnector();
+            };
+            script.onerror = () => {
+                console.warn('Failed to load global business context connector script');
+            };
+            document.head.appendChild(script);
+        }
+    } catch (error) {
+        console.warn('Error initializing global business context connector:', error);
+    }
+};
+
 // Create a global instance when Firebase is loaded
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize after a short delay to ensure Firebase is ready
@@ -1270,6 +1295,9 @@ document.addEventListener('DOMContentLoaded', () => {
             window.umbrellaManager.initialize()
                 .then(() => {
                     console.log('Umbrella account system initialized successfully');
+                    
+                    // Initialize global business context connector
+                    initializeBusinessContextConnector();
                     
                     // Dispatch event to notify other scripts
                     window.dispatchEvent(new CustomEvent('umbrellaManagerReady'));

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration Fix Test - Zentry POS</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .log-area {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Integration Fix Test</h1>
+        <p>Testing the automatic business context connection between localStorage and umbrella manager.</p>
+
+        <div class="test-section">
+            <h3>1. System Status</h3>
+            <div id="systemStatus">
+                <div class="status info">Loading system components...</div>
+            </div>
+            <button onclick="checkSystemStatus()">Refresh Status</button>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Simulate Business Login</h3>
+            <p>This will create mock business data in localStorage (simulating a business login):</p>
+            <button onclick="simulateBusinessLogin()">Simulate Business Login</button>
+            <div id="loginStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Test Auto-Connection</h3>
+            <p>This tests if the umbrella manager automatically picks up the business context:</p>
+            <button onclick="testAutoConnection()">Test Auto Connection</button>
+            <div id="connectionStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Menu Editor Status Simulation</h3>
+            <p>This simulates what the menu editor would see:</p>
+            <button onclick="simulateMenuEditorCheck()">Check Menu Editor Status</button>
+            <div id="menuEditorStatus"></div>
+        </div>
+
+        <div class="log-area" id="logArea">
+            <div>📋 Test log will appear here...</div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧹 Cleanup</h3>
+            <button onclick="clearTestData()" style="background: #dc3545;">Clear Test Data</button>
+        </div>
+    </div>
+
+    <!-- Firebase Configuration -->
+    <script type="module">
+        // Firebase config
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyA0VWr-8fVYEOMAkQDhL_K2UJgMCNHiCGU",
+            authDomain: "zentry-pos.firebaseapp.com",
+            projectId: "zentry-pos",
+            storageBucket: "zentry-pos.appspot.com",
+            messagingSenderId: "981018301959",
+            appId: "1:981018301959:web:66606cda1df40c2e4ac507"
+        };
+
+        window.firebaseApp = initializeApp(firebaseConfig);
+        console.log('Firebase app initialized');
+    </script>
+
+    <!-- Load Firebase Services -->
+    <script src="js/firebase-services.js?v=20250628001"></script>
+    
+    <!-- Load Umbrella Manager (which will now auto-load the business context connector) -->
+    <script src="js/umbrella-account-manager.js?v=20250628001"></script>
+
+    <script>
+        let logCount = 0;
+
+        function log(message, type = 'info') {
+            logCount++;
+            const logArea = document.getElementById('logArea');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = {
+                'info': '#00ff00',
+                'warn': '#ffff00', 
+                'error': '#ff5555',
+                'success': '#55ff55'
+            }[type] || '#00ff00';
+            
+            logArea.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function setStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        async function checkSystemStatus() {
+            log('Checking system status...', 'info');
+            
+            const checks = [
+                { name: 'Firebase App', condition: () => window.firebaseApp, required: true },
+                { name: 'Firebase Services', condition: () => window.firebaseServices, required: true },
+                { name: 'Firebase Manager', condition: () => window.firebaseManager, required: true },
+                { name: 'Umbrella Manager', condition: () => window.umbrellaManager, required: true },
+                { name: 'Global Business Context Connector', condition: () => window.GlobalBusinessContextConnector || typeof GlobalBusinessContextConnector !== 'undefined', required: false }
+            ];
+
+            let allGood = true;
+            let statusHTML = '';
+
+            for (const check of checks) {
+                const passed = check.condition();
+                const status = passed ? 'success' : (check.required ? 'error' : 'warning');
+                const icon = passed ? '✅' : (check.required ? '❌' : '⚠️');
+                
+                statusHTML += `<div class="status ${status}">${icon} ${check.name}: ${passed ? 'Available' : 'Not Available'}</div>`;
+                
+                if (!passed && check.required) {
+                    allGood = false;
+                }
+                
+                log(`${check.name}: ${passed ? 'PASS' : 'FAIL'}`, passed ? 'success' : 'error');
+            }
+
+            document.getElementById('systemStatus').innerHTML = statusHTML;
+            
+            if (allGood) {
+                log('✅ All required systems are available!', 'success');
+            } else {
+                log('❌ Some required systems are missing', 'error');
+            }
+        }
+
+        function simulateBusinessLogin() {
+            log('Simulating business login...', 'info');
+            
+            // Create mock business data (same format as real login)
+            const mockBusiness = {
+                id: 'test_business_123',
+                name: 'Test Restaurant',
+                type: 'restaurant',
+                address: '123 Test Street',
+                phone: '555-0123',
+                email: 'test@restaurant.com',
+                created: new Date().toISOString()
+            };
+
+            const mockUser = {
+                uid: 'test_user_123',
+                email: 'test@restaurant.com',
+                role: 'owner'
+            };
+
+            // Store in localStorage (same as real login process)
+            localStorage.setItem('currentBusiness', JSON.stringify(mockBusiness));
+            localStorage.setItem('currentUser', JSON.stringify(mockUser));
+
+            log(`Business data stored: ${mockBusiness.name}`, 'success');
+            setStatus('loginStatus', `✅ Mock business login completed: ${mockBusiness.name}`, 'success');
+        }
+
+        async function testAutoConnection() {
+            log('Testing automatic business context connection...', 'info');
+            
+            // Check if business data exists in localStorage
+            const businessData = localStorage.getItem('currentBusiness');
+            if (!businessData) {
+                log('❌ No business data in localStorage. Run "Simulate Business Login" first.', 'error');
+                setStatus('connectionStatus', '❌ No business data found. Simulate login first.', 'error');
+                return;
+            }
+
+            // Check if umbrella manager is available
+            if (!window.umbrellaManager) {
+                log('❌ Umbrella manager not available', 'error');
+                setStatus('connectionStatus', '❌ Umbrella manager not available', 'error');
+                return;
+            }
+
+            // Check if business context is connected
+            const currentBusiness = window.umbrellaManager.currentBusiness;
+            if (currentBusiness) {
+                log(`✅ Business context connected: ${currentBusiness.name}`, 'success');
+                log(`   Source: ${currentBusiness.source || 'unknown'}`, 'info');
+                setStatus('connectionStatus', `✅ Auto-connection successful! Business: ${currentBusiness.name} (Source: ${currentBusiness.source || 'unknown'})`, 'success');
+            } else {
+                log('⚠️ Business context not yet connected, waiting...', 'warn');
+                setStatus('connectionStatus', '⚠️ Waiting for auto-connection...', 'warning');
+                
+                // Wait a bit and check again
+                setTimeout(() => {
+                    const business = window.umbrellaManager.currentBusiness;
+                    if (business) {
+                        log(`✅ Business context connected (delayed): ${business.name}`, 'success');
+                        setStatus('connectionStatus', `✅ Auto-connection successful (delayed)! Business: ${business.name}`, 'success');
+                    } else {
+                        log('❌ Auto-connection failed', 'error');
+                        setStatus('connectionStatus', '❌ Auto-connection failed', 'error');
+                    }
+                }, 2000);
+            }
+        }
+
+        function simulateMenuEditorCheck() {
+            log('Simulating menu editor business context check...', 'info');
+            
+            // This mimics the logic from menu-editor.html
+            let statusMessage = '';
+            let statusType = 'info';
+
+            if (window.umbrellaManager && window.umbrellaManager.currentBusiness) {
+                const business = window.umbrellaManager.currentBusiness;
+                statusMessage = `Connected to ${business.name} (umbrella_manager)`;
+                statusType = 'success';
+                log(`✅ Menu editor would show: ${statusMessage}`, 'success');
+            } else if (window.firebaseManager && window.firebaseServices) {
+                statusMessage = 'Firebase ready - No business context';
+                statusType = 'warning';
+                log(`⚠️ Menu editor would show: ${statusMessage}`, 'warn');
+            } else {
+                statusMessage = 'Offline - Local storage only';
+                statusType = 'error';
+                log(`❌ Menu editor would show: ${statusMessage}`, 'error');
+            }
+
+            setStatus('menuEditorStatus', `Menu Editor Status: ${statusMessage}`, statusType);
+        }
+
+        function clearTestData() {
+            log('Clearing test data...', 'info');
+            
+            // Clear localStorage
+            localStorage.removeItem('currentBusiness');
+            localStorage.removeItem('currentUser');
+            
+            // Clear umbrella manager business context
+            if (window.umbrellaManager) {
+                window.umbrellaManager.currentBusiness = null;
+                window.umbrellaManager.currentProperty = null;
+            }
+            
+            log('✅ Test data cleared', 'success');
+            
+            // Clear all status displays
+            document.getElementById('loginStatus').innerHTML = '';
+            document.getElementById('connectionStatus').innerHTML = '';
+            document.getElementById('menuEditorStatus').innerHTML = '';
+        }
+
+        // Listen for umbrellaManagerReady event
+        window.addEventListener('umbrellaManagerReady', () => {
+            log('🎉 Umbrella manager ready event received!', 'success');
+            checkSystemStatus();
+        });
+
+        // Listen for businessContextConnected event
+        window.addEventListener('businessContextConnected', (event) => {
+            log(`🎉 Business context connected event received! Business: ${event.detail?.businessName || 'Unknown'}`, 'success');
+        });
+
+        // Auto-check status when page loads
+        window.addEventListener('load', () => {
+            setTimeout(checkSystemStatus, 1000);
+        });
+    </script>
+</body>
+</html>
