@@ -1087,35 +1087,42 @@
             // Only set up watcher if Firebase is available but no business context was found
             if (window.firebaseServices && window.firebaseServices.getDb()) {
                 const currentStatus = document.getElementById('cloudStatusText').textContent;
-                if (currentStatus.includes('No business context') || currentStatus.includes('No business selected')) {
-                    console.log('Setting up business context watcher...');
+                if (currentStatus.includes('No business context') || currentStatus.includes('No business selected') || currentStatus.includes('Firebase ready')) {
+                    console.log('Setting up business context watcher - Firebase is ready but waiting for business context...');
                     
-                    // Check every 5 seconds for business context changes
+                    // Check every 3 seconds for business context changes
                     const contextWatcher = setInterval(async () => {
-                        console.log('Checking for business context...');
+                        console.log('🔍 Checking for business context...');
                         const hasContext = await checkForBusinessContext();
                         if (hasContext) {
-                            console.log('Business context found! Re-initializing Firebase connection...');
+                            console.log('✅ Business context found! Re-checking Firebase connection...');
                             clearInterval(contextWatcher);
                             
-                            // Re-check Firebase connection and potentially reload from cloud
-                            const isConnected = await checkFirebaseConnection();
-                            if (isConnected && menuItems.length === 0) {
-                                // Try to load from Firebase if we haven't loaded anything yet
+                            // Re-check Firebase connection which will update the status
+                            await checkFirebaseConnection();
+                            
+                            // If we have menu items in local storage but haven't loaded from cloud, try loading from Firebase
+                            if (menuItems.length === 0 || menuItems.every(item => !item.cloudLoaded)) {
+                                console.log('Attempting to load menu from Firebase now that business context is available...');
                                 const firebaseLoaded = await loadMenuFromFirebase();
                                 if (firebaseLoaded) {
                                     renderMenuItems();
+                                    showNotification('Menu loaded from cloud after business context detected!', 'success');
                                 }
                             }
                         }
-                    }, 5000);
+                    }, 3000);
                     
-                    // Stop checking after 2 minutes
+                    // Stop checking after 1 minute (more reasonable than 2 minutes)
                     setTimeout(() => {
                         clearInterval(contextWatcher);
-                        console.log('Business context watcher stopped');
-                    }, 120000);
+                        console.log('⏰ Business context watcher stopped after timeout');
+                    }, 60000);
+                } else {
+                    console.log('Business context watcher not needed - status is:', currentStatus);
                 }
+            } else {
+                console.log('Business context watcher not needed - Firebase not available');
             }
         }
         
@@ -1435,18 +1442,38 @@
         // Save menu data to Firebase cloud storage via umbrella account system
         async function saveMenuData() {
             try {
-                // Save to Firebase first (cloud storage)
-                await saveMenuToFirebase();
-                
-                // Keep localStorage as backup/cache for offline access
-                saveMenuToLocalStorage();
-                
-                console.log("Menu data saved to cloud and local storage");
+                // Check if Firebase and business context are available
+                if (window.firebaseServices && window.firebaseServices.getDb()) {
+                    // Check for business context
+                    const hasBusinessContext = await checkForBusinessContext();
+                    
+                    if (hasBusinessContext) {
+                        // Save to Firebase first (cloud storage)
+                        console.log("Saving to Firebase cloud storage...");
+                        await saveMenuToFirebase();
+                        
+                        // Keep localStorage as backup/cache for offline access
+                        saveMenuToLocalStorage();
+                        
+                        console.log("✅ Menu data saved to cloud and local storage");
+                    } else {
+                        // Firebase available but no business context - save locally only
+                        console.log("Firebase available but no business context - saving locally only");
+                        saveMenuToLocalStorage();
+                        showNotification('Saved locally - Connect to a business for cloud sync', 'warning');
+                    }
+                } else {
+                    // Firebase not available - save locally only
+                    console.log("Firebase not available - saving locally only");
+                    saveMenuToLocalStorage();
+                    showNotification('Saved locally - Firebase not available', 'warning');
+                }
                 
             } catch (error) {
                 console.error("Error saving menu data:", error);
                 // Fallback to localStorage only if Firebase fails
                 saveMenuToLocalStorage();
+                showNotification('Save failed - Menu saved locally instead', 'error');
             }
         }
 
@@ -2301,7 +2328,16 @@
                     return false;
                 }
 
-                // Get current business context from multiple sources
+                // Test Firebase connection first
+                try {
+                    await db.collection('test').limit(1).get();
+                } catch (connectionError) {
+                    console.error('Firebase connection test failed:', connectionError);
+                    updateCloudStatus('error', 'Connection failed');
+                    return false;
+                }
+
+                // Firebase is connected, now check for business context
                 let currentBusiness = null;
                 let businessSource = 'none';
 
@@ -2313,13 +2349,17 @@
 
                 // 2. Try super admin business context
                 if (!currentBusiness && window.SuperAdminManager) {
-                    const superAdminContext = window.SuperAdminManager.getCurrentBusinessContext();
-                    if (superAdminContext && superAdminContext.businessID) {
-                        currentBusiness = {
-                            id: superAdminContext.businessID,
-                            companyName: superAdminContext.companyName || 'Super Admin Business'
-                        };
-                        businessSource = 'super_admin';
+                    try {
+                        const superAdminContext = window.SuperAdminManager.getCurrentBusinessContext();
+                        if (superAdminContext && superAdminContext.businessID) {
+                            currentBusiness = {
+                                id: superAdminContext.businessID,
+                                companyName: superAdminContext.companyName || 'Super Admin Business'
+                            };
+                            businessSource = 'super_admin';
+                        }
+                    } catch (e) {
+                        console.warn('Error getting super admin context:', e.message);
                     }
                 }
 
@@ -2342,15 +2382,15 @@
                     }
                 }
 
-                if (!currentBusiness || !currentBusiness.id) {
+                // Update status based on business context availability
+                if (currentBusiness && currentBusiness.id) {
+                    updateCloudStatus('connected', `Connected to ${currentBusiness.companyName || 'Cloud'} (${businessSource})`);
+                } else {
                     // Firebase is available but no business context
-                    updateCloudStatus('offline', 'No business selected');
-                    return false;
+                    updateCloudStatus('offline', 'Firebase ready - No business context');
                 }
-
-                // Test connection with a simple read
-                await db.collection('businesses').doc(currentBusiness.id).get();
-                updateCloudStatus('connected', `Connected to ${currentBusiness.companyName || 'Cloud'} (${businessSource})`);
+                
+                // Return true if Firebase is connected, regardless of business context
                 return true;
                 
             } catch (error) {
