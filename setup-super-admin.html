@@ -145,33 +145,46 @@
     <!-- Firebase Configuration -->
     <script src="js/firebase-config.js"></script>
     
-    <!-- Firebase Manager -->
-    <script src="js/firebase-manager.js"></script>
-    
     <script>
-        let firebaseAuth, firebaseDb;
+        // Global variables for Firebase services (avoiding conflicts with firebase-config.js)
+        let setupAuth, setupDb;
         
         document.addEventListener('DOMContentLoaded', async function() {
-            await initializeFirebase();
+            await initializeFirebaseServices();
             checkFirebaseStatus();
         });
         
-        async function initializeFirebase() {
+        async function initializeFirebaseServices() {
             try {
-                // Wait for Firebase services to be available
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                log('🔄 Initializing Firebase services...', 'info');
                 
-                if (window.firebaseServices) {
-                    firebaseAuth = window.firebaseServices.getAuth();
-                    firebaseDb = window.firebaseServices.getDb();
-                    
-                    if (firebaseAuth && firebaseDb) {
-                        log('✅ Firebase services initialized successfully', 'success');
-                        return;
-                    }
+                // Wait for Firebase to be available
+                let attempts = 0;
+                while (typeof firebase === 'undefined' && attempts < 50) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
                 }
                 
-                throw new Error('Firebase services not available');
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK not loaded');
+                }
+                
+                // Use the existing Firebase app or create one if needed
+                let app;
+                if (firebase.apps.length > 0) {
+                    app = firebase.apps[0];
+                    log('✅ Using existing Firebase app', 'success');
+                } else {
+                    app = firebase.initializeApp(firebaseConfig);
+                    log('✅ Created new Firebase app', 'success');
+                }
+                
+                // Initialize our own Auth and Firestore instances
+                setupAuth = firebase.auth(app);
+                setupDb = firebase.firestore(app);
+                
+                log('✅ Firebase services initialized successfully', 'success');
+                
             } catch (error) {
                 log('❌ Firebase initialization failed: ' + error.message, 'error');
             }
@@ -180,7 +193,7 @@
         function checkFirebaseStatus() {
             const statusDiv = document.getElementById('firebaseStatus');
             
-            if (firebaseAuth && firebaseDb) {
+            if (setupAuth && setupDb) {
                 statusDiv.innerHTML = `
                     <div class="status-item">
                         <span class="status-icon">✅</span>
@@ -196,7 +209,7 @@
                     </div>
                     <div class="status-item">
                         <span class="status-icon">🏗️</span>
-                        <span>Project ID: ${firebaseConfig.projectId}</span>
+                        <span>Project ID: ${firebaseConfig ? firebaseConfig.projectId : 'Unknown'}</span>
                     </div>
                 `;
             } else {
@@ -219,7 +232,7 @@
             try {
                 log('🚀 Starting super admin setup...', 'info');
                 
-                if (!firebaseAuth || !firebaseDb) {
+                if (!setupAuth || !setupDb) {
                     throw new Error('Firebase services not available');
                 }
                 
@@ -246,13 +259,13 @@
                         // Create user in Firebase Auth
                         let userCredential;
                         try {
-                            userCredential = await firebaseAuth.createUserWithEmailAndPassword(admin.email, admin.password);
+                            userCredential = await setupAuth.createUserWithEmailAndPassword(admin.email, admin.password);
                             log(`✅ Firebase Auth user created: ${admin.email}`, 'success');
                         } catch (authError) {
                             if (authError.code === 'auth/email-already-in-use') {
                                 log(`ℹ️ User already exists in Firebase Auth: ${admin.email}`, 'info');
                                 // Try to sign in to get the user
-                                userCredential = await firebaseAuth.signInWithEmailAndPassword(admin.email, admin.password);
+                                userCredential = await setupAuth.signInWithEmailAndPassword(admin.email, admin.password);
                             } else {
                                 throw authError;
                             }
@@ -272,11 +285,11 @@
                             uid: userCredential.user.uid
                         };
                         
-                        await firebaseDb.collection('users').doc(admin.username).set(superAdminData);
+                        await setupDb.collection('users').doc(admin.username).set(superAdminData);
                         log(`✅ Firestore document created: ${admin.username}`, 'success');
                         
                         // Also create by UID for faster lookups
-                        await firebaseDb.collection('users').doc(userCredential.user.uid).set(superAdminData);
+                        await setupDb.collection('users').doc(userCredential.user.uid).set(superAdminData);
                         
                         log(`🎉 Successfully setup: ${admin.displayName}`, 'success');
                         
@@ -286,7 +299,7 @@
                 }
                 
                 // Sign out after setup
-                await firebaseAuth.signOut();
+                await setupAuth.signOut();
                 
                 log('🎉 Super admin setup completed!', 'success');
                 log('📍 You can now login with rbrown14@macrospos.com', 'info');
@@ -310,11 +323,11 @@
                 log('🧪 Testing super admin login...', 'info');
                 
                 // Test login with rbrown14@macrospos.com
-                const userCredential = await firebaseAuth.signInWithEmailAndPassword('rbrown14@macrospos.com', 'Armoured@');
+                const userCredential = await setupAuth.signInWithEmailAndPassword('rbrown14@macrospos.com', 'Armoured@');
                 log('✅ Authentication successful', 'success');
                 
                 // Check Firestore document
-                const userDoc = await firebaseDb.collection('users').doc('rBrown14').get();
+                const userDoc = await setupDb.collection('users').doc('rBrown14').get();
                 if (userDoc.exists) {
                     const userData = userDoc.data();
                     if (userData.role === 'super_admin') {
@@ -328,7 +341,7 @@
                 }
                 
                 // Sign out after test
-                await firebaseAuth.signOut();
+                await setupAuth.signOut();
                 
             } catch (error) {
                 log(`❌ Test login failed: ${error.message}`, 'error');
@@ -344,6 +357,14 @@
             const logEntry = document.createElement('div');
             logEntry.className = type;
             logEntry.textContent = `[${timestamp}] ${message}`;
+            logSection.appendChild(logEntry);
+            logSection.scrollTop = logSection.scrollHeight;
+            
+            console.log(`[Super Admin Setup] ${message}`);
+        }
+    </script>
+</body>
+</html>
             logSection.appendChild(logEntry);
             logSection.scrollTop = logSection.scrollHeight;
             
