@@ -9,11 +9,20 @@ class FirebaseManager {
       throw new Error('Firebase services not available');
     }
     
+    // Check if services are initialized
+    if (!window.firebaseServices.isInitialized()) {
+      throw new Error('Firebase services not yet initialized');
+    }
+    
     // Get Firebase services with validation
-    this.app = window.firebaseServices.getApp();
-    this.auth = window.firebaseServices.getAuth();
-    this.db = window.firebaseServices.getDb();
-    this.storage = window.firebaseServices.getStorage(); // Can be null
+    try {
+      this.app = window.firebaseServices.getApp();
+      this.auth = window.firebaseServices.getAuth();
+      this.db = window.firebaseServices.getDb();
+      this.storage = window.firebaseServices.getStorage(); // Can be null
+    } catch (error) {
+      throw new Error(`Failed to get Firebase services: ${error.message}`);
+    }
     
     // Validate essential services
     if (!this.auth) {
@@ -500,37 +509,38 @@ class FirebaseInitializer {
     }
   }
 
-  // Check if Firebase services are ready using the new provider
+  // Check if Firebase services are ready
   checkFirebaseServices() {
     try {
-      // Check if Firebase provider is available
-      if (!window.firebaseProvider) {
-        return { ready: false, reason: 'firebaseProvider not available' };
-      }
-
-      // Check if provider is initialized
-      if (!window.firebaseProvider.isReady()) {
-        return { ready: false, reason: 'firebaseProvider not initialized' };
-      }
-
-      // Check if services are available
+      // Check if Firebase services are available
       if (!window.firebaseServices) {
         return { ready: false, reason: 'firebaseServices not available' };
       }
 
-      const auth = window.firebaseServices.getAuth();
-      const db = window.firebaseServices.getDb();
-
-      if (!auth || !db) {
-        return { ready: false, reason: 'auth or db services not initialized' };
+      // Check if Firebase services are initialized
+      if (!window.firebaseServices.isInitialized()) {
+        return { ready: false, reason: 'firebaseServices not initialized' };
       }
 
-      // Additional check to ensure services are actually working
-      if (typeof auth.onAuthStateChanged !== 'function' || typeof db.collection !== 'function') {
-        return { ready: false, reason: 'services not properly initialized' };
-      }
+      // Try to get the services to verify they're working
+      try {
+        const app = window.firebaseServices.getApp();
+        const auth = window.firebaseServices.getAuth();
+        const db = window.firebaseServices.getDb();
 
-      return { ready: true };
+        if (!app || !auth || !db) {
+          return { ready: false, reason: 'app, auth or db services not available' };
+        }
+
+        // Additional check to ensure services are actually working
+        if (typeof auth.onAuthStateChanged !== 'function' || typeof db.collection !== 'function') {
+          return { ready: false, reason: 'services not properly initialized' };
+        }
+
+        return { ready: true };
+      } catch (serviceError) {
+        return { ready: false, reason: `error getting services: ${serviceError.message}` };
+      }
     } catch (error) {
       return { ready: false, reason: `error checking services: ${error.message}` };
     }

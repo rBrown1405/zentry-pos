@@ -2,6 +2,7 @@
 class FirebaseServices {
     constructor() {
         this.initialized = false;
+        this.app = null;
         this.auth = null;
         this.db = null;
         this.storage = null;
@@ -20,6 +21,9 @@ class FirebaseServices {
                 throw new Error('Firebase SDK not loaded');
             }
 
+            // Get the default app instance
+            this.app = firebase.app();
+            
             // Initialize services
             this.auth = firebase.auth();
             this.db = firebase.firestore();
@@ -52,6 +56,13 @@ class FirebaseServices {
             console.error('❌ Failed to initialize Firebase Services:', error);
             throw error;
         }
+    }
+
+    getApp() {
+        if (!this.initialized) {
+            throw new Error('Firebase Services not initialized');
+        }
+        return this.app;
     }
 
     getAuth() {
