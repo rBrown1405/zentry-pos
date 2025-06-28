@@ -3456,11 +3456,17 @@
             }
             
             // Check for super admin access and show notification
-            if (SuperAdminManager && SuperAdminManager.hasPOSAccess()) {
-                setTimeout(() => {
-                    showSuperAdminWelcomeNotification();
-                }, 1000);
-            }
+            setTimeout(() => {
+                if (typeof SuperAdminManager !== 'undefined' && SuperAdminManager && SuperAdminManager.hasPOSAccess) {
+                    try {
+                        if (SuperAdminManager.hasPOSAccess()) {
+                            showSuperAdminWelcomeNotification();
+                        }
+                    } catch (error) {
+                        console.log('Super admin check skipped:', error.message);
+                    }
+                }
+            }, 1500); // Increased delay to allow super-admin.js to load
             
             // Initialize role-based UI
             setTimeout(() => {
@@ -8223,6 +8229,12 @@
         if (typeof SuperAdminManager === 'undefined') {
             const script = document.createElement('script');
             script.src = 'super-admin.js';
+            script.onload = () => {
+                console.log('Super admin script loaded successfully');
+            };
+            script.onerror = () => {
+                console.log('Super admin script not available');
+            };
             document.head.appendChild(script);
         }
 

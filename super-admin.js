@@ -11,23 +11,64 @@ class SuperAdminManager {
     static currentBusinessContext = null;
     
     static async initializeFirebaseAuth() {
-        // Ensure we have Firebase services
-        if (!window.firebaseServices) {
-            throw new Error('Firebase services not available');
-        }
-        
-        const auth = window.firebaseServices.getAuth();
-        if (!auth) {
-            throw new Error('Firebase Auth not initialized');
-        }
-        
-        return auth;
+        // Wait for Firebase services to be available
+        return new Promise((resolve, reject) => {
+            const checkFirebase = () => {
+                // Check if Firebase services are available
+                if (window.firebaseServices && window.firebaseServices.getAuth && window.firebaseServices.getDb) {
+                    const auth = window.firebaseServices.getAuth();
+                    if (auth) {
+                        resolve(auth);
+                        return;
+                    }
+                }
+                
+                // If Firebase provider is available, check that
+                if (window.firebaseProvider && window.firebaseProvider.isReady && window.firebaseProvider.isReady()) {
+                    const auth = window.firebaseProvider.getAuth();
+                    if (auth) {
+                        resolve(auth);
+                        return;
+                    }
+                }
+                
+                reject(new Error('Firebase services not available'));
+            };
+            
+            // Try immediately
+            try {
+                checkFirebase();
+            } catch (error) {
+                // If immediate check fails, wait for Firebase ready events
+                let timeoutId = setTimeout(() => {
+                    reject(new Error('Firebase services not available after timeout'));
+                }, 5000);
+                
+                const onFirebaseReady = () => {
+                    clearTimeout(timeoutId);
+                    try {
+                        checkFirebase();
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                // Listen for Firebase ready events
+                window.addEventListener('firebaseServicesReady', onFirebaseReady, { once: true });
+                window.addEventListener('firebaseProviderReady', onFirebaseReady, { once: true });
+                window.addEventListener('firebaseManagerReady', onFirebaseReady, { once: true });
+            }
+        });
     }
     
     static async ensureSuperAdminExists() {
         try {
             const auth = await this.initializeFirebaseAuth();
-            const db = window.firebaseServices.getDb();
+            const db = window.firebaseServices?.getDb() || window.firebaseProvider?.getDb();
+            
+            if (!db) {
+                throw new Error('Firestore not available');
+            }
             
             // Check if super admin user exists in Firestore
             const superAdminQuery = await db.collection('users')
@@ -42,7 +83,8 @@ class SuperAdminManager {
                 await this.createSuperAdminAccount();
             }
         } catch (error) {
-            console.error('Error ensuring super admin exists:', error);
+            console.log('Super admin initialization skipped:', error.message);
+            // Don't throw error - allow system to continue without super admin
         }
     }
     
@@ -239,20 +281,45 @@ class SuperAdminManager {
         }
     }
 }
-// Auto-initialize when module loads
-if (typeof window !== 'undefined') {
-    // Ensure super admin account exists when the module loads
-    SuperAdminManager.ensureSuperAdminExists().then(() => {
-        console.log('🔑 Super Admin system initialized with Firebase!');
-        console.log('Email: admin@macrospos.com');
-        console.log('⚠️ Super admin credentials should be configured server-side in production!');
-    }).catch(error => {
-        console.error('Failed to initialize super admin system:', error);
-    });
-}
 
-// Make available globally
-window.SuperAdminManager = SuperAdminManager;
+// Auto-initialize when module loads, but wait for Firebase to be ready
+if (typeof window !== 'undefined') {
+    // Make available globally immediately
+    window.SuperAdminManager = SuperAdminManager;
+    
+    // Initialize super admin system when Firebase is ready
+    const initializeSuperAdmin = () => {
+        SuperAdminManager.ensureSuperAdminExists().then(() => {
+            console.log('🔑 Super Admin system initialized with Firebase!');
+            console.log('Email: admin@macrospos.com');
+            console.log('⚠️ Super admin credentials should be configured server-side in production!');
+        }).catch(error => {
+            console.log('Super admin initialization skipped:', error.message);
+        });
+    };
+    
+    // Try immediate initialization
+    if (window.firebaseServices || window.firebaseProvider) {
+        initializeSuperAdmin();
+    } else {
+        // Wait for Firebase to be ready
+        const onFirebaseReady = () => {
+            initializeSuperAdmin();
+        };
+        
+        // Listen for Firebase ready events
+        window.addEventListener('firebaseServicesReady', onFirebaseReady, { once: true });
+        window.addEventListener('firebaseProviderReady', onFirebaseReady, { once: true });
+        window.addEventListener('firebaseManagerReady', onFirebaseReady, { once: true });
+        
+        // Fallback timeout
+        setTimeout(() => {
+            if (!window.firebaseServices && !window.firebaseProvider) {
+                console.log('Super admin initialization skipped - Firebase not available');
+            }
+        }, 5000);
+    }
+}
 
 // Export for use in other scripts
 if (typeof module !== 'undefined' && module.exports) {
