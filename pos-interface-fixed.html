@@ -2469,10 +2469,9 @@
                 // Test connection
                 testFirebaseConnection();
             } catch (error) {
-                console.error('Firebase initialization failed:', error);
+                console.error('❌ Firebase initialization failed:', error);
+                updateFirebaseStatus('💾 Local Storage', '#ef4444');
                 isFirebaseConnected = false;
-                updateFirebaseStatus('⚠️ Cloud offline - Local mode', '#ef4444');
-                console.log('Firebase connection failed - using local storage');
             }
         }
 

@@ -16,13 +16,25 @@ console.log('🔥 Firebase config script loading...');
 // Initialize Firebase services variables
 let app, auth, db, storage;
 
+// Clear any existing Firebase apps to prevent conflicts
+if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+  console.log('🔄 Clearing existing Firebase apps to prevent conflicts...');
+  firebase.apps.forEach(app => {
+    try {
+      app.delete();
+    } catch (error) {
+      console.warn('Warning: Could not delete existing Firebase app:', error);
+    }
+  });
+}
+
 // Check if Firebase is available
 if (typeof firebase === 'undefined') {
   console.error('❌ Firebase SDK not loaded! Make sure Firebase scripts are included before firebase-config.js');
 } else {
   try {
     app = firebase.initializeApp(firebaseConfig);
-    console.log('✅ Firebase app initialized successfully');
+    console.log('✅ Firebase app initialized successfully with API key:', firebaseConfig.apiKey.substring(0, 10) + '...');
     
     // Make app available globally
     window.firebaseApp = app;
