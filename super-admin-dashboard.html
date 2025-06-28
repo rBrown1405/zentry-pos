@@ -686,13 +686,12 @@
                     if (typeof SuperAdminManager !== 'undefined' && SuperAdminManager.isSuperAdmin()) {
                         loadDashboard();
                     } else {
-                        alert('Access denied. Super admin privileges required.');
-                        window.location.href = 'login.html';
+                        console.log('Super admin check failed - user not authenticated or not super admin');
+                        showSetupDialog();
                     }
                 } catch (error) {
                     console.error('Super admin check failed:', error);
-                    alert('Access denied. Super admin privileges required.');
-                    window.location.href = 'login.html';
+                    showSetupDialog();
                 }
             };
             
@@ -705,6 +704,20 @@
                 setTimeout(checkSuperAdminAccess, 2000);
             }
         });
+        
+        function showSetupDialog() {
+            const setupNeeded = confirm(
+                'Access denied. Super admin privileges required.\n\n' +
+                'This might be because you\'re using a new Firebase project and need to set up super admin accounts.\n\n' +
+                'Click OK to go to the setup page, or Cancel to go to login.'
+            );
+            
+            if (setupNeeded) {
+                window.location.href = 'setup-super-admin.html';
+            } else {
+                window.location.href = 'login.html';
+            }
+        }
         
         function loadDashboard() {
             const stats = SuperAdminManager.getSystemStats();
