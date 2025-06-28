@@ -1138,31 +1138,85 @@
         }
 
         async function loadRoomServiceMenu() {
-            // Try to load from Firebase first, then fallback to HotelMode
+            console.log('Loading room service menu...');
+            
+            // Try multiple sources in order of preference
             try {
+                // 1. Try Firebase first
                 const firebaseMenu = await loadMenuFromFirebase();
                 if (firebaseMenu && firebaseMenu.length > 0) {
                     roomServiceMenu = firebaseMenu;
-                    console.log('Menu loaded from Firebase');
+                    console.log('Menu loaded from Firebase:', roomServiceMenu.length, 'items');
                 } else {
-                    // Fallback to HotelMode
-                    roomServiceMenu = HotelMode.getRoomServiceMenu();
+                    console.log('No menu found in Firebase, trying other sources...');
                     
-                    if (roomServiceMenu.length === 0) {
-                        roomServiceMenu = HotelMode.initializeRoomServiceMenu();
-                    }
-                    
-                    // Save to Firebase for future use
-                    if (roomServiceMenu.length > 0) {
+                    // 2. Try to get from main POS localStorage
+                    const mainMenuItems = JSON.parse(localStorage.getItem('menuItems') || '[]');
+                    if (mainMenuItems && mainMenuItems.length > 0) {
+                        roomServiceMenu = mainMenuItems.map(item => ({
+                            ...item,
+                            syncedFromRestaurant: true,
+                            customized: false,
+                            available: true,
+                            dayAvailability: {
+                                monday: true,
+                                tuesday: true,
+                                wednesday: true,
+                                thursday: true,
+                                friday: true,
+                                saturday: true,
+                                sunday: true
+                            }
+                        }));
+                        console.log('Menu loaded from main POS localStorage:', roomServiceMenu.length, 'items');
+                        
+                        // Save to Firebase for future use
                         await saveMenuToFirebase(roomServiceMenu);
+                        console.log('Menu saved to Firebase for future use');
+                    } else {
+                        console.log('No menu in localStorage, trying HotelMode...');
+                        
+                        // 3. Fallback to HotelMode
+                        roomServiceMenu = HotelMode.getRoomServiceMenu();
+                        
+                        if (roomServiceMenu.length === 0) {
+                            console.log('HotelMode returned empty, initializing...');
+                            roomServiceMenu = HotelMode.initializeRoomServiceMenu();
+                        }
+                        
+                        console.log('Menu from HotelMode:', roomServiceMenu.length, 'items');
+                        
+                        // Save to Firebase for future use
+                        if (roomServiceMenu.length > 0) {
+                            await saveMenuToFirebase(roomServiceMenu);
+                        }
                     }
                 }
             } catch (error) {
                 console.error('Error loading menu:', error);
-                // Fallback to HotelMode
-                roomServiceMenu = HotelMode.getRoomServiceMenu();
-                if (roomServiceMenu.length === 0) {
-                    roomServiceMenu = HotelMode.initializeRoomServiceMenu();
+                
+                // Emergency fallback - try main POS localStorage again
+                try {
+                    const mainMenuItems = JSON.parse(localStorage.getItem('menuItems') || '[]');
+                    if (mainMenuItems && mainMenuItems.length > 0) {
+                        roomServiceMenu = mainMenuItems.map(item => ({
+                            ...item,
+                            syncedFromRestaurant: true,
+                            customized: false,
+                            available: true
+                        }));
+                        console.log('Emergency fallback: Menu loaded from main POS localStorage:', roomServiceMenu.length, 'items');
+                    } else {
+                        // Final fallback to HotelMode
+                        roomServiceMenu = HotelMode.getRoomServiceMenu();
+                        if (roomServiceMenu.length === 0) {
+                            roomServiceMenu = HotelMode.initializeRoomServiceMenu();
+                        }
+                        console.log('Final fallback: Menu from HotelMode:', roomServiceMenu.length, 'items');
+                    }
+                } catch (fallbackError) {
+                    console.error('All menu loading methods failed:', fallbackError);
+                    roomServiceMenu = [];
                 }
             }
             
@@ -1181,9 +1235,14 @@
                     <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #9ca3af;">
                         <span style="font-size: 3rem;">🍽️</span>
                         <p>No menu items available</p>
-                        <button onclick="initializeFromRestaurant()" style="background: #4f46e5; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer;">
-                            Initialize from Restaurant Menu
-                        </button>
+                        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 1rem;">
+                            <button onclick="initializeFromRestaurant()" style="background: #4f46e5; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; transition: background 0.2s;">
+                                🔄 Sync from Restaurant
+                            </button>
+                            <button onclick="manualMenuRefresh()" style="background: #059669; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; transition: background 0.2s;">
+                                🔄 Refresh Menu
+                            </button>
+                        </div>
                     </div>
                 `;
                 return;
@@ -1357,11 +1416,13 @@
             const totalItems = roomServiceMenu.length;
             
             if (totalItems === 0) {
-                syncStatus.textContent = 'No items';
+                syncStatus.innerHTML = '<span style="color: #ef4444;">No items - Click sync button</span>';
             } else if (syncedItems === totalItems) {
-                syncStatus.textContent = 'Fully synced with Restaurant';
+                syncStatus.innerHTML = `<span style="color: #10b981;">✅ ${totalItems} items synced with Restaurant</span>`;
+            } else if (syncedItems > 0) {
+                syncStatus.innerHTML = `<span style="color: #f59e0b;">⚠️ ${syncedItems}/${totalItems} synced with Restaurant</span>`;
             } else {
-                syncStatus.textContent = `${syncedItems}/${totalItems} synced with Restaurant`;
+                syncStatus.innerHTML = `<span style="color: #6b7280;">${totalItems} local items (not synced)</span>`;
             }
         }
 
@@ -1435,10 +1496,58 @@
             }
         }
 
-        function initializeFromRestaurant() {
-            HotelMode.initializeRoomServiceMenu();
-            loadRoomServiceMenu();
-            showNotification('Menu initialized from restaurant', 'success');
+        async function initializeFromRestaurant() {
+            console.log('Initializing room service menu from restaurant...');
+            
+            try {
+                // Get menu from main POS localStorage
+                const mainMenuItems = JSON.parse(localStorage.getItem('menuItems') || '[]');
+                
+                if (mainMenuItems && mainMenuItems.length > 0) {
+                    // Convert main menu items to room service format
+                    roomServiceMenu = mainMenuItems.map(item => ({
+                        ...item,
+                        id: item.id || `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                        syncedFromRestaurant: true,
+                        customized: false,
+                        available: true,
+                        dayAvailability: {
+                            monday: true,
+                            tuesday: true,
+                            wednesday: true,
+                            thursday: true,
+                            friday: true,
+                            saturday: true,
+                            sunday: true
+                        }
+                    }));
+                    
+                    console.log('Successfully loaded', roomServiceMenu.length, 'items from main POS');
+                    
+                    // Save to local storage and Firebase
+                    saveMenuToLocalStorage(roomServiceMenu);
+                    await saveMenuToFirebase(roomServiceMenu);
+                    
+                    // Also update HotelMode
+                    if (HotelMode && HotelMode.initializeRoomServiceMenu) {
+                        HotelMode.initializeRoomServiceMenu();
+                    }
+                    
+                    // Re-render the menu
+                    renderRoomServiceMenu();
+                    updateMenuSyncStatus();
+                    
+                    showNotification(`Menu initialized with ${roomServiceMenu.length} items from restaurant`, 'success');
+                } else {
+                    console.log('No main menu items found, falling back to HotelMode');
+                    HotelMode.initializeRoomServiceMenu();
+                    await loadRoomServiceMenu();
+                    showNotification('Menu initialized from hotel mode', 'success');
+                }
+            } catch (error) {
+                console.error('Error initializing from restaurant:', error);
+                showNotification('Error initializing menu. Please try again.', 'error');
+            }
         }
 
         function showNotification(message, type = 'info') {
@@ -1455,10 +1564,29 @@
         }
 
         // Sync with restaurant menu periodically
-        setInterval(() => {
+        setInterval(async () => {
             if (HotelMode.isHotelModeActive()) {
-                HotelMode.syncMenus();
-                loadRoomServiceMenu();
+                try {
+                    // Check if main menu has been updated
+                    const mainMenuItems = JSON.parse(localStorage.getItem('menuItems') || '[]');
+                    const currentMenuTimestamp = localStorage.getItem('menuLastUpdated');
+                    const lastSyncTimestamp = localStorage.getItem('roomServiceLastSync');
+                    
+                    // If main menu has more items or was updated more recently, sync
+                    if (mainMenuItems.length > roomServiceMenu.length || 
+                        (currentMenuTimestamp && currentMenuTimestamp !== lastSyncTimestamp)) {
+                        
+                        console.log('Main menu updated, syncing room service menu...');
+                        await loadRoomServiceMenu();
+                        localStorage.setItem('roomServiceLastSync', currentMenuTimestamp || Date.now().toString());
+                        console.log('Room service menu synced with main POS');
+                    }
+                    
+                    // Also sync through HotelMode
+                    HotelMode.syncMenus();
+                } catch (error) {
+                    console.error('Error during periodic sync:', error);
+                }
             }
         }, 30000); // Sync every 30 seconds
 
@@ -1604,6 +1732,27 @@
         
         function printOrderDetails() {
             window.print();
+        }
+
+        // Manual menu refresh function
+        async function manualMenuRefresh() {
+            console.log('Manual menu refresh triggered...');
+            showNotification('Refreshing menu...', 'info');
+            
+            try {
+                // Force reload from all sources
+                roomServiceMenu = [];
+                await loadRoomServiceMenu();
+                
+                if (roomServiceMenu.length > 0) {
+                    showNotification(`Menu refreshed! Loaded ${roomServiceMenu.length} items`, 'success');
+                } else {
+                    showNotification('No menu items found. Try syncing from restaurant.', 'warning');
+                }
+            } catch (error) {
+                console.error('Error during manual refresh:', error);
+                showNotification('Error refreshing menu. Please try again.', 'error');
+            }
         }
     </script>
 </body>

@@ -1224,20 +1224,20 @@ class UmbrellaAccountManager {
 // Create a global instance when Firebase is loaded
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize after a short delay to ensure Firebase is ready
-    setTimeout(() => {
+    const initUmbrellaManager = () => {
         try {
             console.log('Initializing umbrella account manager...');
             
             // Check if Firebase services are available
             if (!window.firebaseServices) {
-                console.error('Firebase services not available');
-                return;
+                console.log('Firebase services not available');
+                return false;
             }
             
             // Check if Firebase manager is available
             if (!window.firebaseManager) {
-                console.error('Firebase manager not available');
-                return;
+                console.log('Firebase manager not available');
+                return false;
             }
             
             // Create and initialize the umbrella account manager
@@ -1249,13 +1249,46 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Dispatch event to notify other scripts
                     window.dispatchEvent(new CustomEvent('umbrellaManagerReady'));
                 })
-                .catch(err => {
-                    console.error('Error initializing umbrella account system:', err);
+                .catch(error => {
+                    console.error('Failed to initialize umbrella account manager:', error);
                 });
-        } catch (e) {
-            console.error('Could not initialize umbrella account manager:', e);
+            
+            return true;
+        } catch (error) {
+            console.error('Error initializing umbrella account manager:', error);
+            return false;
         }
-    }, 2000); // Increased delay to ensure Firebase is fully loaded
+    };
+    
+    // Try initialization immediately
+    if (!initUmbrellaManager()) {
+        // If initial attempt fails, listen for Firebase manager ready event
+        let attempts = 0;
+        const maxAttempts = 50; // 5 seconds max
+        
+        const retryInit = () => {
+            attempts++;
+            if (initUmbrellaManager()) {
+                console.log('Umbrella manager initialized on retry');
+                return;
+            }
+            
+            if (attempts < maxAttempts) {
+                setTimeout(retryInit, 100);
+            } else {
+                console.warn('Umbrella manager initialization failed after 5 seconds - continuing without it');
+            }
+        };
+        
+        // Listen for Firebase manager ready event
+        window.addEventListener('firebaseManagerReady', () => {
+            console.log('Firebase manager ready event received, initializing umbrella manager...');
+            initUmbrellaManager();
+        });
+        
+        // Start retry mechanism
+        setTimeout(retryInit, 100);
+    }
 });
 
 // Add a button to trigger umbrella account backup/upload from the UI

@@ -18,7 +18,7 @@ if (typeof firebase === 'undefined') {
   console.error('❌ Firebase SDK not loaded! Make sure Firebase scripts are included before firebase-config.js');
 } else {
   try {
-    const app = firebase.initializeApp(firebaseConfig);
+    app = firebase.initializeApp(firebaseConfig);
     console.log('✅ Firebase app initialized successfully');
     
     // Make app available globally
@@ -30,7 +30,7 @@ if (typeof firebase === 'undefined') {
 }
 
 // Initialize Firebase services
-let auth, db, storage;
+let app, auth, db, storage;
 
 function initializeFirebase() {
   return new Promise((resolve, reject) => {
@@ -119,9 +119,32 @@ initializeFirebaseWithRetry()
   .then(() => {
     console.log('✅ Firebase configuration script loaded successfully');
     
+    // Create Firebase provider object
+    window.firebaseProvider = {
+      initialized: true,
+      ready: true,
+      app: app,
+      auth: auth,
+      db: db,
+      storage: storage,
+      isReady: () => {
+        return !!(auth && db && app);
+      },
+      getApp: () => app,
+      getAuth: () => auth,
+      getDb: () => db,
+      getStorage: () => storage
+    };
+    
     // Expose Firebase services to window AFTER successful initialization
     window.firebaseServices = {
-      getApp: () => app,
+      getApp: () => {
+        if (!app) {
+          console.warn('🚫 Firebase App not initialized');
+          return null;
+        }
+        return app;
+      },
       getAuth: () => {
         if (!auth) {
           console.warn('🚫 Firebase Auth not initialized');
@@ -145,15 +168,29 @@ initializeFirebaseWithRetry()
       },
       // Add initialization check method
       isInitialized: () => {
-        return !!(auth && db);
+        return !!(auth && db && app);
       }
     };
     
     console.log('🎉 Firebase services exposed to window.firebaseServices');
+    console.log('🎉 Firebase provider exposed to window.firebaseProvider');
     
     // Dispatch ready event
     window.dispatchEvent(new CustomEvent('firebaseServicesReady'));
+    window.dispatchEvent(new CustomEvent('firebaseProviderReady'));
   })
   .catch((error) => {
     console.error('💥 Failed to initialize Firebase:', error);
+    
+    // Create fallback provider object that indicates failure
+    window.firebaseProvider = {
+      initialized: false,
+      ready: false,
+      error: error,
+      isReady: () => false,
+      getApp: () => null,
+      getAuth: () => null,
+      getDb: () => null,
+      getStorage: () => null
+    };
   });
