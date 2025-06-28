@@ -54,21 +54,27 @@
 
             <!-- Super Admin Login Form -->
             <div id="superadminLogin" class="login-tab-content">
-                <div class="input-group">
-                    <label for="adminUsername" class="input-label">Super Admin Username</label>
-                    <input type="text" id="adminUsername" placeholder="Enter super admin username" autocomplete="off">
-                </div>
-                <div class="input-group">
-                    <label for="adminPassword" class="input-label">Super Admin Password</label>
-                    <input type="password" id="adminPassword" placeholder="Enter super admin password" autocomplete="off">
-                </div>
-                <button class="login-button" onclick="handleSuperAdminLogin()">
-                    <span class="button-text">Super Admin Sign In</span>
-                    <span class="button-icon">🔐</span>
-                </button>
-                <p class="input-hint" style="margin-top: 10px; font-size: 12px; color: #666;">
-                    Super Admin has global access to all businesses and properties
-                </p>
+                <form onsubmit="handleSuperAdminLogin(event)">
+                    <div class="input-group">
+                        <label for="adminUsername" class="input-label">Super Admin Username</label>
+                        <input type="text" id="adminUsername" name="adminUsername" 
+                               placeholder="Enter super admin username" 
+                               autocomplete="off" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="adminPassword" class="input-label">Super Admin Password</label>
+                        <input type="password" id="adminPassword" name="adminPassword" 
+                               placeholder="Enter super admin password" 
+                               autocomplete="current-password" required>
+                    </div>
+                    <button type="submit" class="login-button">
+                        <span class="button-text">Super Admin Sign In</span>
+                        <span class="button-icon">🔐</span>
+                    </button>
+                    <p class="input-hint" style="margin-top: 10px; font-size: 12px; color: #666;">
+                        Super Admin has global access to all businesses and properties
+                    </p>
+                </form>
             </div>
 
             <div class="additional-options">
@@ -81,7 +87,21 @@
                 </button>
                 <p class="registration-hint">Create a new business account or register as staff member</p>            </div>
         </div>
-    </div>    <script src="js/api-manager.js"></script>
+    </div>    <!-- Cache buster -->
+    <script src="js/cache-buster.js?v=20250627002"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    
+    <!-- Firebase configuration -->
+    <script src="js/firebase-config.js?v=20250627002"></script>
+    <script src="js/firebase-services.js?v=20250627002"></script>
+    
+    <!-- Application scripts -->
+    <script src="js/api-manager.js"></script>
     <script src="multi-property-manager.js"></script>
     <script src="super-admin.js"></script>
     <script src="navigation.js"></script>

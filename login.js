@@ -324,7 +324,11 @@ async function handleCompanyLogin(event) {
 }
 
 // Handle super admin login
-async function handleSuperAdminLogin() {
+async function handleSuperAdminLogin(event) {
+    if (event) {
+        event.preventDefault(); // Prevent form submission
+    }
+    
     const email = document.getElementById('adminUsername').value;
     const password = document.getElementById('adminPassword').value;
     
