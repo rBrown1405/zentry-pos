@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Super Admin - Zentry POS</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .setup-container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .setup-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .setup-title {
+            color: #333;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .setup-subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .status-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .status-icon {
+            margin-right: 10px;
+            font-size: 16px;
+        }
+        
+        .setup-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .setup-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .setup-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .log-section {
+            background: #f1f3f4;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #007bff; }
+        .warning { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <div class="setup-header">
+            <h1 class="setup-title">🔧 Super Admin Setup</h1>
+            <p class="setup-subtitle">Initialize super admin accounts for new Firebase project</p>
+        </div>
+        
+        <div class="status-section">
+            <h3>Firebase Project Status</h3>
+            <div id="firebaseStatus">
+                <div class="status-item">
+                    <span class="status-icon">🔄</span>
+                    <span>Checking Firebase connection...</span>
+                </div>
+            </div>
+        </div>
+        
+        <button id="setupBtn" class="setup-button" onclick="setupSuperAdmins()">
+            🚀 Setup Super Admin Accounts
+        </button>
+        
+        <button id="testBtn" class="setup-button" onclick="testLogin()" disabled>
+            🧪 Test Super Admin Login
+        </button>
+        
+        <a href="login.html" class="setup-button" style="text-decoration: none; text-align: center; display: block;">
+            ← Back to Login
+        </a>
+        
+        <div class="log-section" id="logSection">
+            <div class="info">Setup logs will appear here...</div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="js/firebase-config.js"></script>
+    
+    <!-- Firebase Manager -->
+    <script src="js/firebase-manager.js"></script>
+    
+    <script>
+        let auth, db;
+        
+        document.addEventListener('DOMContentLoaded', async function() {
+            await initializeFirebase();
+            checkFirebaseStatus();
+        });
+        
+        async function initializeFirebase() {
+            try {
+                // Wait for Firebase services to be available
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                if (window.firebaseServices) {
+                    auth = window.firebaseServices.getAuth();
+                    db = window.firebaseServices.getDb();
+                    
+                    if (auth && db) {
+                        log('✅ Firebase services initialized successfully', 'success');
+                        return;
+                    }
+                }
+                
+                throw new Error('Firebase services not available');
+            } catch (error) {
+                log('❌ Firebase initialization failed: ' + error.message, 'error');
+            }
+        }
+        
+        function checkFirebaseStatus() {
+            const statusDiv = document.getElementById('firebaseStatus');
+            
+            if (auth && db) {
+                statusDiv.innerHTML = `
+                    <div class="status-item">
+                        <span class="status-icon">✅</span>
+                        <span>Firebase connected successfully</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-icon">🔑</span>
+                        <span>Authentication service ready</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-icon">🗄️</span>
+                        <span>Firestore database ready</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-icon">🏗️</span>
+                        <span>Project ID: ${firebaseConfig.projectId}</span>
+                    </div>
+                `;
+            } else {
+                statusDiv.innerHTML = `
+                    <div class="status-item">
+                        <span class="status-icon">❌</span>
+                        <span>Firebase connection failed</span>
+                    </div>
+                `;
+            }
+        }
+        
+        async function setupSuperAdmins() {
+            const setupBtn = document.getElementById('setupBtn');
+            const testBtn = document.getElementById('testBtn');
+            
+            setupBtn.disabled = true;
+            setupBtn.textContent = '🔄 Setting up...';
+            
+            try {
+                log('🚀 Starting super admin setup...', 'info');
+                
+                if (!auth || !db) {
+                    throw new Error('Firebase services not available');
+                }
+                
+                // Super admin accounts to create
+                const superAdmins = [
+                    {
+                        email: 'admin@macrospos.com',
+                        password: 'Armoured@2025!',
+                        username: 'admin',
+                        displayName: 'Super Administrator'
+                    },
+                    {
+                        email: 'rbrown14@macrospos.com',
+                        password: 'Armoured@',
+                        username: 'rBrown14',
+                        displayName: 'R. Brown (Super Admin)'
+                    }
+                ];
+                
+                for (const admin of superAdmins) {
+                    try {
+                        log(`📝 Setting up ${admin.displayName} (${admin.email})...`, 'info');
+                        
+                        // Create user in Firebase Auth
+                        let userCredential;
+                        try {
+                            userCredential = await auth.createUserWithEmailAndPassword(admin.email, admin.password);
+                            log(`✅ Firebase Auth user created: ${admin.email}`, 'success');
+                        } catch (authError) {
+                            if (authError.code === 'auth/email-already-in-use') {
+                                log(`ℹ️ User already exists in Firebase Auth: ${admin.email}`, 'info');
+                                // Try to sign in to get the user
+                                userCredential = await auth.signInWithEmailAndPassword(admin.email, admin.password);
+                            } else {
+                                throw authError;
+                            }
+                        }
+                        
+                        // Create/update user document in Firestore
+                        const superAdminData = {
+                            email: admin.email,
+                            username: admin.username,
+                            displayName: admin.displayName,
+                            role: 'super_admin',
+                            accessLevel: 'global',
+                            permissions: ['all'],
+                            createdAt: new Date().toISOString(),
+                            isActive: true,
+                            lastLogin: null,
+                            uid: userCredential.user.uid
+                        };
+                        
+                        await db.collection('users').doc(admin.username).set(superAdminData);
+                        log(`✅ Firestore document created: ${admin.username}`, 'success');
+                        
+                        // Also create by UID for faster lookups
+                        await db.collection('users').doc(userCredential.user.uid).set(superAdminData);
+                        
+                        log(`🎉 Successfully setup: ${admin.displayName}`, 'success');
+                        
+                    } catch (error) {
+                        log(`❌ Failed to setup ${admin.email}: ${error.message}`, 'error');
+                    }
+                }
+                
+                // Sign out after setup
+                await auth.signOut();
+                
+                log('🎉 Super admin setup completed!', 'success');
+                log('📍 You can now login with rbrown14@macrospos.com', 'info');
+                
+                testBtn.disabled = false;
+                setupBtn.textContent = '✅ Setup Complete';
+                
+            } catch (error) {
+                log(`❌ Setup failed: ${error.message}`, 'error');
+                setupBtn.disabled = false;
+                setupBtn.textContent = '🚀 Setup Super Admin Accounts';
+            }
+        }
+        
+        async function testLogin() {
+            const testBtn = document.getElementById('testBtn');
+            testBtn.disabled = true;
+            testBtn.textContent = '🧪 Testing...';
+            
+            try {
+                log('🧪 Testing super admin login...', 'info');
+                
+                // Test login with rbrown14@macrospos.com
+                const userCredential = await auth.signInWithEmailAndPassword('rbrown14@macrospos.com', 'Armoured@');
+                log('✅ Authentication successful', 'success');
+                
+                // Check Firestore document
+                const userDoc = await db.collection('users').doc('rBrown14').get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    if (userData.role === 'super_admin') {
+                        log('✅ Super admin role confirmed in Firestore', 'success');
+                        log('🎉 Test login successful! You can now use the main login page.', 'success');
+                    } else {
+                        log('❌ User exists but role is not super_admin', 'error');
+                    }
+                } else {
+                    log('❌ User document not found in Firestore', 'error');
+                }
+                
+                // Sign out after test
+                await auth.signOut();
+                
+            } catch (error) {
+                log(`❌ Test login failed: ${error.message}`, 'error');
+            }
+            
+            testBtn.disabled = false;
+            testBtn.textContent = '🧪 Test Super Admin Login';
+        }
+        
+        function log(message, type = 'info') {
+            const logSection = document.getElementById('logSection');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = type;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logSection.appendChild(logEntry);
+            logSection.scrollTop = logSection.scrollHeight;
+            
+            console.log(`[Super Admin Setup] ${message}`);
+        }
+    </script>
+</body>
+</html>
