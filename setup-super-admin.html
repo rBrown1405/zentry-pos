@@ -101,13 +101,46 @@
         .error { color: #dc3545; }
         .info { color: #007bff; }
         .warning { color: #ffc107; }
+        
+        .form-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0,123,255,0.25);
+        }
     </style>
 </head>
 <body>
     <div class="setup-container">
         <div class="setup-header">
             <h1 class="setup-title">🔧 Super Admin Setup</h1>
-            <p class="setup-subtitle">Initialize super admin accounts for new Firebase project</p>
+            <p class="setup-subtitle">Create your custom super admin account for the new Firebase project</p>
         </div>
         
         <div class="status-section">
@@ -120,12 +153,46 @@
             </div>
         </div>
         
-        <button id="setupBtn" class="setup-button" onclick="setupSuperAdmins()">
-            🚀 Setup Super Admin Accounts
-        </button>
+        <!-- Custom Admin Creation Form -->
+        <div class="form-section">
+            <h3>Create Super Admin Account</h3>
+            <form id="adminForm" onsubmit="createCustomAdmin(event)">
+                <div class="form-group">
+                    <label for="adminEmail">Email Address:</label>
+                    <input type="email" id="adminEmail" required placeholder="Enter your email address" style="width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+                
+                <div class="form-group">
+                    <label for="adminPassword">Password:</label>
+                    <input type="password" id="adminPassword" required placeholder="Enter a strong password (min 6 characters)" minlength="6" style="width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+                
+                <div class="form-group">
+                    <label for="adminDisplayName">Display Name:</label>
+                    <input type="text" id="adminDisplayName" required placeholder="Enter your display name" style="width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+                
+                <div class="form-group">
+                    <label for="adminUsername">Username:</label>
+                    <input type="text" id="adminUsername" required placeholder="Enter a username (no spaces)" style="width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+                
+                <button type="submit" class="setup-button" id="createAdminBtn">
+                    � Create Super Admin Account
+                </button>
+            </form>
+            
+            <div style="text-align: center; margin: 20px 0; color: #666;">
+                <span>OR</span>
+            </div>
+            
+            <button onclick="createDefaultAdmins()" class="setup-button" id="createDefaultBtn" style="background: #6c757d;">
+                🚀 Create Default Admin Accounts
+            </button>
+        </div>
         
-        <button id="testBtn" class="setup-button" onclick="testLogin()" disabled>
-            🧪 Test Super Admin Login
+        <button id="testBtn" class="setup-button" onclick="testCustomLogin()" disabled>
+            🧪 Test Login
         </button>
         
         <a href="login.html" class="setup-button" style="text-decoration: none; text-align: center; display: block;">
@@ -314,7 +381,210 @@
             }
         }
         
-        async function testLogin() {
+        // Create custom admin account
+        async function createCustomAdmin(event) {
+            event.preventDefault();
+            
+            const createBtn = document.getElementById('createAdminBtn');
+            const testBtn = document.getElementById('testBtn');
+            
+            // Get form values
+            const email = document.getElementById('adminEmail').value.trim();
+            const password = document.getElementById('adminPassword').value;
+            const displayName = document.getElementById('adminDisplayName').value.trim();
+            const username = document.getElementById('adminUsername').value.trim().replace(/\s+/g, '');
+            
+            // Validate inputs
+            if (!email || !password || !displayName || !username) {
+                log('❌ Please fill in all fields', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                log('❌ Password must be at least 6 characters long', 'error');
+                return;
+            }
+            
+            if (username.includes(' ')) {
+                log('❌ Username cannot contain spaces', 'error');
+                return;
+            }
+            
+            createBtn.disabled = true;
+            createBtn.textContent = '🔄 Creating...';
+            
+            try {
+                log('🚀 Creating custom super admin account...', 'info');
+                log(`📧 Email: ${email}`, 'info');
+                log(`👤 Username: ${username}`, 'info');
+                log(`🏷️ Display Name: ${displayName}`, 'info');
+                
+                if (!setupAuth || !setupDb) {
+                    throw new Error('Firebase services not available');
+                }
+                
+                // Create user in Firebase Auth
+                let userCredential;
+                try {
+                    userCredential = await setupAuth.createUserWithEmailAndPassword(email, password);
+                    log(`✅ Firebase Auth user created successfully`, 'success');
+                } catch (authError) {
+                    if (authError.code === 'auth/email-already-in-use') {
+                        log(`ℹ️ User already exists, trying to sign in...`, 'info');
+                        userCredential = await setupAuth.signInWithEmailAndPassword(email, password);
+                    } else {
+                        throw authError;
+                    }
+                }
+                
+                // Create/update user document in Firestore
+                const superAdminData = {
+                    email: email,
+                    username: username,
+                    displayName: displayName,
+                    role: 'super_admin',
+                    accessLevel: 'global',
+                    permissions: ['all'],
+                    createdAt: new Date().toISOString(),
+                    isActive: true,
+                    lastLogin: null,
+                    uid: userCredential.user.uid,
+                    customCreated: true
+                };
+                
+                // Save by username
+                await setupDb.collection('users').doc(username).set(superAdminData);
+                log(`✅ User document created with username: ${username}`, 'success');
+                
+                // Also save by UID for faster lookups
+                await setupDb.collection('users').doc(userCredential.user.uid).set(superAdminData);
+                log(`✅ User document created with UID`, 'success');
+                
+                // Sign out after creation
+                await setupAuth.signOut();
+                
+                log('🎉 Custom super admin account created successfully!', 'success');
+                log(`📍 You can now login with: ${email}`, 'info');
+                
+                // Enable test button and update it to use the custom credentials
+                testBtn.disabled = false;
+                testBtn.setAttribute('data-test-email', email);
+                testBtn.setAttribute('data-test-password', password);
+                
+                createBtn.textContent = '✅ Account Created';
+                
+                // Clear form
+                document.getElementById('adminForm').reset();
+                
+            } catch (error) {
+                log(`❌ Failed to create admin account: ${error.message}`, 'error');
+                if (error.code === 'auth/weak-password') {
+                    log('💡 Try using a stronger password with numbers and symbols', 'warning');
+                } else if (error.code === 'auth/invalid-email') {
+                    log('💡 Please enter a valid email address', 'warning');
+                } else if (error.code === 'auth/configuration-not-found') {
+                    log('💡 Please enable Email/Password authentication in Firebase Console', 'warning');
+                }
+                
+                createBtn.disabled = false;
+                createBtn.textContent = '👤 Create Super Admin Account';
+            }
+        }
+        
+        // Create default admin accounts (renamed from setupSuperAdmins)
+        async function createDefaultAdmins() {
+            const createBtn = document.getElementById('createDefaultBtn');
+            const testBtn = document.getElementById('testBtn');
+            
+            createBtn.disabled = true;
+            createBtn.textContent = '🔄 Creating defaults...';
+            
+            try {
+                log('🚀 Creating default super admin accounts...', 'info');
+                
+                if (!setupAuth || !setupDb) {
+                    throw new Error('Firebase services not available');
+                }
+                
+                // Default super admin accounts
+                const defaultAdmins = [
+                    {
+                        email: 'admin@macrospos.com',
+                        password: 'Armoured@2025!',
+                        username: 'admin',
+                        displayName: 'Super Administrator'
+                    },
+                    {
+                        email: 'rbrown14@macrospos.com',
+                        password: 'Armoured@',
+                        username: 'rBrown14',
+                        displayName: 'R. Brown (Super Admin)'
+                    }
+                ];
+                
+                for (const admin of defaultAdmins) {
+                    try {
+                        log(`📝 Creating ${admin.displayName} (${admin.email})...`, 'info');
+                        
+                        // Create user in Firebase Auth
+                        let userCredential;
+                        try {
+                            userCredential = await setupAuth.createUserWithEmailAndPassword(admin.email, admin.password);
+                            log(`✅ Firebase Auth user created: ${admin.email}`, 'success');
+                        } catch (authError) {
+                            if (authError.code === 'auth/email-already-in-use') {
+                                log(`ℹ️ User already exists: ${admin.email}`, 'info');
+                                userCredential = await setupAuth.signInWithEmailAndPassword(admin.email, admin.password);
+                            } else {
+                                throw authError;
+                            }
+                        }
+                        
+                        // Create user document in Firestore
+                        const superAdminData = {
+                            email: admin.email,
+                            username: admin.username,
+                            displayName: admin.displayName,
+                            role: 'super_admin',
+                            accessLevel: 'global',
+                            permissions: ['all'],
+                            createdAt: new Date().toISOString(),
+                            isActive: true,
+                            lastLogin: null,
+                            uid: userCredential.user.uid,
+                            defaultAccount: true
+                        };
+                        
+                        await setupDb.collection('users').doc(admin.username).set(superAdminData);
+                        await setupDb.collection('users').doc(userCredential.user.uid).set(superAdminData);
+                        
+                        log(`✅ Successfully created: ${admin.displayName}`, 'success');
+                        
+                    } catch (error) {
+                        log(`❌ Failed to create ${admin.email}: ${error.message}`, 'error');
+                    }
+                }
+                
+                // Sign out after setup
+                await setupAuth.signOut();
+                
+                log('🎉 Default admin accounts created!', 'success');
+                log('📍 You can now login with rbrown14@macrospos.com', 'info');
+                
+                testBtn.disabled = false;
+                testBtn.setAttribute('data-test-email', 'rbrown14@macrospos.com');
+                testBtn.setAttribute('data-test-password', 'Armoured@');
+                
+                createBtn.textContent = '✅ Defaults Created';
+                
+            } catch (error) {
+                log(`❌ Default setup failed: ${error.message}`, 'error');
+                createBtn.disabled = false;
+                createBtn.textContent = '🚀 Create Default Admin Accounts';
+            }
+        }
+        
+        async function testCustomLogin() {
             const testBtn = document.getElementById('testBtn');
             testBtn.disabled = true;
             testBtn.textContent = '🧪 Testing...';
@@ -322,22 +592,43 @@
             try {
                 log('🧪 Testing super admin login...', 'info');
                 
-                // Test login with rbrown14@macrospos.com
-                const userCredential = await setupAuth.signInWithEmailAndPassword('rbrown14@macrospos.com', 'Armoured@');
+                // Get credentials from button attributes or use defaults
+                const testEmail = testBtn.getAttribute('data-test-email') || 'rbrown14@macrospos.com';
+                const testPassword = testBtn.getAttribute('data-test-password') || 'Armoured@';
+                
+                log(`📧 Testing login with: ${testEmail}`, 'info');
+                
+                // Test login
+                const userCredential = await setupAuth.signInWithEmailAndPassword(testEmail, testPassword);
                 log('✅ Authentication successful', 'success');
                 
-                // Check Firestore document
-                const userDoc = await setupDb.collection('users').doc('rBrown14').get();
+                // Extract username from email or use UID
+                let username = testEmail.split('@')[0];
+                if (username === 'rbrown14') {
+                    username = 'rBrown14'; // Handle specific case
+                }
+                
+                // Check Firestore document by username first
+                let userDoc = await setupDb.collection('users').doc(username).get();
+                
+                // If not found by username, try by UID
+                if (!userDoc.exists) {
+                    userDoc = await setupDb.collection('users').doc(userCredential.user.uid).get();
+                }
+                
                 if (userDoc.exists) {
                     const userData = userDoc.data();
                     if (userData.role === 'super_admin') {
                         log('✅ Super admin role confirmed in Firestore', 'success');
                         log('🎉 Test login successful! You can now use the main login page.', 'success');
+                        log(`👤 Logged in as: ${userData.displayName}`, 'info');
                     } else {
                         log('❌ User exists but role is not super_admin', 'error');
+                        log(`🔍 Found role: ${userData.role}`, 'warning');
                     }
                 } else {
                     log('❌ User document not found in Firestore', 'error');
+                    log('💡 The user exists in Auth but not in Firestore database', 'warning');
                 }
                 
                 // Sign out after test
@@ -345,10 +636,17 @@
                 
             } catch (error) {
                 log(`❌ Test login failed: ${error.message}`, 'error');
+                if (error.code === 'auth/user-not-found') {
+                    log('💡 User not found - please create an admin account first', 'warning');
+                } else if (error.code === 'auth/wrong-password') {
+                    log('💡 Wrong password - please check your credentials', 'warning');
+                } else if (error.code === 'auth/invalid-email') {
+                    log('💡 Invalid email format', 'warning');
+                }
             }
             
             testBtn.disabled = false;
-            testBtn.textContent = '🧪 Test Super Admin Login';
+            testBtn.textContent = '🧪 Test Login';
         }
         
         function log(message, type = 'info') {
