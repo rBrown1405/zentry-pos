@@ -38,6 +38,12 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Authentication successful, loading business data...');
         loadBusinessData();
         
+        // NEW: Connect localStorage business data to umbrella manager
+        // Wait a bit longer for umbrella manager to initialize
+        setTimeout(() => {
+            connectBusinessToUmbrellaManager(currentBusiness, currentUser);
+        }, 1500);
+        
         // Fade in the content
         setTimeout(() => {
             document.body.style.transition = 'opacity 0.5s ease-in';
@@ -99,4 +105,77 @@ function navigateWithTransition(url) {
     setTimeout(() => {
         window.location.href = url;
     }, 300);
+}
+
+// NEW: Function to connect localStorage business data to umbrella manager
+async function connectBusinessToUmbrellaManager(businessInfo, userInfo) {
+    try {
+        console.log('🔗 Connecting business to umbrella manager...', { businessInfo, userInfo });
+        
+        // Wait for umbrella manager to be available
+        const waitForUmbrellaManager = () => {
+            return new Promise((resolve) => {
+                let attempts = 0;
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (window.umbrellaManager) {
+                        console.log(`✅ Umbrella manager found after ${attempts} attempts`);
+                        clearInterval(checkInterval);
+                        resolve(window.umbrellaManager);
+                    } else if (attempts % 10 === 0) {
+                        console.log(`⏳ Still waiting for umbrella manager... (attempt ${attempts})`);
+                    }
+                }, 100);
+                
+                // Timeout after 10 seconds
+                setTimeout(() => {
+                    console.warn('⚠️ Umbrella manager wait timeout after 10 seconds');
+                    clearInterval(checkInterval);
+                    resolve(null);
+                }, 10000);
+            });
+        };
+        
+        const umbrellaManager = await waitForUmbrellaManager();
+        
+        if (umbrellaManager) {
+            console.log('🎯 Umbrella manager available, setting business context...');
+            
+            // Create business data object compatible with umbrella manager
+            const businessData = {
+                id: businessInfo.id,
+                companyName: userInfo.businessName,
+                businessType: userInfo.businessType || 'restaurant',
+                businessCode: businessInfo.id, // Use business ID as code for localStorage businesses
+                ownerName: userInfo.name,
+                companyEmail: userInfo.email || '',
+                companyPhone: userInfo.phone || '',
+                isActive: true,
+                createdAt: new Date().toISOString(),
+                // Mark this as a localStorage-based business
+                source: 'localStorage_login'
+            };
+            
+            // Set the current business in umbrella manager
+            umbrellaManager.setCurrentBusiness(businessInfo.id, businessData);
+            
+            console.log('✅ Business successfully connected to umbrella manager:', businessData.companyName);
+            console.log('🔍 Current umbrella manager business:', umbrellaManager.currentBusiness);
+            
+            // Dispatch a custom event to notify other components
+            const event = new CustomEvent('businessContextConnected', { 
+                detail: { 
+                    business: businessData,
+                    source: 'localStorage_login'
+                } 
+            });
+            document.dispatchEvent(event);
+            
+        } else {
+            console.warn('⚠️ Umbrella manager not available after 10 seconds. Business context may not be set.');
+        }
+        
+    } catch (error) {
+        console.error('💥 Error connecting business to umbrella manager:', error);
+    }
 }

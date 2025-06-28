@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Context Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        .status {
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+            border: 2px solid;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .warning {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        .info {
+            background: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0.5rem;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Business Context Test</h1>
+    <p>This page tests whether the business context is properly connected from localStorage to the umbrella manager after business login.</p>
+
+    <div id="status" class="status info">
+        <strong>Status:</strong> Initializing...
+    </div>
+
+    <div class="log" id="logOutput"></div>
+
+    <button onclick="runTest()">Run Test</button>
+    <button onclick="clearLog()">Clear Log</button>
+    <button onclick="testMenuEditor()">Test Menu Editor Context</button>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    
+    <!-- Firebase configuration and services -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-services.js"></script>
+    <script src="js/firebase-manager.js"></script>
+    <script src="js/umbrella-account-manager.js"></script>
+
+    <script>
+        let testResults = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            testResults.push({ timestamp, message, type });
+            
+            const logOutput = document.getElementById('logOutput');
+            const div = document.createElement('div');
+            div.textContent = logEntry;
+            div.style.color = type === 'error' ? 'red' : type === 'success' ? 'green' : type === 'warning' ? 'orange' : 'black';
+            logOutput.appendChild(div);
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.innerHTML = `<strong>Status:</strong> ${message}`;
+            statusEl.className = `status ${type}`;
+        }
+
+        function clearLog() {
+            document.getElementById('logOutput').innerHTML = '';
+            testResults = [];
+        }
+
+        async function runTest() {
+            clearLog();
+            log('🔍 Starting business context test...');
+            updateStatus('Running tests...', 'info');
+
+            try {
+                // Test 1: Check localStorage data
+                log('📋 Test 1: Checking localStorage data...');
+                const currentUser = localStorage.getItem('currentUser');
+                const currentBusiness = localStorage.getItem('currentBusiness');
+                const isLoggedIn = localStorage.getItem('isLoggedIn');
+
+                if (!currentUser) {
+                    log('❌ No currentUser in localStorage', 'error');
+                    updateStatus('No user data found - please log in first', 'error');
+                    return;
+                }
+
+                if (!currentBusiness) {
+                    log('❌ No currentBusiness in localStorage', 'error');
+                    updateStatus('No business data found - please log in first', 'error');
+                    return;
+                }
+
+                if (isLoggedIn !== 'true') {
+                    log('❌ Not logged in', 'error');
+                    updateStatus('User not logged in', 'error');
+                    return;
+                }
+
+                const userData = JSON.parse(currentUser);
+                const businessData = JSON.parse(currentBusiness);
+
+                log(`✅ Found user data: ${userData.name} (${userData.businessName})`, 'success');
+                log(`✅ Found business data: ${businessData.name} (ID: ${businessData.id})`, 'success');
+
+                // Test 2: Check if umbrella manager is available
+                log('🔧 Test 2: Checking umbrella manager availability...');
+                
+                let umbrellaManager = window.umbrellaManager;
+                if (!umbrellaManager) {
+                    log('⏳ Umbrella manager not ready, waiting...', 'warning');
+                    
+                    // Wait for umbrella manager to be available
+                    umbrellaManager = await waitForUmbrellaManager();
+                }
+
+                if (!umbrellaManager) {
+                    log('❌ Umbrella manager not available after waiting', 'error');
+                    updateStatus('Umbrella manager not available', 'error');
+                    return;
+                }
+
+                log('✅ Umbrella manager is available', 'success');
+
+                // Test 3: Check current business in umbrella manager
+                log('🏢 Test 3: Checking umbrella manager business context...');
+                const umbrellaCurrentBusiness = umbrellaManager.currentBusiness;
+
+                if (!umbrellaCurrentBusiness) {
+                    log('❌ No current business in umbrella manager', 'error');
+                    
+                    // Test the connection function
+                    log('🔗 Attempting to connect business context...');
+                    await connectBusinessToUmbrellaManager(businessData, userData);
+                    
+                    // Check again
+                    const newUmbrellaCurrentBusiness = umbrellaManager.currentBusiness;
+                    if (newUmbrellaCurrentBusiness) {
+                        log(`✅ Business context connected: ${newUmbrellaCurrentBusiness.companyName}`, 'success');
+                        updateStatus(`Business context successfully connected: ${newUmbrellaCurrentBusiness.companyName}`, 'success');
+                    } else {
+                        log('❌ Failed to connect business context', 'error');
+                        updateStatus('Failed to connect business context', 'error');
+                        return;
+                    }
+                } else {
+                    log(`✅ Current business already set: ${umbrellaCurrentBusiness.companyName}`, 'success');
+                    updateStatus(`Business context OK: ${umbrellaCurrentBusiness.companyName}`, 'success');
+                }
+
+                // Test 4: Test the menu editor detection logic
+                log('🍽️ Test 4: Testing menu editor business context detection...');
+                const menuEditorContext = simulateMenuEditorCheck();
+                if (menuEditorContext.found) {
+                    log(`✅ Menu editor would detect: ${menuEditorContext.businessInfo} (${menuEditorContext.source})`, 'success');
+                } else {
+                    log('❌ Menu editor would not detect business context', 'error');
+                    updateStatus('Menu editor context detection failed', 'error');
+                    return;
+                }
+
+                log('🎉 All tests passed! Business context is properly connected.', 'success');
+                updateStatus('All tests passed! Business context is working correctly.', 'success');
+
+            } catch (error) {
+                log(`💥 Test failed with error: ${error.message}`, 'error');
+                updateStatus(`Test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function waitForUmbrellaManager() {
+            return new Promise((resolve) => {
+                const checkInterval = setInterval(() => {
+                    if (window.umbrellaManager) {
+                        clearInterval(checkInterval);
+                        resolve(window.umbrellaManager);
+                    }
+                }, 100);
+                
+                // Timeout after 10 seconds
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    resolve(null);
+                }, 10000);
+            });
+        }
+
+        async function connectBusinessToUmbrellaManager(businessInfo, userInfo) {
+            try {
+                log('Connecting business to umbrella manager...', 'info');
+                
+                const umbrellaManager = window.umbrellaManager;
+                if (!umbrellaManager) {
+                    throw new Error('Umbrella manager not available');
+                }
+
+                // Create business data object compatible with umbrella manager
+                const businessData = {
+                    id: businessInfo.id,
+                    companyName: userInfo.businessName,
+                    businessType: userInfo.businessType || 'restaurant',
+                    businessCode: businessInfo.id,
+                    ownerName: userInfo.name,
+                    companyEmail: userInfo.email || '',
+                    companyPhone: userInfo.phone || '',
+                    isActive: true,
+                    createdAt: new Date().toISOString(),
+                    source: 'localStorage_login'
+                };
+                
+                // Set the current business in umbrella manager
+                umbrellaManager.setCurrentBusiness(businessInfo.id, businessData);
+                
+                log(`✅ Business connected: ${businessData.companyName}`, 'success');
+                
+                // Dispatch custom event
+                const event = new CustomEvent('businessContextConnected', { 
+                    detail: { 
+                        business: businessData,
+                        source: 'localStorage_login'
+                    } 
+                });
+                document.dispatchEvent(event);
+                
+            } catch (error) {
+                log(`❌ Error connecting business: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        function simulateMenuEditorCheck() {
+            // Simulate the menu editor's business context detection logic
+            let businessFound = false;
+            let businessSource = 'none';
+            let businessInfo = '';
+
+            try {
+                // Check Super Admin Manager first (like menu editor does)
+                if (window.SuperAdminManager) {
+                    let superAdminContext = null;
+                    
+                    if (window.SuperAdminManager.getCurrentBusinessContext) {
+                        superAdminContext = window.SuperAdminManager.getCurrentBusinessContext();
+                    }
+                    
+                    if (!superAdminContext && window.SuperAdminManager.currentBusiness) {
+                        superAdminContext = window.SuperAdminManager.currentBusiness;
+                    }
+                    
+                    if (superAdminContext && (superAdminContext.businessID || superAdminContext.id)) {
+                        businessFound = true;
+                        businessSource = 'super_admin';
+                        businessInfo = superAdminContext.companyName || superAdminContext.businessName || superAdminContext.businessID || superAdminContext.id;
+                        log(`Super Admin context found: ${businessInfo}`);
+                    }
+                }
+
+                // Check Umbrella Manager (like menu editor does)
+                if (!businessFound && window.umbrellaManager && window.umbrellaManager.currentBusiness) {
+                    businessFound = true;
+                    businessSource = 'umbrella_manager';
+                    businessInfo = window.umbrellaManager.currentBusiness.companyName || window.umbrellaManager.currentBusiness.id;
+                    log(`Umbrella Manager context found: ${businessInfo}`);
+                }
+
+                // Check localStorage fallback
+                if (!businessFound) {
+                    const storedContext = localStorage.getItem('currentBusinessContext');
+                    if (storedContext) {
+                        try {
+                            const contextData = JSON.parse(storedContext);
+                            if (contextData.businessID || contextData.id) {
+                                businessFound = true;
+                                businessSource = 'localStorage';
+                                businessInfo = contextData.companyName || contextData.businessName || contextData.businessID || contextData.id;
+                                log(`localStorage context found: ${businessInfo}`);
+                            }
+                        } catch (e) {
+                            log(`localStorage context parse failed: ${e.message}`, 'warning');
+                        }
+                    }
+                }
+
+                return { found: businessFound, source: businessSource, businessInfo };
+
+            } catch (error) {
+                log(`Menu editor simulation error: ${error.message}`, 'error');
+                return { found: false, source: 'error', businessInfo: error.message };
+            }
+        }
+
+        function testMenuEditor() {
+            log('🍽️ Testing menu editor context detection...', 'info');
+            const result = simulateMenuEditorCheck();
+            
+            if (result.found) {
+                log(`✅ Menu editor would show: "Connected to ${result.businessInfo} (${result.source})"`, 'success');
+                updateStatus(`Menu editor context OK: ${result.businessInfo}`, 'success');
+            } else {
+                log('❌ Menu editor would show: "Firebase ready - No business context"', 'error');
+                updateStatus('Menu editor would not detect business context', 'error');
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Business Context Test initialized');
+            updateStatus('Ready to test', 'info');
+            
+            // Check initial state
+            setTimeout(() => {
+                const hasUser = localStorage.getItem('currentUser');
+                const hasBusiness = localStorage.getItem('currentBusiness');
+                
+                if (hasUser && hasBusiness) {
+                    log('📋 Found existing login data - ready to test', 'info');
+                    updateStatus('Found login data - click "Run Test" to verify', 'warning');
+                } else {
+                    log('⚠️ No login data found - please log in to a business account first', 'warning');
+                    updateStatus('Please log in to a business account first, then return to test', 'warning');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

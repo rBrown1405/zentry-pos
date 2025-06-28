@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Fix Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        .check {
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+            border: 2px solid;
+        }
+        .pass {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .fail {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .warning {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 1rem 0;
+            font-size: 1rem;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Business Dashboard Fix Verification</h1>
+    <p>This page quickly verifies if the business dashboard umbrella manager integration fix is working.</p>
+
+    <div id="results"></div>
+
+    <button onclick="runChecks()">🔍 Run Verification</button>
+    <button onclick="openDashboard()">📊 Open Business Dashboard</button>
+    <button onclick="openMenuEditor()">🍽️ Open Menu Editor</button>
+
+    <script>
+        function addResult(title, message, status) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `check ${status}`;
+            
+            const statusIcon = status === 'pass' ? '✅' : status === 'fail' ? '❌' : '⚠️';
+            div.innerHTML = `<strong>${statusIcon} ${title}</strong><br>${message}`;
+            
+            results.appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function runChecks() {
+            clearResults();
+            
+            // Check 1: Login Status
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            const currentUser = localStorage.getItem('currentUser');
+            const currentBusiness = localStorage.getItem('currentBusiness');
+            
+            if (!isLoggedIn || !currentUser || !currentBusiness) {
+                addResult(
+                    'Login Check',
+                    'Not logged into a business account. Please log in first and return to this page.',
+                    'warning'
+                );
+                return;
+            }
+            
+            addResult(
+                'Login Check',
+                'Business login data found in localStorage',
+                'pass'
+            );
+
+            // Check 2: Script Loading
+            const hasFirebaseServices = !!window.firebaseServices;
+            const hasUmbrellaManager = !!window.umbrellaManager;
+            const hasFirebaseManager = !!window.firebaseManager;
+            
+            if (!hasFirebaseServices) {
+                addResult(
+                    'Firebase Services',
+                    'Firebase services not loaded. Check console for errors.',
+                    'fail'
+                );
+            } else {
+                addResult(
+                    'Firebase Services',
+                    'Firebase services loaded successfully',
+                    'pass'
+                );
+            }
+
+            if (!hasUmbrellaManager) {
+                addResult(
+                    'Umbrella Manager',
+                    'Umbrella manager not loaded. This is the main issue that needed fixing.',
+                    'fail'
+                );
+            } else {
+                addResult(
+                    'Umbrella Manager',
+                    'Umbrella manager loaded successfully',
+                    'pass'
+                );
+            }
+
+            // Check 3: Business Context
+            if (hasUmbrellaManager && window.umbrellaManager.currentBusiness) {
+                const businessName = window.umbrellaManager.currentBusiness.companyName;
+                addResult(
+                    'Business Context',
+                    `Business context connected: "${businessName}" - Menu editor should work!`,
+                    'pass'
+                );
+            } else if (hasUmbrellaManager) {
+                addResult(
+                    'Business Context',
+                    'Umbrella manager loaded but no business context. Try opening business dashboard first.',
+                    'warning'
+                );
+            } else {
+                addResult(
+                    'Business Context',
+                    'Cannot check business context - umbrella manager not loaded',
+                    'fail'
+                );
+            }
+
+            // Check 4: Menu Editor Prediction
+            if (hasUmbrellaManager && window.umbrellaManager.currentBusiness) {
+                const businessName = window.umbrellaManager.currentBusiness.companyName;
+                addResult(
+                    'Menu Editor Status',
+                    `Menu editor should show: "Connected to ${businessName} (umbrella_manager)"`,
+                    'pass'
+                );
+            } else {
+                addResult(
+                    'Menu Editor Status',
+                    'Menu editor will still show "Firebase ready - No business context"',
+                    'fail'
+                );
+            }
+        }
+
+        function openDashboard() {
+            window.open('business-dashboard.html', '_blank');
+        }
+
+        function openMenuEditor() {
+            window.open('menu-editor.html', '_blank');
+        }
+
+        // Auto-run on load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(runChecks, 1000);
+        });
+    </script>
+</body>
+</html>
