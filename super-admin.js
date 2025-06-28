@@ -313,7 +313,47 @@ class SuperAdminManager {
     }
     
     static isSuperAdmin() {
-        return this.currentSuperAdmin && this.currentSuperAdmin.role === 'super_admin';
+        // Check in-memory state first
+        if (this.currentSuperAdmin && this.currentSuperAdmin.role === 'super_admin') {
+            return true;
+        }
+        
+        // Check Firebase auth state for persistent login
+        try {
+            const auth = window.firebaseServices?.getAuth() || window.firebaseProvider?.getAuth();
+            if (auth && auth.currentUser) {
+                // Check if user has super admin custom claims (production)
+                // For development, check against our known super admin accounts
+                const userEmail = auth.currentUser.email;
+                const isKnownSuperAdmin = this.SUPER_ADMIN_ACCOUNTS.some(account => 
+                    account.email === userEmail
+                );
+                
+                if (isKnownSuperAdmin) {
+                    // Re-populate in-memory state from Firebase user
+                    const adminAccount = this.SUPER_ADMIN_ACCOUNTS.find(account => 
+                        account.email === userEmail
+                    );
+                    
+                    this.currentSuperAdmin = {
+                        uid: auth.currentUser.uid,
+                        email: adminAccount.email,
+                        username: adminAccount.username,
+                        displayName: adminAccount.displayName || 'Super Administrator',
+                        role: 'super_admin',
+                        accessLevel: 'global',
+                        permissions: ['all'],
+                        lastLogin: new Date().toISOString()
+                    };
+                    
+                    return true;
+                }
+            }
+        } catch (error) {
+            console.log('Firebase auth check failed:', error.message);
+        }
+        
+        return false;
     }
     
     static getCurrentSuperAdmin() {

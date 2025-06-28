@@ -680,14 +680,30 @@
     <script src="navigation.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Check if user is super admin
-            if (!SuperAdminManager.isSuperAdmin()) {
-                alert('Access denied. Super admin privileges required.');
-                window.location.href = 'login.html';
-                return;
-            }
+            // Wait for super admin system to be ready
+            const checkSuperAdminAccess = () => {
+                try {
+                    if (typeof SuperAdminManager !== 'undefined' && SuperAdminManager.isSuperAdmin()) {
+                        loadDashboard();
+                    } else {
+                        alert('Access denied. Super admin privileges required.');
+                        window.location.href = 'login.html';
+                    }
+                } catch (error) {
+                    console.error('Super admin check failed:', error);
+                    alert('Access denied. Super admin privileges required.');
+                    window.location.href = 'login.html';
+                }
+            };
             
-            loadDashboard();
+            // If SuperAdminManager is already available, check immediately
+            if (typeof SuperAdminManager !== 'undefined') {
+                // Wait a bit for Firebase to be ready
+                setTimeout(checkSuperAdminAccess, 1000);
+            } else {
+                // Wait for SuperAdminManager to load
+                setTimeout(checkSuperAdminAccess, 2000);
+            }
         });
         
         function loadDashboard() {

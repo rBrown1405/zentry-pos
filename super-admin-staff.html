@@ -349,22 +349,38 @@
         let allBusinesses = [];
         
         document.addEventListener('DOMContentLoaded', function() {
-            // Check if user is super admin
-            if (!SuperAdminManager.isSuperAdmin()) {
-                alert('Access denied. Super admin privileges required.');
-                window.location.href = 'login.html';
-                return;
+            // Wait for super admin system to be ready
+            const checkSuperAdminAccess = () => {
+                try {
+                    if (typeof SuperAdminManager !== 'undefined' && SuperAdminManager.isSuperAdmin()) {
+                        loadAllData();
+                        renderStaffTable();
+                        updateStats();
+                        
+                        // Add event listeners
+                        document.getElementById('searchInput').addEventListener('input', filterStaff);
+                        document.getElementById('roleFilter').addEventListener('change', filterStaff);
+                        document.getElementById('statusFilter').addEventListener('change', filterStaff);
+                        document.getElementById('businessFilter').addEventListener('change', filterStaff);
+                    } else {
+                        alert('Access denied. Super admin privileges required.');
+                        window.location.href = 'login.html';
+                    }
+                } catch (error) {
+                    console.error('Super admin check failed:', error);
+                    alert('Access denied. Super admin privileges required.');
+                    window.location.href = 'login.html';
+                }
+            };
+            
+            // If SuperAdminManager is already available, check immediately
+            if (typeof SuperAdminManager !== 'undefined') {
+                // Wait a bit for Firebase to be ready
+                setTimeout(checkSuperAdminAccess, 1000);
+            } else {
+                // Wait for SuperAdminManager to load
+                setTimeout(checkSuperAdminAccess, 2000);
             }
-            
-            loadAllData();
-            renderStaffTable();
-            updateStats();
-            
-            // Add event listeners
-            document.getElementById('searchInput').addEventListener('input', filterStaff);
-            document.getElementById('roleFilter').addEventListener('change', filterStaff);
-            document.getElementById('statusFilter').addEventListener('change', filterStaff);
-            document.getElementById('businessFilter').addEventListener('change', filterStaff);
         });
         
         function loadAllData() {

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Login Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-step {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-success { background: #28a745; color: white; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 Super Admin Login Verification</h1>
+        <p>This test verifies that the rBrown14 super admin login works correctly.</p>
+        
+        <div class="test-step">
+            <h3>Step 1: SuperAdminManager Status</h3>
+            <p>SuperAdminManager loaded: <span id="managerStatus">Checking...</span></p>
+            <p>Firebase available: <span id="firebaseStatus">Checking...</span></p>
+            <p>Current super admin: <span id="currentAdmin">Checking...</span></p>
+        </div>
+        
+        <div class="test-step">
+            <h3>Step 2: Test Login with rBrown14 Credentials</h3>
+            <button class="btn btn-primary" onclick="testRBrown14Login()">🔐 Test rBrown14 Login</button>
+            <button class="btn btn-secondary" onclick="testDefaultAdminLogin()">🔐 Test Default Admin Login</button>
+            <p>Login result: <span id="loginResult">Not tested yet</span></p>
+        </div>
+        
+        <div class="test-step">
+            <h3>Step 3: Test Super Admin Detection</h3>
+            <button class="btn btn-success" onclick="testSuperAdminDetection()">✅ Test isSuperAdmin()</button>
+            <p>Detection result: <span id="detectionResult">Not tested yet</span></p>
+        </div>
+        
+        <div class="test-step">
+            <h3>Step 4: Test Dashboard Access</h3>
+            <button class="btn btn-success" onclick="testDashboardAccess()">🚀 Test Dashboard Access</button>
+            <p>Dashboard result: <span id="dashboardResult">Not tested yet</span></p>
+        </div>
+    </div>
+
+    <script src="super-admin.js"></script>
+    <script>
+        function updateStatus(elementId, message, type = 'success') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<span class="status ${type}">${message}</span>`;
+        }
+
+        function checkInitialStatus() {
+            // Check SuperAdminManager
+            if (typeof SuperAdminManager !== 'undefined') {
+                updateStatus('managerStatus', 'Loaded ✅', 'success');
+            } else {
+                updateStatus('managerStatus', 'Not loaded ❌', 'error');
+            }
+
+            // Check Firebase
+            if (window.firebaseServices || window.firebaseProvider) {
+                updateStatus('firebaseStatus', 'Available ✅', 'success');
+            } else {
+                updateStatus('firebaseStatus', 'Not available ⚠️', 'warning');
+            }
+
+            // Check current admin
+            try {
+                if (SuperAdminManager && SuperAdminManager.isSuperAdmin()) {
+                    const admin = SuperAdminManager.getCurrentSuperAdmin();
+                    updateStatus('currentAdmin', `${admin.username} logged in ✅`, 'success');
+                } else {
+                    updateStatus('currentAdmin', 'No super admin logged in', 'warning');
+                }
+            } catch (error) {
+                updateStatus('currentAdmin', 'Check failed: ' + error.message, 'error');
+            }
+        }
+
+        async function testRBrown14Login() {
+            try {
+                updateStatus('loginResult', 'Testing...', 'warning');
+                
+                if (typeof SuperAdminManager === 'undefined') {
+                    updateStatus('loginResult', 'SuperAdminManager not available ❌', 'error');
+                    return;
+                }
+
+                const success = await SuperAdminManager.loginSuperAdmin('rbrown14@macrospos.com', 'Armoured@');
+                
+                if (success) {
+                    updateStatus('loginResult', 'rBrown14 login successful ✅', 'success');
+                    checkInitialStatus(); // Update current admin status
+                } else {
+                    updateStatus('loginResult', 'rBrown14 login failed ❌', 'error');
+                }
+            } catch (error) {
+                updateStatus('loginResult', 'Login error: ' + error.message + ' ❌', 'error');
+            }
+        }
+
+        async function testDefaultAdminLogin() {
+            try {
+                updateStatus('loginResult', 'Testing...', 'warning');
+                
+                if (typeof SuperAdminManager === 'undefined') {
+                    updateStatus('loginResult', 'SuperAdminManager not available ❌', 'error');
+                    return;
+                }
+
+                const success = await SuperAdminManager.loginSuperAdmin('admin@macrospos.com', 'Armoured@2025!');
+                
+                if (success) {
+                    updateStatus('loginResult', 'Default admin login successful ✅', 'success');
+                    checkInitialStatus(); // Update current admin status
+                } else {
+                    updateStatus('loginResult', 'Default admin login failed ❌', 'error');
+                }
+            } catch (error) {
+                updateStatus('loginResult', 'Login error: ' + error.message + ' ❌', 'error');
+            }
+        }
+
+        function testSuperAdminDetection() {
+            try {
+                if (typeof SuperAdminManager === 'undefined') {
+                    updateStatus('detectionResult', 'SuperAdminManager not available ❌', 'error');
+                    return;
+                }
+
+                const isSuper = SuperAdminManager.isSuperAdmin();
+                
+                if (isSuper) {
+                    const admin = SuperAdminManager.getCurrentSuperAdmin();
+                    updateStatus('detectionResult', `Detected as super admin: ${admin.username} ✅`, 'success');
+                } else {
+                    updateStatus('detectionResult', 'Not detected as super admin ❌', 'error');
+                }
+            } catch (error) {
+                updateStatus('detectionResult', 'Detection error: ' + error.message + ' ❌', 'error');
+            }
+        }
+
+        function testDashboardAccess() {
+            try {
+                if (typeof SuperAdminManager === 'undefined') {
+                    updateStatus('dashboardResult', 'SuperAdminManager not available ❌', 'error');
+                    return;
+                }
+
+                if (SuperAdminManager.isSuperAdmin()) {
+                    updateStatus('dashboardResult', 'Dashboard access would be granted ✅', 'success');
+                } else {
+                    updateStatus('dashboardResult', 'Dashboard access would be denied ❌', 'error');
+                }
+            } catch (error) {
+                updateStatus('dashboardResult', 'Dashboard test error: ' + error.message + ' ❌', 'error');
+            }
+        }
+
+        // Check status on page load
+        setTimeout(checkInitialStatus, 1000);
+    </script>
+</body>
+</html>
