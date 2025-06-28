@@ -12,6 +12,8 @@ class UniversalAutoSyncManager {
         this.changeListeners = new Set();
         this.retryCount = 0;
         this.maxRetries = 3;
+        this.umbrellaManagerRetryCount = 0;
+        this.maxUmbrellaManagerRetries = 5;
         
         // Sync configuration
         this.config = {
@@ -52,21 +54,43 @@ class UniversalAutoSyncManager {
     async waitForDependencies() {
         this.log('⏳ Waiting for dependencies...', 'info');
         
-        // Wait for Firebase services
+        // Wait for Firebase services (optional)
         let attempts = 0;
-        while (!window.firebaseServices && attempts < 100) {
+        while (!window.firebaseServices && attempts < 50) { // Reduced timeout for Firebase
             await new Promise(resolve => setTimeout(resolve, 100));
             attempts++;
         }
         
-        // Wait for umbrella manager
+        if (window.firebaseServices) {
+            this.log('✅ Firebase services available', 'success');
+        } else {
+            this.log('⚠️ Firebase services not available - continuing without Firebase sync', 'warn');
+        }
+        
+        // Wait for umbrella manager (optional)
         attempts = 0;
-        while (!window.umbrellaManager && attempts < 100) {
+        while (!window.umbrellaManager && attempts < 50) { // Reduced timeout for umbrella manager
             await new Promise(resolve => setTimeout(resolve, 100));
             attempts++;
         }
         
-        this.log('✅ Dependencies loaded', 'success');
+        if (window.umbrellaManager) {
+            this.log('✅ Umbrella manager available', 'success');
+        } else {
+            this.log('⚠️ Umbrella manager not available - continuing with localStorage-only sync', 'warn');
+        }
+        
+        this.log('✅ Dependency check completed', 'success');
+    }
+
+    /**
+     * Check if umbrella manager is ready and has required methods
+     * @returns {boolean}
+     */
+    isUmbrellaManagerReady() {
+        return !!(window.umbrellaManager && 
+                  typeof window.umbrellaManager.setCurrentBusiness === 'function' &&
+                  typeof window.umbrellaManager.currentBusiness !== 'undefined');
     }
 
     setupAutoSync() {
@@ -613,7 +637,7 @@ class UniversalAutoSyncManager {
             const userData = JSON.parse(localUser);
 
             // Ensure umbrella manager has the business context
-            if (!window.umbrellaManager?.currentBusiness) {
+            if (!window.umbrellaManager?.currentBusiness && this.isUmbrellaManagerReady()) {
                 this.log('🔗 Setting business in umbrella manager...', 'info');
                 
                 const umbrellaBusinessData = {
@@ -629,8 +653,29 @@ class UniversalAutoSyncManager {
                     source: 'auto_sync_manager'
                 };
 
-                window.umbrellaManager.setCurrentBusiness(umbrellaBusinessData.id, umbrellaBusinessData);
-                this.log(`✅ Business set in umbrella manager: ${umbrellaBusinessData.companyName}`, 'success');
+                try {
+                    window.umbrellaManager.setCurrentBusiness(umbrellaBusinessData.id, umbrellaBusinessData);
+                    this.log(`✅ Business set in umbrella manager: ${umbrellaBusinessData.companyName}`, 'success');
+                } catch (methodError) {
+                    this.log(`⚠️ Umbrella manager method error: ${methodError.message}`, 'warn');
+                }
+            } else if (!this.isUmbrellaManagerReady()) {
+                this.umbrellaManagerRetryCount++;
+                
+                if (this.umbrellaManagerRetryCount <= this.maxUmbrellaManagerRetries) {
+                    this.log(`⚠️ Umbrella manager not ready - scheduling retry ${this.umbrellaManagerRetryCount}/${this.maxUmbrellaManagerRetries}`, 'warn');
+                    // Retry after a short delay if umbrella manager is not ready
+                    setTimeout(() => {
+                        if (this.isUmbrellaManagerReady()) {
+                            this.log('🔄 Umbrella manager now ready - retrying business context sync', 'info');
+                            this.umbrellaManagerRetryCount = 0; // Reset on success
+                            this.syncBusinessContext();
+                        }
+                    }, 3000); // Retry after 3 seconds
+                } else {
+                    this.log(`❌ Umbrella manager not available after ${this.maxUmbrellaManagerRetries} attempts - stopping retries`, 'error');
+                    this.umbrellaManagerRetryCount = 0; // Reset for next cycle
+                }
             }
 
             // Sync to Firebase if available
@@ -1038,7 +1083,7 @@ class UniversalAutoSyncManager {
     }
 }
 
-// Auto-initialize when script loads
+// Auto-initialize when script loads (can be disabled by setting window.disableAutoSyncAutoInit = true)
 let globalAutoSyncManager = null;
 
 // Initialize after DOM is ready
@@ -1049,6 +1094,12 @@ if (document.readyState === 'loading') {
 }
 
 function initializeAutoSync() {
+    // Allow disabling auto-initialization
+    if (window.disableAutoSyncAutoInit) {
+        console.log('🚫 Auto-sync auto-initialization disabled');
+        return;
+    }
+    
     if (!globalAutoSyncManager) {
         globalAutoSyncManager = new UniversalAutoSyncManager();
         window.autoSyncManager = globalAutoSyncManager;

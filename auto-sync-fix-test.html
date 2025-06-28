@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-Sync Manager Fix Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .status-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 10px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .console-log {
+            background: #1e1e1e;
+            color: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .error { color: #ff6b6b; }
+        .success { color: #51cf66; }
+        .info { color: #74c0fc; }
+        .warn { color: #ffd43b; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Auto-Sync Manager Fix Test</h1>
+    
+    <div class="status-card">
+        <h3>Current Status</h3>
+        <p id="status">Initializing...</p>
+        
+        <h4>Dependencies</h4>
+        <ul>
+            <li>Auto-Sync Manager: <span id="autoSyncStatus">❓</span></li>
+            <li>Umbrella Manager: <span id="umbrellaStatus">❓</span></li>
+            <li>Firebase Services: <span id="firebaseStatus">❓</span></li>
+        </ul>
+        
+        <h4>Test Controls</h4>
+        <button onclick="testBusinessSync()">Test Business Sync</button>
+        <button onclick="triggerSync()">Trigger Manual Sync</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+    </div>
+    
+    <div class="status-card">
+        <h3>Console Logs</h3>
+        <div id="consoleLogs" class="console-log">
+            Waiting for logs...
+        </div>
+    </div>
+
+    <!-- Set up some test business data -->
+    <script>
+        // Set up test localStorage data
+        const testBusinessData = {
+            id: 'test_business_123',
+            name: 'Test Restaurant',
+            businessName: 'Test Restaurant',
+            createdAt: new Date().toISOString()
+        };
+        
+        const testUserData = {
+            name: 'Test Owner',
+            businessName: 'Test Restaurant',
+            businessType: 'restaurant',
+            email: 'test@example.com'
+        };
+        
+        localStorage.setItem('currentBusiness', JSON.stringify(testBusinessData));
+        localStorage.setItem('currentUser', JSON.stringify(testUserData));
+        
+        console.log('🧪 Test data set in localStorage');
+    </script>
+    
+    <!-- Load Firebase services first -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
+        
+        const firebaseConfig = {
+            apiKey: "test-key",
+            authDomain: "test.firebaseapp.com",
+            projectId: "test-project"
+        };
+        
+        try {
+            const app = initializeApp(firebaseConfig);
+            window.firebaseApp = app;
+            console.log('🔥 Firebase app initialized (test mode)');
+        } catch (error) {
+            console.log('⚠️ Firebase initialization failed (expected in test mode):', error.message);
+        }
+    </script>
+    
+    <!-- Load the universal auto-sync manager -->
+    <script src="js/universal-auto-sync-manager.js"></script>
+    
+    <script>
+        let consoleLogsElement = document.getElementById('consoleLogs');
+        let originalConsoleLog = console.log;
+        let originalConsoleError = console.error;
+        let originalConsoleWarn = console.warn;
+        
+        // Capture console output
+        function captureConsole(type, ...args) {
+            const message = args.join(' ');
+            const timestamp = new Date().toTimeString().split(' ')[0];
+            const logEntry = `[${timestamp}] ${message}`;
+            
+            // Add to our display
+            consoleLogsElement.innerHTML += `<div class="${type}">${logEntry}</div>`;
+            consoleLogsElement.scrollTop = consoleLogsElement.scrollHeight;
+            
+            // Call original console method
+            if (type === 'error') originalConsoleError(...args);
+            else if (type === 'warn') originalConsoleWarn(...args);
+            else originalConsoleLog(...args);
+        }
+        
+        console.log = (...args) => captureConsole('info', ...args);
+        console.error = (...args) => captureConsole('error', ...args);
+        console.warn = (...args) => captureConsole('warn', ...args);
+        
+        function updateStatus() {
+            // Check dependencies
+            document.getElementById('autoSyncStatus') = window.autoSyncManager ? '✅' : '❌';
+            document.getElementById('umbrellaStatus') = window.umbrellaManager ? '✅' : '❌';
+            document.getElementById('firebaseStatus') = window.firebaseServices ? '✅' : '❌';
+            
+            let statusText = 'Monitoring console for sync errors...';
+            if (window.autoSyncManager) {
+                statusText = 'Auto-sync manager loaded successfully. Watch console for any error spam.';
+            }
+            
+            document.getElementById('status').textContent = statusText;
+        }
+        
+        function testBusinessSync() {
+            console.log('🧪 Testing business sync...');
+            if (window.autoSyncManager) {
+                window.autoSyncManager.syncBusinessContext();
+            } else {
+                console.error('Auto-sync manager not available');
+            }
+        }
+        
+        function triggerSync() {
+            console.log('🔄 Triggering manual sync...');
+            if (window.autoSyncManager) {
+                window.autoSyncManager.performFullSync();
+            } else {
+                console.error('Auto-sync manager not available');
+            }
+        }
+        
+        function clearLogs() {
+            consoleLogsElement.innerHTML = 'Logs cleared...';
+        }
+        
+        // Update status every second
+        setInterval(updateStatus, 1000);
+        
+        // Initialize auto-sync manager
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Initializing auto-sync manager test...');
+            
+            // Initialize the auto-sync manager
+            if (typeof UniversalAutoSyncManager !== 'undefined') {
+                window.autoSyncManager = new UniversalAutoSyncManager();
+                console.log('✅ Auto-sync manager created');
+            } else {
+                console.error('❌ UniversalAutoSyncManager class not found');
+            }
+        });
+        
+        // Monitor for spam
+        let errorCount = 0;
+        let lastErrorTime = 0;
+        
+        const originalError = console.error;
+        console.error = function(...args) {
+            const now = Date.now();
+            if (now - lastErrorTime < 5000) { // Same error within 5 seconds
+                errorCount++;
+                if (errorCount > 3) {
+                    console.warn(`🚨 SPAM DETECTED: ${errorCount} similar errors in quick succession`);
+                }
+            } else {
+                errorCount = 1;
+            }
+            lastErrorTime = now;
+            
+            captureConsole('error', ...args);
+        };
+    </script>
+</body>
+</html>
