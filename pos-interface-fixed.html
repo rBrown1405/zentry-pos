@@ -8987,6 +8987,146 @@
         }
         // --- END MENU UPLOAD & LOCALSTORAGE LOGIC ---
 
+        // ===== MISSING NAVIGATION FUNCTIONS =====
+        
+        // Business Management Functions
+        function openBusinessManagement() {
+            console.log('Opening Business Management...');
+            // Navigate to business management page or open modal
+            window.open('business-settings.html', '_blank');
+        }
+        
+        function openPropertyManagement() {
+            console.log('Opening Property Management...');
+            // Navigate to property management page
+            window.open('property-management.html', '_blank');
+        }
+        
+        function openUserManagement() {
+            console.log('Opening User Management...');
+            // Navigate to user management page
+            window.open('staff-management.html', '_blank');
+        }
+        
+        // Property Connection Modal Function
+        function showPropertyConnectionModal() {
+            console.log('Showing Property Connection Modal...');
+            
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                backdrop-filter: blur(5px);
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; padding: 2rem; border-radius: 12px; text-align: center; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); max-width: 500px; width: 90%;">
+                    <h3 style="margin-bottom: 1rem; color: #2d3748; font-size: 1.5rem;">🔗 Property Connection</h3>
+                    <p style="color: #4a5568; margin-bottom: 2rem; line-height: 1.6;">Connect this POS terminal to a specific property to enable location-based features and reporting.</p>
+                    
+                    <div style="margin-bottom: 2rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #2d3748;">Select Property:</label>
+                        <select id="propertySelect" style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                            <option value="">Choose a property...</option>
+                            <option value="main-restaurant">Main Restaurant</option>
+                            <option value="hotel-bar">Hotel Bar</option>
+                            <option value="rooftop-lounge">Rooftop Lounge</option>
+                            <option value="room-service">Room Service</option>
+                        </select>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem; justify-content: center;">
+                        <button onclick="connectToProperty()" style="background: #2563eb; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600;">Connect</button>
+                        <button onclick="this.closest('[style*=\\"position: fixed\\"]').remove()" style="background: #6b7280; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600;">Cancel</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Remove modal when clicking outside
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+        
+        function connectToProperty() {
+            const select = document.getElementById('propertySelect');
+            const selectedProperty = select.value;
+            
+            if (!selectedProperty) {
+                alert('Please select a property to connect to.');
+                return;
+            }
+            
+            // Store the connection in localStorage
+            localStorage.setItem('connectedProperty', selectedProperty);
+            localStorage.setItem('propertyConnectionTime', new Date().toISOString());
+            
+            // Close modal
+            document.querySelector('[style*="position: fixed"]').remove();
+            
+            // Show success notification
+            alert(`Connected to ${select.options[select.selectedIndex].text} successfully!`);
+            
+            console.log('Connected to property:', selectedProperty);
+        }
+        
+        // General Settings Function
+        function openGeneralSettings() {
+            console.log('Opening General Settings...');
+            window.open('settings.html', '_blank');
+        }
+        
+        // Return to Super Admin Dashboard
+        function returnToSuperAdminDashboard() {
+            console.log('Returning to Super Admin Dashboard...');
+            // Check if we came from super admin context
+            const userRole = localStorage.getItem('userRole');
+            if (userRole === 'super_admin') {
+                window.location.href = 'super-admin-dashboard.html';
+            } else {
+                window.location.href = 'business-dashboard.html';
+            }
+        }
+        
+        // Enhanced Logout Function
+        function logout() {
+            console.log('Logging out...');
+            
+            if (confirm('Are you sure you want to logout? Any unsaved changes will be lost.')) {
+                // Clear user session data
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('currentBusiness');
+                localStorage.removeItem('connectedProperty');
+                
+                // Clear any cart data
+                localStorage.removeItem('currentCart');
+                localStorage.removeItem('tableOrders');
+                
+                console.log('User logged out successfully');
+                
+                // Redirect to login page
+                window.location.href = 'login.html';
+            }
+        }
+        
+        // Initialize navigation functions on page load
+        console.log('✅ Navigation functions initialized');
+
         // ...existing code...
     </script>
 </html>
