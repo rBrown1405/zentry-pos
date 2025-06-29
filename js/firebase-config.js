@@ -16,35 +16,70 @@ console.log('🔥 Firebase config script loading...');
 // Initialize Firebase services variables
 let app, auth, db, storage;
 
-// Clear any existing Firebase apps to prevent conflicts
-if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
-  console.log('🔄 Clearing existing Firebase apps to prevent conflicts...');
-  firebase.apps.forEach(app => {
-    try {
-      app.delete();
-    } catch (error) {
-      console.warn('Warning: Could not delete existing Firebase app:', error);
-    }
+// Function to wait for Firebase SDK to be available
+function waitForFirebaseSDK(maxWait = 10000) {
+  return new Promise((resolve, reject) => {
+    const startTime = Date.now();
+    
+    const checkFirebase = () => {
+      if (typeof firebase !== 'undefined' && firebase.initializeApp) {
+        console.log('✅ Firebase SDK detected and ready');
+        resolve();
+        return;
+      }
+      
+      if (Date.now() - startTime > maxWait) {
+        reject(new Error('Firebase SDK not loaded within timeout'));
+        return;
+      }
+      
+      setTimeout(checkFirebase, 100);
+    };
+    
+    checkFirebase();
   });
 }
 
-// Check if Firebase is available
-if (typeof firebase === 'undefined') {
-  console.error('❌ Firebase SDK not loaded! Make sure Firebase scripts are included before firebase-config.js');
-} else {
+// Initialize Firebase after SDK is available
+async function initializeFirebaseApp() {
   try {
+    await waitForFirebaseSDK();
+    
+    // Clear any existing Firebase apps to prevent conflicts
+    if (firebase.apps && firebase.apps.length > 0) {
+      console.log('🔄 Clearing existing Firebase apps to prevent conflicts...');
+      firebase.apps.forEach(app => {
+        try {
+          app.delete();
+        } catch (error) {
+          console.warn('Warning: Could not delete existing Firebase app:', error);
+        }
+      });
+    }
+
     app = firebase.initializeApp(firebaseConfig);
     console.log('✅ Firebase app initialized successfully with API key:', firebaseConfig.apiKey.substring(0, 10) + '...');
     
     // Make app available globally
     window.firebaseApp = app;
     
+    return app;
   } catch (error) {
     console.error('❌ Failed to initialize Firebase app:', error);
-    // Set app to null to indicate failure
     app = null;
+    throw error;
   }
 }
+
+// Auto-initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    await initializeFirebaseApp();
+    console.log('🎉 Firebase app auto-initialized');
+  } catch (error) {
+    console.error('❌ Failed to auto-initialize Firebase app:', error);
+  }
+});
 
 function initializeFirebase() {
   return new Promise((resolve, reject) => {

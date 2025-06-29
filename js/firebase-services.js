@@ -16,8 +16,9 @@ class FirebaseServices {
         try {
             console.log('🔥 Initializing Firebase Services...');
             
-            // Wait for Firebase SDK to be available
+            // Wait for Firebase SDK and app to be available
             await this.waitForFirebaseSDK();
+            await this.waitForFirebaseApp();
             
             // Check if Firebase is available
             if (typeof firebase === 'undefined') {
@@ -84,6 +85,29 @@ class FirebaseServices {
         });
     }
 
+    async waitForFirebaseApp(maxWait = 10000) {
+        return new Promise((resolve, reject) => {
+            const startTime = Date.now();
+            
+            const checkFirebaseApp = () => {
+                if (typeof firebase !== 'undefined' && firebase.app && firebase.apps && firebase.apps.length > 0) {
+                    console.log('✅ Firebase app detected');
+                    resolve();
+                    return;
+                }
+                
+                if (Date.now() - startTime > maxWait) {
+                    reject(new Error('Firebase app not initialized within timeout'));
+                    return;
+                }
+                
+                setTimeout(checkFirebaseApp, 100);
+            };
+            
+            checkFirebaseApp();
+        });
+    }
+
     async waitForInitialization(maxWait = 15000) {
         return new Promise((resolve, reject) => {
             const startTime = Date.now();
@@ -144,7 +168,7 @@ window.firebaseServices = new FirebaseServices();
 
 // Auto-initialize when DOM is ready, with retry logic
 document.addEventListener('DOMContentLoaded', async () => {
-    // Add a small delay to ensure Firebase SDK scripts have loaded
+    // Add a longer delay to ensure Firebase SDK scripts have loaded
     setTimeout(async () => {
         try {
             await window.firebaseServices.initialize();
@@ -161,7 +185,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } catch (retryError) {
                     console.error('❌ Firebase Services initialization failed on retry:', retryError);
                 }
-            }, 2000);
+            }, 3000);
         }
-    }, 500);
+    }, 1000);
 });

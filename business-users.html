@@ -666,16 +666,19 @@
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', async function() {
-            await initializeFirebase();
-            checkPermissions();
-            loadCurrentUser();
-            await loadUsers();
-            
-            // Add event listeners
-            document.getElementById('searchInput').addEventListener('input', filterUsers);
-            document.getElementById('roleFilter').addEventListener('change', filterUsers);
-            document.getElementById('statusFilter').addEventListener('change', filterUsers);
-            document.getElementById('userForm').addEventListener('submit', handleSubmit);
+            // Add delay to ensure Firebase is ready
+            setTimeout(async () => {
+                await initializeFirebase();
+                checkPermissions();
+                loadCurrentUser();
+                await loadUsers();
+                
+                // Add event listeners
+                document.getElementById('searchInput').addEventListener('input', filterUsers);
+                document.getElementById('roleFilter').addEventListener('change', filterUsers);
+                document.getElementById('statusFilter').addEventListener('change', filterUsers);
+                document.getElementById('userForm').addEventListener('submit', handleSubmit);
+            }, 1500);
         });
 
         async function initializeFirebase() {
