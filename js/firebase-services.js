@@ -62,18 +62,24 @@ class FirebaseServices {
         }
     }
 
-    async waitForFirebaseSDK(maxWait = 10000) {
+    async waitForFirebaseSDK(maxWait = 20000) {
         return new Promise((resolve, reject) => {
             const startTime = Date.now();
             
             const checkFirebase = () => {
-                if (typeof firebase !== 'undefined' && firebase.app) {
-                    console.log('✅ Firebase SDK detected');
+                if (typeof firebase !== 'undefined' && firebase.app && typeof firebase.auth === 'function' && typeof firebase.firestore === 'function') {
+                    console.log('✅ Firebase SDK detected with all required services');
                     resolve();
                     return;
                 }
                 
                 if (Date.now() - startTime > maxWait) {
+                    console.error('❌ Firebase SDK timeout. Available:', {
+                        firebase: typeof firebase !== 'undefined',
+                        app: typeof firebase !== 'undefined' ? !!firebase.app : false,
+                        auth: typeof firebase !== 'undefined' ? typeof firebase.auth : 'undefined',
+                        firestore: typeof firebase !== 'undefined' ? typeof firebase.firestore : 'undefined'
+                    });
                     reject(new Error('Firebase SDK not loaded within timeout'));
                     return;
                 }
@@ -85,18 +91,31 @@ class FirebaseServices {
         });
     }
 
-    async waitForFirebaseApp(maxWait = 10000) {
+    async waitForFirebaseApp(maxWait = 20000) {
         return new Promise((resolve, reject) => {
             const startTime = Date.now();
             
             const checkFirebaseApp = () => {
-                if (typeof firebase !== 'undefined' && firebase.app && firebase.apps && firebase.apps.length > 0) {
-                    console.log('✅ Firebase app detected');
-                    resolve();
-                    return;
+                try {
+                    if (typeof firebase !== 'undefined' && firebase.app && firebase.apps && firebase.apps.length > 0) {
+                        // Try to get the app to make sure it's properly initialized
+                        const app = firebase.app();
+                        if (app && app.options) {
+                            console.log('✅ Firebase app detected and validated');
+                            resolve();
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.log('⏳ Firebase app not ready yet:', error.message);
                 }
                 
                 if (Date.now() - startTime > maxWait) {
+                    console.error('❌ Firebase app timeout. Status:', {
+                        firebase: typeof firebase !== 'undefined',
+                        app: typeof firebase !== 'undefined' ? !!firebase.app : false,
+                        apps: typeof firebase !== 'undefined' && firebase.apps ? firebase.apps.length : 0
+                    });
                     reject(new Error('Firebase app not initialized within timeout'));
                     return;
                 }
@@ -108,7 +127,7 @@ class FirebaseServices {
         });
     }
 
-    async waitForInitialization(maxWait = 15000) {
+    async waitForInitialization(maxWait = 25000) {
         return new Promise((resolve, reject) => {
             const startTime = Date.now();
             
@@ -119,6 +138,7 @@ class FirebaseServices {
                 }
                 
                 if (Date.now() - startTime > maxWait) {
+                    console.error('❌ Firebase Services initialization timeout after', maxWait, 'ms');
                     reject(new Error('Firebase Services initialization timeout'));
                     return;
                 }
@@ -176,16 +196,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             console.error('❌ Failed to auto-initialize Firebase Services:', error);
             
-            // Retry once after a longer delay
+            // Retry twice with increasing delays
             setTimeout(async () => {
                 try {
-                    console.log('🔄 Retrying Firebase Services initialization...');
+                    console.log('🔄 Retrying Firebase Services initialization (attempt 1)...');
                     await window.firebaseServices.initialize();
-                    console.log('🎉 Firebase Services initialized on retry');
+                    console.log('🎉 Firebase Services initialized on retry 1');
                 } catch (retryError) {
-                    console.error('❌ Firebase Services initialization failed on retry:', retryError);
+                    console.error('❌ Firebase Services initialization failed on retry 1:', retryError);
+                    
+                    // Final retry
+                    setTimeout(async () => {
+                        try {
+                            console.log('🔄 Final retry of Firebase Services initialization (attempt 2)...');
+                            await window.firebaseServices.initialize();
+                            console.log('🎉 Firebase Services initialized on final retry');
+                        } catch (finalError) {
+                            console.error('❌ Firebase Services initialization failed completely:', finalError);
+                        }
+                    }, 5000);
                 }
             }, 3000);
         }
-    }, 1000);
+    }, 2000);
 });
