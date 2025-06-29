@@ -3,8 +3,596 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Business Dashboard - Macros POS</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Business Dashboard - Zentry POS</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1e40af;
+            --text-color: #1f2937;
+            --text-secondary: #4b5563;
+            --background-color: #ffffff;
+            --highlight-gradient: linear-gradient(135deg, #2563eb, #4f46e5);
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            color: var(--text-color);
+        }
+
+        /* Header */
+        .dashboard-nav {
+            background: var(--highlight-gradient);
+            color: white;
+            border-bottom: none;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--card-shadow);
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .logo {
+            background: white;
+            color: var(--primary-color);
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            font-weight: 800;
+            box-shadow: var(--card-shadow);
+            transition: transform 0.2s ease;
+        }
+
+        .logo:hover {
+            transform: scale(1.05);
+        }
+
+        .business-info h2 {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .business-info p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-right {
+            position: relative;
+        }
+
+        .profile-button {
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.875rem 1.25rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .profile-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .profile-menu {
+            position: absolute;
+            top: calc(100% + 15px);
+            right: 0;
+            background: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem;
+            min-width: 180px;
+            display: none;
+            box-shadow: var(--card-shadow-hover);
+            backdrop-filter: blur(10px);
+        }
+
+        .profile-menu.show {
+            display: block;
+            animation: dropIn 0.2s ease-out;
+        }
+
+        .profile-menu button {
+            width: 100%;
+            background: var(--error-color);
+            border: none;
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        .profile-menu button:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+        }
+
+        @keyframes dropIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Main Container */
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 0;
+            min-height: calc(100vh - 98px);
+        }
+
+        /* Sidebar */
+        .dashboard-sidebar {
+            background: white;
+            padding: 2rem 1.5rem;
+            border-right: 1px solid #e5e7eb;
+            box-shadow: var(--card-shadow);
+        }
+
+        .menu-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .menu-section h3 {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+            padding-left: 0.5rem;
+        }
+
+        .menu-button {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            padding: 1rem 1.25rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .menu-button:hover {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary-color);
+            transform: translateX(4px);
+        }
+
+        .menu-button.active {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: var(--card-shadow);
+        }
+
+        .menu-button .icon {
+            font-size: 1.25rem;
+            width: 24px;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+
+        .menu-button:hover .icon {
+            transform: scale(1.1);
+        }
+
+        /* Main Content */
+        .dashboard-main {
+            background: transparent;
+            padding: 2.5rem;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .dashboard-header h1 {
+            color: var(--text-color);
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: var(--highlight-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .action-button {
+            background: var(--primary-color);
+            border: none;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: var(--card-shadow);
+        }
+
+        .action-button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        .action-button.secondary {
+            background: white;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+
+        .action-button.secondary:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .dashboard-card {
+            background: white;
+            border: none;
+            border-radius: 20px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            box-shadow: var(--card-shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--highlight-gradient);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        .dashboard-card h3 {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .card-value {
+            color: var(--text-color);
+            font-size: 2.75rem;
+            font-weight: 800;
+            line-height: 1;
+            background: var(--highlight-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .card-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .card-change {
+            font-size: 0.875rem;
+            font-weight: 600;
+            padding: 0.375rem 0.75rem;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: fit-content;
+        }
+
+        .card-change.positive {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+        }
+
+        .card-change.negative {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error-color);
+        }
+
+        /* Sections */
+        .dashboard-sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .recent-activity,
+        .quick-stats {
+            background: white;
+            border: none;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+        }
+
+        .recent-activity:hover,
+        .quick-stats:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        .recent-activity h2,
+        .quick-stats h2 {
+            color: var(--text-color);
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .recent-activity h2::before {
+            content: '⚡';
+            font-size: 1.25rem;
+        }
+
+        .quick-stats h2::before {
+            content: '📊';
+            font-size: 1.25rem;
+        }
+
+        .activity-list {
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .no-activity {
+            color: var(--text-secondary);
+            font-style: italic;
+            text-align: center;
+            padding: 2rem;
+            background: rgba(37, 99, 235, 0.05);
+            border-radius: 12px;
+            border: 2px dashed rgba(37, 99, 235, 0.2);
+        }
+
+        .stats-grid {
+            display: grid;
+            gap: 1.5rem;
+            min-height: 200px;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-sidebar {
+                border-right: none;
+                border-bottom: 1px solid #e5e7eb;
+                padding: 1.5rem;
+            }
+
+            .menu-section {
+                margin-bottom: 1.5rem;
+            }
+
+            .dashboard-sections {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-nav {
+                padding: 1.5rem 1rem;
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .nav-left {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .dashboard-main {
+                padding: 1.5rem;
+            }
+
+            .dashboard-header {
+                flex-direction: column;
+                gap: 1.5rem;
+                align-items: stretch;
+                text-align: center;
+            }
+
+            .dashboard-header h1 {
+                font-size: 2rem;
+            }
+
+            .quick-actions {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .dashboard-sections {
+                gap: 1.5rem;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(37, 99, 235, 0.2);
+            border-radius: 50%;
+            border-top: 3px solid var(--primary-color);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Animations */
+        .dashboard-card {
+            animation: slideUp 0.4s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .menu-button {
+            animation: slideRight 0.3s ease-out;
+        }
+
+        @keyframes slideRight {
+            from {
+                opacity: 0;
+                transform: translateX(-15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Enhanced Visual Elements */
+        .dashboard-card::after {
+            content: '';
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 40px;
+            height: 40px;
+            background: rgba(37, 99, 235, 0.05);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-card:hover::after {
+            background: rgba(37, 99, 235, 0.1);
+            transform: scale(1.2);
+        }
+
+        /* Improved scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+    </style>
 </head>
 <body>
     <!-- Cache buster -->
@@ -45,7 +633,7 @@
     <script src="business-dashboard.js" defer></script>
     <nav class="dashboard-nav">
         <div class="nav-left">
-            <div class="logo">M</div>
+            <div class="logo">Z</div>
             <div class="business-info">
                 <h2 id="businessName">Loading...</h2>
                 <p id="businessType">Loading...</p>
@@ -55,9 +643,10 @@
             <button class="profile-button" onclick="toggleProfileMenu()">
                 <span class="profile-icon">👤</span>
                 <span id="ownerName">Loading...</span>
+                <span style="font-size: 0.75rem;">▼</span>
             </button>
             <div class="profile-menu" id="profileMenu">
-                <button onclick="handleLogout()">Sign Out</button>
+                <button onclick="handleLogout()">🚪 Sign Out</button>
             </div>
         </div>
     </nav>
@@ -65,9 +654,9 @@
     <div class="dashboard-container">
         <div class="dashboard-sidebar">
             <div class="menu-section">
-                <h3>Management</h3>
+                <h3>Core Operations</h3>
                 <button onclick="navigateWithTransition('pos-interface-fixed.html')" class="menu-button">
-                    <span class="icon">💰</span>
+                    <span class="icon">�</span>
                     Point of Sale
                 </button>
                 <button onclick="navigateWithTransition('room-service-menu-editor.html')" class="menu-button">
@@ -79,13 +668,13 @@
                     Staff Management
                 </button>
                 <button onclick="navigateWithTransition('floor-plan-editor.html')" class="menu-button">
-                    <span class="icon">🪑</span>
-                    Floor Plan Management
+                    <span class="icon">🗺️</span>
+                    Floor Plan
                 </button>
             </div>
 
             <div class="menu-section">
-                <h3>Settings</h3>
+                <h3>Configuration</h3>
                 <button onclick="setCurrentBusinessAndNavigate()" class="menu-button">
                     <span class="icon">⚙️</span>
                     Business Settings
@@ -95,6 +684,18 @@
                     Property Management
                 </button>
             </div>
+
+            <div class="menu-section">
+                <h3>Analytics</h3>
+                <button class="menu-button">
+                    <span class="icon">📊</span>
+                    Reports & Analytics
+                </button>
+                <button class="menu-button">
+                    <span class="icon">💰</span>
+                    Financial Overview
+                </button>
+            </div>
         </div>
 
         <main class="dashboard-main">
@@ -102,43 +703,43 @@
                 <h1>Business Dashboard</h1>
                 <div class="quick-actions">
                     <button class="action-button" onclick="navigateWithTransition('pos-interface-fixed.html')">
-                        Launch POS
+                        🚀 Launch POS
                     </button>
-                    <button class="action-button" onclick="navigateWithTransition('staff-registration.html')">
-                        Add Staff
+                    <button class="action-button secondary" onclick="navigateWithTransition('staff-registration.html')">
+                        ➕ Add Staff
                     </button>
                 </div>
             </div>
 
             <div class="dashboard-grid">
                 <div class="dashboard-card">
-                    <h3>Today's Sales</h3>
+                    <h3>💰 Today's Sales</h3>
                     <div class="card-content">
-                        <span class="card-value" id="todaySales">$0.00</span>
-                        <span class="card-change positive">+0% from yesterday</span>
+                        <span class="card-value" id="todaySales">$1,234.56</span>
+                        <span class="card-change positive">📈 +10% from yesterday</span>
                     </div>
                 </div>
 
                 <div class="dashboard-card">
-                    <h3>Active Staff</h3>
+                    <h3>👥 Active Staff</h3>
                     <div class="card-content">
-                        <span class="card-value" id="activeStaff">0</span>
+                        <span class="card-value" id="activeStaff">3</span>
                         <span class="card-label">members on duty</span>
                     </div>
                 </div>
 
                 <div class="dashboard-card">
-                    <h3>Open Tables</h3>
+                    <h3>🪑 Open Tables</h3>
                     <div class="card-content">
-                        <span class="card-value" id="openTables">0/0</span>
+                        <span class="card-value" id="openTables">5/12</span>
                         <span class="card-label">tables in service</span>
                     </div>
                 </div>
 
                 <div class="dashboard-card">
-                    <h3>Average Service Time</h3>
+                    <h3>⏱️ Avg Service Time</h3>
                     <div class="card-content">
-                        <span class="card-value" id="avgServiceTime">0 min</span>
+                        <span class="card-value" id="avgServiceTime">45 min</span>
                         <span class="card-label">per table</span>
                     </div>
                 </div>
@@ -148,14 +749,18 @@
                 <section class="recent-activity">
                     <h2>Recent Activity</h2>
                     <div class="activity-list" id="activityList">
-                        <p class="no-activity">No recent activity to display</p>
+                        <p class="no-activity">🎯 All caught up! No recent activity to display.</p>
                     </div>
                 </section>
 
                 <section class="quick-stats">
                     <h2>Quick Statistics</h2>
                     <div class="stats-grid" id="quickStats">
-                        <!-- Stats will be populated by JavaScript -->
+                        <div style="text-align: center; color: var(--text-secondary); padding: 2rem;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">📈</div>
+                            <p>Analytics dashboard coming soon!</p>
+                            <p style="font-size: 0.875rem; margin-top: 0.5rem;">Track your business performance with detailed insights.</p>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -187,11 +792,23 @@
 
         function initializeDashboard() {
             // This function would normally fetch real-time data
-            // For now, we'll just show sample data
+            // For now, we'll show sample data with enhanced formatting
             document.getElementById('todaySales').textContent = '$1,234.56';
             document.getElementById('activeStaff').textContent = '3';
             document.getElementById('openTables').textContent = '5/12';
             document.getElementById('avgServiceTime').textContent = '45 min';
+            
+            // Add loading animation to cards
+            const cards = document.querySelectorAll('.dashboard-card');
+            cards.forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.1}s`;
+            });
+            
+            // Add staggered animation to menu buttons
+            const menuButtons = document.querySelectorAll('.menu-button');
+            menuButtons.forEach((button, index) => {
+                button.style.animationDelay = `${index * 0.05}s`;
+            });
         }
 
         function handleLogout() {
@@ -213,6 +830,16 @@
             const menu = document.getElementById('profileMenu');
             menu.classList.toggle('show');
         }
+
+        // Close profile menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const profileButton = document.querySelector('.profile-button');
+            const profileMenu = document.getElementById('profileMenu');
+            
+            if (!profileButton.contains(event.target)) {
+                profileMenu.classList.remove('show');
+            }
+        });
 
         function setCurrentBusinessAndNavigate() {
             // Trigger sync before navigation
