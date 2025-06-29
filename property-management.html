@@ -414,9 +414,9 @@
                     <span>➕</span>
                     Add Property
                 </button>
-                <a href="pos-interface-fixed.html" class="action-button secondary">
+                <a href="pos-interface-fixed.html" class="action-button secondary" id="backButton">
                     <span>←</span>
-                    Back to POS
+                    <span id="backButtonText">Back to POS</span>
                 </a>
             </div>
         </div>
@@ -488,10 +488,27 @@
                 currentUser = JSON.parse(currentUserData);
 
                 // Check if user has property management permissions
-                if (!['owner', 'manager', 'super_admin'].includes(currentUser.role)) {
+                if (!['owner', 'manager', 'admin', 'super_admin'].includes(currentUser.role)) {
                     alert('You do not have permission to access property management');
-                    window.location.href = 'pos-interface-fixed.html';
+                    window.location.href = 'business-dashboard.html';
                     return;
+                }
+
+                // Set appropriate back button based on user role
+                const backButton = document.getElementById('backButton');
+                const backButtonText = document.getElementById('backButtonText');
+                if (backButton && backButtonText) {
+                    if (currentUser.role === 'super_admin') {
+                        backButton.href = 'super-admin-dashboard.html';
+                        backButtonText.textContent = 'Back to Super Admin Dashboard';
+                    } else if (currentUser.role === 'admin') {
+                        backButton.href = 'business-dashboard.html';
+                        backButtonText.textContent = 'Back to Business Dashboard';
+                    } else {
+                        // For owner/manager, keep default to POS
+                        backButton.href = 'pos-interface-fixed.html';
+                        backButtonText.textContent = 'Back to POS';
+                    }
                 }
 
                 // Load umbrella account

@@ -1173,10 +1173,10 @@
                 <span>📚</span>
                 Help
             </button>
-            <a href="settings.html" class="btn secondary tooltip"
-               data-tooltip="Return to settings">
+            <a href="business-settings.html" class="btn secondary tooltip" id="backButton"
+               data-tooltip="Return to previous page">
                 <span>←</span>
-                Back to Settings
+                <span id="backButtonText">Back to Settings</span>
             </a>
         </div>
     </header>
@@ -1379,21 +1379,31 @@
                 }
                 
                 // Update back button for super admin
-                const backButton = document.querySelector('.header-actions a');
-                if (backButton) {
+                const backButton = document.getElementById('backButton');
+                const backButtonText = document.getElementById('backButtonText');
+                if (backButton && backButtonText) {
                     backButton.href = 'super-admin-dashboard.html';
-                    backButton.innerHTML = `
-                        <span>←</span>
-                        Back to Super Admin Dashboard
-                    `;
+                    backButtonText.textContent = 'Back to Super Admin Dashboard';
                 }
                 return;
             }
             
-            if (userRole !== 'owner' && userRole !== 'manager') {
+            // Business admin has access
+            if (userRole === 'admin') {
+                // Update back button for business admin
+                const backButton = document.getElementById('backButton');
+                const backButtonText = document.getElementById('backButtonText');
+                if (backButton && backButtonText) {
+                    backButton.href = 'business-dashboard.html';
+                    backButtonText.textContent = 'Back to Business Dashboard';
+                }
+                return;
+            }
+            
+            if (userRole !== 'owner' && userRole !== 'manager' && userRole !== 'admin') {
                 showNotification('You do not have permission to access staff management!', 'error');
                 setTimeout(() => {
-                    window.location.href = 'settings.html';
+                    window.location.href = 'business-dashboard.html';
                 }, 2000);
                 return;
             }
