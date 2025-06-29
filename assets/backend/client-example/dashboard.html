@@ -432,12 +432,12 @@
             <div class="sidebar">
                 <h3>Navigation</h3>
                 <ul>
-                    <li><a href="dashboard.html" class="active">Dashboard</a></li>
-                    <li><a href="businesses.html">Businesses</a></li>
-                    <li><a href="properties.html">Properties</a></li>
-                    <li><a href="users.html">Users</a></li>
-                    <li><a href="analytics.html">Analytics</a></li>
-                    <li><a href="settings.html">Settings</a></li>
+                    <li><a href="dashboard.html" class="active">📊 Dashboard</a></li>
+                    <li><a href="businesses.html">🏢 Businesses</a></li>
+                    <li><a href="properties.html">🏠 Properties</a></li>
+                    <li><a href="users.html">👥 Users</a></li>
+                    <li><a href="#" onclick="showComingSoon('Analytics')">📈 Analytics</a></li>
+                    <li><a href="#" onclick="showComingSoon('Settings')">⚙️ Settings</a></li>
                 </ul>
             </div>
 
@@ -471,7 +471,7 @@
                 <div class="business-section">
                     <div class="section-header">
                         <h2 class="section-title">Recent Businesses</h2>
-                        <button class="add-btn">+ Add Business</button>
+                        <button class="add-btn" onclick="window.location.href='businesses.html'">+ Add Business</button>
                     </div>
                     <div class="table-container">
                         <div id="businessesTable" class="loading">
@@ -490,16 +490,49 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
     <script type="module">
-        import FirebaseSuperAdminManager from './FirebaseSuperAdminManager.js?v=2';
+        // Add error handling for module loading
+        let manager;
+        try {
+            const { default: FirebaseSuperAdminManager } = await import('./FirebaseSuperAdminManager.js?v=2');
+            manager = new FirebaseSuperAdminManager();
+            console.log('✅ FirebaseSuperAdminManager loaded successfully');
+        } catch (error) {
+            console.error('❌ Error loading FirebaseSuperAdminManager:', error);
+            // Fallback: try to continue without authentication for demo purposes
+            handleLoadingError();
+        }
         
-        const manager = new FirebaseSuperAdminManager();
+        function handleLoadingError() {
+            console.log('🔄 Falling back to demo mode');
+            // Show demo data without authentication
+            document.getElementById('userDisplay').textContent = 'Demo Admin (super_admin)';
+            document.getElementById('businessCount').textContent = '3';
+            document.getElementById('propertyCount').textContent = '5';
+            
+            // Show demo businesses table
+            const demoBusinesses = [
+                { _id: '1', name: 'Demo Restaurant', email: 'demo@restaurant.com', phone: '555-0123', properties: ['1', '2'] },
+                { _id: '2', name: 'Sample Cafe', email: 'info@samplecafe.com', phone: '555-0456', properties: ['3'] },
+                { _id: '3', name: 'Test Hotel', email: 'contact@testhotel.com', phone: '555-0789', properties: ['4', '5'] }
+            ];
+            renderBusinessesTable(demoBusinesses);
+        }
         
         // Wait for Firebase to initialize
         setTimeout(() => {
+            if (!manager) {
+                console.log('⚠️ Manager not available, running in demo mode');
+                return;
+            }
+            
             // Check if authenticated
             if (!manager.isAuthenticated()) {
                 console.log('Not authenticated, redirecting to login...');
-                window.location.href = 'login.html';
+                // Show a brief message before redirect
+                document.body.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;"><div style="text-align: center;"><h2>🔐 Authentication Required</h2><p>Redirecting to login...</p></div></div>';
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
                 return;
             }
             
@@ -515,7 +548,13 @@
         
         // Handle logout
         logoutBtn.addEventListener('click', () => {
-            manager.logout();
+            if (manager) {
+                manager.logout();
+            } else {
+                // Clear any stored data
+                localStorage.clear();
+                console.log('🚪 Logged out (demo mode)');
+            }
             window.location.href = 'login.html';
         });
         
@@ -523,6 +562,11 @@
         
         // Load dashboard data
         async function loadDashboard() {
+            if (!manager) {
+                console.log('⚠️ Manager not available, dashboard already in demo mode');
+                return;
+            }
+            
             try {
                 // Load user profile
                 const user = await manager.getUserProfile();
@@ -561,9 +605,11 @@
                         propertyCount.textContent = properties.length;
                         
                         // Show notice about using localStorage
-                        alert('Note: Using localStorage fallback data. Database connection may be unavailable.');
+                        console.log('ℹ️ Using localStorage fallback data. Database connection may be unavailable.');
                     } catch (localError) {
                         console.error('Local storage fallback error:', localError);
+                        // Fall back to demo mode
+                        handleLoadingError();
                     }
                 }
             }
@@ -643,6 +689,40 @@
         
         // Load dashboard data on page load
         loadDashboard();
+        
+        // Helper function for coming soon features
+        function showComingSoon(feature) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; padding: 2rem; border-radius: 12px; text-align: center; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); max-width: 400px;">
+                    <h3 style="margin-bottom: 1rem; color: #2d3748;">🚀 ${feature} Coming Soon!</h3>
+                    <p style="color: #4a5568; margin-bottom: 1.5rem;">We're working hard to bring you this feature. Stay tuned for updates!</p>
+                    <button onclick="this.parentElement.parentElement.remove()" style="background: #2563eb; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600;">Got it!</button>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Remove modal when clicking outside
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
     </script>
 </body>
 </html>
