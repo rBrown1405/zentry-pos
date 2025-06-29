@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business User Management - Zentry POS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #f8fafc;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        header {
+            background: #2d3748;
+            color: white;
+            border-bottom: 3px solid #000;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo h2 {
+            color: white;
+            font-weight: bold;
+            font-size: 1.5rem;
+            letter-spacing: 1px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-info span {
+            color: white;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .back-btn {
+            background: #4a5568;
+            border: 2px solid #000;
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .back-btn:hover {
+            background: #1a202c;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            background: white;
+            border: 3px solid #000;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            color: #2d3748;
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            letter-spacing: 1px;
+        }
+
+        .page-subtitle {
+            color: #4a5568;
+            font-size: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: #2d3748;
+            border: 3px solid #000;
+            border-radius: 8px;
+            padding: 1.5rem;
+            color: white;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .content-section {
+            background: white;
+            border: 3px solid #000;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2d3748;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .add-btn {
+            background: #4a5568;
+            border: 2px solid #000;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .add-btn:hover {
+            background: #2d3748;
+        }
+
+        .search-filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .search-input, .filter-select {
+            padding: 0.75rem;
+            border: 2px solid #000;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .filter-select {
+            min-width: 150px;
+        }
+
+        .table-container {
+            background: white;
+            border: 3px solid #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8fafc;
+            padding: 1rem 1.25rem;
+            text-align: left;
+            font-weight: bold;
+            color: #2d3748;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 2px solid #000;
+        }
+
+        td {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #e2e8f0;
+            color: #4a5568;
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .role-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 2px solid;
+        }
+
+        .role-owner {
+            background: #fef3c7;
+            color: #d97706;
+            border-color: #d97706;
+        }
+
+        .role-manager {
+            background: #dbeafe;
+            color: #2563eb;
+            border-color: #2563eb;
+        }
+
+        .role-server {
+            background: #dcfce7;
+            color: #16a34a;
+            border-color: #16a34a;
+        }
+
+        .role-kitchen {
+            background: #fed7d7;
+            color: #e53e3e;
+            border-color: #e53e3e;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 2px solid;
+        }
+
+        .status-active {
+            background: #dcfce7;
+            color: #16a34a;
+            border-color: #16a34a;
+        }
+
+        .status-inactive {
+            background: #fecaca;
+            color: #dc2626;
+            border-color: #dc2626;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #d97706;
+            border-color: #d97706;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-buttons button {
+            padding: 0.375rem 0.75rem;
+            border: 2px solid #000;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .edit-btn {
+            background: #fed7aa;
+            color: #ea580c;
+        }
+
+        .edit-btn:hover {
+            background: #fdba74;
+        }
+
+        .delete-btn {
+            background: #fecaca;
+            color: #dc2626;
+        }
+
+        .delete-btn:hover {
+            background: #fca5a5;
+        }
+
+        .toggle-btn {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+
+        .toggle-btn:hover {
+            background: #cbd5e0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #4a5568;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+            font-weight: bold;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .spinner {
+            border: 3px solid #e2e8f0;
+            border-radius: 50%;
+            border-top: 3px solid #2d3748;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border: 3px solid #000;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #4a5568;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #000;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .submit-btn {
+            background: #2d3748;
+            border: 2px solid #000;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .submit-btn:hover {
+            background: #1a202c;
+        }
+
+        .cancel-btn {
+            background: #e2e8f0;
+            border: 2px solid #000;
+            color: #2d3748;
+            padding: 0.75rem 2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin-right: 1rem;
+        }
+
+        .cancel-btn:hover {
+            background: #cbd5e0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-filters {
+                flex-direction: column;
+            }
+            
+            .search-input {
+                min-width: auto;
+            }
+            
+            .section-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h2>⚡ ZENTRY POS</h2>
+        </div>
+        <div class="user-info">
+            <span id="userDisplay">Loading...</span>
+            <a href="business-dashboard.html" class="back-btn">
+                <span>←</span>
+                Back to Dashboard
+            </a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">User Management</h1>
+            <p class="page-subtitle">Manage staff members and their permissions for your business.</p>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalUsers">0</div>
+                    <div class="stat-label">Total Users</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="activeUsers">0</div>
+                    <div class="stat-label">Active</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="pendingUsers">0</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="managerCount">0</div>
+                    <div class="stat-label">Managers</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <div class="section-header">
+                <h2 class="section-title">Staff Members</h2>
+                <button class="add-btn" onclick="openAddUserModal()">+ Add User</button>
+            </div>
+
+            <div class="search-filters">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search users by name, email, or role...">
+                <select class="filter-select" id="roleFilter">
+                    <option value="">All Roles</option>
+                    <option value="owner">Owner</option>
+                    <option value="manager">Manager</option>
+                    <option value="server">Server</option>
+                    <option value="kitchen">Kitchen Staff</option>
+                </select>
+                <select class="filter-select" id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="pending">Pending</option>
+                </select>
+            </div>
+
+            <div class="table-container">
+                <div id="usersTable" class="loading">
+                    <div class="spinner"></div>
+                    <div style="color: #4a5568; font-weight: 500;">Loading users...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit User Modal -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Add New User</h2>
+                <button class="close-btn" onclick="closeUserModal()">&times;</button>
+            </div>
+            <form id="userForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="firstName">First Name</label>
+                        <input type="text" class="form-input" id="firstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="lastName">Last Name</label>
+                        <input type="text" class="form-input" id="lastName" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="email">Email Address</label>
+                    <input type="email" class="form-input" id="email" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="phone">Phone Number</label>
+                        <input type="tel" class="form-input" id="phone">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="role">Role</label>
+                        <select class="form-select" id="role" required>
+                            <option value="">Select Role</option>
+                            <option value="manager">Manager</option>
+                            <option value="server">Server</option>
+                            <option value="kitchen">Kitchen Staff</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="staffId">Staff ID</label>
+                    <input type="text" class="form-input" id="staffId" placeholder="Will be auto-generated if left empty">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="status">Status</label>
+                    <select class="form-select" id="status" required>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="pending">Pending</option>
+                    </select>
+                </div>
+                <div style="margin-top: 2rem;">
+                    <button type="button" class="cancel-btn" onclick="closeUserModal()">Cancel</button>
+                    <button type="submit" class="submit-btn">Save User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    
+    <!-- Firebase configuration and services -->
+    <script src="js/firebase-config.js?v=20250627004"></script>
+    <script src="js/firebase-services.js?v=20250627004"></script>
+    
+    <!-- Application dependencies -->
+    <script src="js/api-manager.js?v=20250627004"></script>
+    <script src="js/firebase-manager.js?v=20250627004"></script>
+    <script src="js/umbrella-account-manager.js?v=20250627004"></script>
+
+    <script>
+        // Initialize variables
+        let users = [];
+        let filteredUsers = [];
+        let currentUser = null;
+        let currentBusiness = null;
+        let businessId = null;
+        let editingUserId = null;
+        let firebaseManager = null;
+        let umbrellaManager = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', async function() {
+            await initializeFirebase();
+            checkPermissions();
+            loadCurrentUser();
+            await loadUsers();
+            
+            // Add event listeners
+            document.getElementById('searchInput').addEventListener('input', filterUsers);
+            document.getElementById('roleFilter').addEventListener('change', filterUsers);
+            document.getElementById('statusFilter').addEventListener('change', filterUsers);
+            document.getElementById('userForm').addEventListener('submit', handleSubmit);
+        });
+
+        async function initializeFirebase() {
+            try {
+                // Wait for Firebase services to be available
+                if (window.firebaseServices) {
+                    await window.firebaseServices.waitForInitialization();
+                    console.log('✅ Firebase services initialized');
+                }
+
+                // Initialize managers
+                if (window.FirebaseManager) {
+                    firebaseManager = new FirebaseManager();
+                    console.log('✅ Firebase Manager initialized');
+                }
+
+                if (window.UmbrellaAccountManager) {
+                    umbrellaManager = new UmbrellaAccountManager();
+                    console.log('✅ Umbrella Manager initialized');
+                }
+            } catch (error) {
+                console.error('❌ Error initializing Firebase:', error);
+            }
+        }
+
+        function checkPermissions() {
+            const userData = localStorage.getItem('currentUser');
+            const businessData = localStorage.getItem('currentBusiness');
+            
+            if (!userData) {
+                alert('Please log in to access user management');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            currentUser = JSON.parse(userData);
+            
+            if (businessData) {
+                currentBusiness = JSON.parse(businessData);
+                businessId = currentBusiness.id;
+            } else {
+                businessId = currentUser.id || currentUser.businessId;
+            }
+            
+            // Check if user has permission (admin, owner, or manager)
+            if (!['admin', 'owner', 'manager'].includes(currentUser.role)) {
+                alert('You do not have permission to access user management');
+                window.location.href = 'business-dashboard.html';
+                return;
+            }
+
+            console.log('✅ Permissions check passed for business:', businessId);
+        }
+
+        function loadCurrentUser() {
+            if (currentUser) {
+                const businessName = currentBusiness?.name || currentUser.businessName || 'Business';
+                document.getElementById('userDisplay').textContent = 
+                    `${currentUser.name} (${businessName})`;
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                console.log('📊 Loading users for business:', businessId);
+                
+                // Show loading state
+                document.getElementById('usersTable').innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <div style="color: #4a5568; font-weight: 500;">Loading users...</div>
+                    </div>
+                `;
+
+                // Try to load from Firebase first
+                if (firebaseManager && businessId) {
+                    try {
+                        const businessData = await firebaseManager.getBusinessData(businessId);
+                        if (businessData && businessData.staff) {
+                            users = Object.values(businessData.staff).map(staff => ({
+                                id: staff.id || staff.staffId || `staff_${Date.now()}`,
+                                firstName: staff.firstName || staff.fullName?.split(' ')[0] || '',
+                                lastName: staff.lastName || staff.fullName?.split(' ').slice(1).join(' ') || '',
+                                email: staff.email || '',
+                                phone: staff.phone || '',
+                                role: staff.role || 'server',
+                                staffId: staff.staffId || staff.id,
+                                status: staff.isActive === false ? 'inactive' : (staff.isApproved === false ? 'pending' : 'active'),
+                                createdAt: staff.createdAt || new Date().toISOString(),
+                                businessId: businessId
+                            }));
+                            console.log('✅ Loaded users from Firebase:', users.length);
+                        }
+                    } catch (firebaseError) {
+                        console.warn('⚠️ Firebase load failed, trying localStorage:', firebaseError);
+                    }
+                }
+
+                // Fallback to localStorage if Firebase fails or no data
+                if (users.length === 0) {
+                    const storageKey = `staff_${businessId}`;
+                    const savedUsers = localStorage.getItem(storageKey);
+                    
+                    if (savedUsers) {
+                        users = JSON.parse(savedUsers);
+                        console.log('📦 Loaded users from localStorage:', users.length);
+                    } else {
+                        // Try to load from umbrella manager
+                        if (umbrellaManager && businessId) {
+                            const umbrellaData = umbrellaManager.getBusinessData(businessId);
+                            if (umbrellaData && umbrellaData.staff) {
+                                users = Object.values(umbrellaData.staff).map(staff => ({
+                                    id: staff.id || staff.staffId || `staff_${Date.now()}`,
+                                    firstName: staff.firstName || staff.fullName?.split(' ')[0] || '',
+                                    lastName: staff.lastName || staff.fullName?.split(' ').slice(1).join(' ') || '',
+                                    email: staff.email || '',
+                                    phone: staff.phone || '',
+                                    role: staff.role || 'server',
+                                    staffId: staff.staffId || staff.id,
+                                    status: staff.isActive === false ? 'inactive' : (staff.isApproved === false ? 'pending' : 'active'),
+                                    createdAt: staff.createdAt || new Date().toISOString(),
+                                    businessId: businessId
+                                }));
+                                console.log('🏢 Loaded users from umbrella manager:', users.length);
+                            }
+                        }
+                    }
+                }
+
+                // If still no users, start with empty array
+                if (users.length === 0) {
+                    users = [];
+                    console.log('📝 No existing users found, starting fresh');
+                }
+
+                filteredUsers = [...users];
+                renderUsersTable();
+                updateStats();
+            } catch (error) {
+                console.error('❌ Error loading users:', error);
+                users = [];
+                filteredUsers = [];
+                renderUsersTable();
+                updateStats();
+            }
+        }
+
+        function filterUsers() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const roleFilter = document.getElementById('roleFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            filteredUsers = users.filter(user => {
+                const matchesSearch = !searchTerm || 
+                    user.firstName.toLowerCase().includes(searchTerm) ||
+                    user.lastName.toLowerCase().includes(searchTerm) ||
+                    user.email.toLowerCase().includes(searchTerm) ||
+                    user.role.toLowerCase().includes(searchTerm);
+                
+                const matchesRole = !roleFilter || user.role === roleFilter;
+                const matchesStatus = !statusFilter || user.status === statusFilter;
+
+                return matchesSearch && matchesRole && matchesStatus;
+            });
+
+            renderUsersTable();
+        }
+
+        function renderUsersTable() {
+            const tableContainer = document.getElementById('usersTable');
+
+            if (filteredUsers.length === 0) {
+                tableContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👥</div>
+                        <h3>No Users Found</h3>
+                        <p>No users match your current filters, or you haven't added any users yet.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Staff ID</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            filteredUsers.forEach(user => {
+                html += `
+                    <tr>
+                        <td>${user.firstName} ${user.lastName}</td>
+                        <td>${user.email}</td>
+                        <td><span class="role-badge role-${user.role}">${user.role}</span></td>
+                        <td>${user.staffId}</td>
+                        <td><span class="status-badge status-${user.status}">${user.status}</span></td>
+                        <td class="action-buttons">
+                            <button class="edit-btn" onclick="editUser('${user.id}')">Edit</button>
+                            <button class="toggle-btn" onclick="toggleUserStatus('${user.id}')">
+                                ${user.status === 'active' ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button class="delete-btn" onclick="deleteUser('${user.id}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            tableContainer.innerHTML = html;
+        }
+
+        function updateStats() {
+            document.getElementById('totalUsers').textContent = users.length;
+            document.getElementById('activeUsers').textContent = users.filter(u => u.status === 'active').length;
+            document.getElementById('pendingUsers').textContent = users.filter(u => u.status === 'pending').length;
+            document.getElementById('managerCount').textContent = users.filter(u => u.role === 'manager').length;
+        }
+
+        function openAddUserModal() {
+            editingUserId = null;
+            document.getElementById('modalTitle').textContent = 'Add New User';
+            document.getElementById('userForm').reset();
+            document.getElementById('status').value = 'active';
+            document.getElementById('userModal').style.display = 'block';
+        }
+
+        function editUser(userId) {
+            const user = users.find(u => u.id === userId);
+            if (!user) return;
+
+            editingUserId = userId;
+            document.getElementById('modalTitle').textContent = 'Edit User';
+            
+            // Populate form
+            document.getElementById('firstName').value = user.firstName;
+            document.getElementById('lastName').value = user.lastName;
+            document.getElementById('email').value = user.email;
+            document.getElementById('phone').value = user.phone || '';
+            document.getElementById('role').value = user.role;
+            document.getElementById('staffId').value = user.staffId;
+            document.getElementById('status').value = user.status;
+            
+            document.getElementById('userModal').style.display = 'block';
+        }
+
+        function closeUserModal() {
+            document.getElementById('userModal').style.display = 'none';
+            editingUserId = null;
+        }
+
+        async function handleSubmit(event) {
+            event.preventDefault();
+
+            const formData = {
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                role: document.getElementById('role').value,
+                staffId: document.getElementById('staffId').value || generateStaffId(),
+                status: document.getElementById('status').value,
+                businessId: businessId
+            };
+
+            if (editingUserId) {
+                // Update existing user
+                const userIndex = users.findIndex(u => u.id === editingUserId);
+                if (userIndex !== -1) {
+                    users[userIndex] = { ...users[userIndex], ...formData };
+                }
+            } else {
+                // Add new user
+                const newUser = {
+                    id: 'user_' + Date.now(),
+                    ...formData,
+                    createdAt: new Date().toISOString()
+                };
+                users.push(newUser);
+            }
+
+            await saveUsers();
+            await loadUsers();
+            closeUserModal();
+        }
+
+        function generateStaffId() {
+            const rolePrefix = {
+                'manager': 'MGR',
+                'server': 'SRV',
+                'kitchen': 'KIT'
+            };
+            
+            const role = document.getElementById('role').value;
+            const prefix = rolePrefix[role] || 'USR';
+            const number = (users.length + 1).toString().padStart(3, '0');
+            
+            return `${prefix}${number}`;
+        }
+
+        async function toggleUserStatus(userId) {
+            const userIndex = users.findIndex(u => u.id === userId);
+            if (userIndex !== -1) {
+                const user = users[userIndex];
+                user.status = user.status === 'active' ? 'inactive' : 'active';
+                await saveUsers();
+                await loadUsers();
+            }
+        }
+
+        async function deleteUser(userId) {
+            const user = users.find(u => u.id === userId);
+            if (!user) return;
+
+            if (confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}? This action cannot be undone.`)) {
+                users = users.filter(u => u.id !== userId);
+                await saveUsers();
+                await loadUsers();
+            }
+        }
+
+        async function saveUsers() {
+            try {
+                console.log('💾 Saving users for business:', businessId);
+                
+                // Save to localStorage as backup
+                const storageKey = `staff_${businessId}`;
+                localStorage.setItem(storageKey, JSON.stringify(users));
+                
+                // Save to Firebase if available
+                if (firebaseManager && businessId) {
+                    try {
+                        // Convert users array to staff object format for Firebase
+                        const staffData = {};
+                        users.forEach(user => {
+                            staffData[user.staffId] = {
+                                id: user.id,
+                                staffId: user.staffId,
+                                firstName: user.firstName,
+                                lastName: user.lastName,
+                                fullName: `${user.firstName} ${user.lastName}`,
+                                email: user.email,
+                                phone: user.phone,
+                                role: user.role,
+                                isActive: user.status === 'active',
+                                isApproved: user.status !== 'pending',
+                                createdAt: user.createdAt,
+                                businessId: businessId
+                            };
+                        });
+                        
+                        await firebaseManager.updateBusinessData(businessId, { staff: staffData });
+                        console.log('✅ Users saved to Firebase');
+                    } catch (firebaseError) {
+                        console.warn('⚠️ Firebase save failed, data saved to localStorage only:', firebaseError);
+                    }
+                }
+                
+                // Update umbrella manager if available
+                if (umbrellaManager && businessId) {
+                    try {
+                        const staffData = {};
+                        users.forEach(user => {
+                            staffData[user.staffId] = {
+                                id: user.id,
+                                staffId: user.staffId,
+                                firstName: user.firstName,
+                                lastName: user.lastName,
+                                fullName: `${user.firstName} ${user.lastName}`,
+                                email: user.email,
+                                phone: user.phone,
+                                role: user.role,
+                                isActive: user.status === 'active',
+                                isApproved: user.status !== 'pending',
+                                createdAt: user.createdAt,
+                                businessId: businessId
+                            };
+                        });
+                        
+                        umbrellaManager.updateBusinessData(businessId, { staff: staffData });
+                        console.log('🏢 Users updated in umbrella manager');
+                    } catch (umbrellaError) {
+                        console.warn('⚠️ Umbrella manager update failed:', umbrellaError);
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error saving users:', error);
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('userModal');
+            if (event.target === modal) {
+                closeUserModal();
+            }
+        }
+    </script>
+</body>
+</html>
