@@ -680,10 +680,31 @@
 
         async function initializeFirebase() {
             try {
-                // Wait for Firebase services to be available
+                // Wait for Firebase services to be available and initialized
                 if (window.firebaseServices) {
                     await window.firebaseServices.waitForInitialization();
                     console.log('✅ Firebase services initialized');
+                } else {
+                    console.warn('⚠️ Firebase services not available, waiting...');
+                    // Wait for the services to be available
+                    await new Promise((resolve) => {
+                        const checkServices = () => {
+                            if (window.firebaseServices) {
+                                window.firebaseServices.waitForInitialization()
+                                    .then(() => {
+                                        console.log('✅ Firebase services initialized after wait');
+                                        resolve();
+                                    })
+                                    .catch((error) => {
+                                        console.warn('⚠️ Firebase services initialization failed:', error);
+                                        resolve(); // Continue anyway
+                                    });
+                            } else {
+                                setTimeout(checkServices, 200);
+                            }
+                        };
+                        checkServices();
+                    });
                 }
 
                 // Initialize managers

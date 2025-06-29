@@ -16,6 +16,9 @@ class FirebaseServices {
         try {
             console.log('🔥 Initializing Firebase Services...');
             
+            // Wait for Firebase SDK to be available
+            await this.waitForFirebaseSDK();
+            
             // Check if Firebase is available
             if (typeof firebase === 'undefined') {
                 throw new Error('Firebase SDK not loaded');
@@ -58,6 +61,51 @@ class FirebaseServices {
         }
     }
 
+    async waitForFirebaseSDK(maxWait = 10000) {
+        return new Promise((resolve, reject) => {
+            const startTime = Date.now();
+            
+            const checkFirebase = () => {
+                if (typeof firebase !== 'undefined' && firebase.app) {
+                    console.log('✅ Firebase SDK detected');
+                    resolve();
+                    return;
+                }
+                
+                if (Date.now() - startTime > maxWait) {
+                    reject(new Error('Firebase SDK not loaded within timeout'));
+                    return;
+                }
+                
+                setTimeout(checkFirebase, 100);
+            };
+            
+            checkFirebase();
+        });
+    }
+
+    async waitForInitialization(maxWait = 15000) {
+        return new Promise((resolve, reject) => {
+            const startTime = Date.now();
+            
+            const checkInitialized = () => {
+                if (this.initialized) {
+                    resolve();
+                    return;
+                }
+                
+                if (Date.now() - startTime > maxWait) {
+                    reject(new Error('Firebase Services initialization timeout'));
+                    return;
+                }
+                
+                setTimeout(checkInitialized, 100);
+            };
+            
+            checkInitialized();
+        });
+    }
+
     getApp() {
         if (!this.initialized) {
             throw new Error('Firebase Services not initialized');
@@ -94,12 +142,26 @@ class FirebaseServices {
 // Create global instance
 window.firebaseServices = new FirebaseServices();
 
-// Auto-initialize when DOM is ready
+// Auto-initialize when DOM is ready, with retry logic
 document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        await window.firebaseServices.initialize();
-        console.log('🎉 Firebase Services auto-initialized');
-    } catch (error) {
-        console.error('❌ Failed to auto-initialize Firebase Services:', error);
-    }
+    // Add a small delay to ensure Firebase SDK scripts have loaded
+    setTimeout(async () => {
+        try {
+            await window.firebaseServices.initialize();
+            console.log('🎉 Firebase Services auto-initialized');
+        } catch (error) {
+            console.error('❌ Failed to auto-initialize Firebase Services:', error);
+            
+            // Retry once after a longer delay
+            setTimeout(async () => {
+                try {
+                    console.log('🔄 Retrying Firebase Services initialization...');
+                    await window.firebaseServices.initialize();
+                    console.log('🎉 Firebase Services initialized on retry');
+                } catch (retryError) {
+                    console.error('❌ Firebase Services initialization failed on retry:', retryError);
+                }
+            }, 2000);
+        }
+    }, 500);
 });
