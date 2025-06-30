@@ -2,52 +2,81 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Macros POS - Business Registration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Macros POS - Business Registration</title>
     <link rel="stylesheet" href="styles.css">
+    <meta name="description" content="Register your business with Macros POS">
+    <meta name="theme-color" content="#2563eb">
 </head>
-<body>
-    <button class="back-button" onclick="navigateWithTransition('account-selection.html')">
-        <span class="back-button-icon">←</span>
-        <span>Back</span>
-    </button>
+<body class="page-wrapper">
+    <!-- Back Button -->
+    <a href="account-selection.html" class="btn btn-ghost btn-sm" style="position: fixed; top: 2rem; left: 2rem; z-index: 100;">
+        <span class="button-icon">←</span>
+        <span class="button-text">Back</span>
+    </a>
 
-    <div class="animated-background">
-        <div class="gradient-sphere"></div>
-        <div class="gradient-sphere"></div>
-        <div class="gradient-sphere"></div>
-    </div>    <div class="registration-container">
-        <div class="logo-container">
-            <div class="logo">M</div>
-        </div>
-        <h1 class="registration-title">Register Your <span class="highlight">Business</span></h1>
-        
-        <form class="registration-form" id="businessRegistrationForm">
-            <div class="form-section">
-                <h3 class="section-title">Company Information</h3>
-                <div class="form-group">
-                    <label for="companyName">Company Name</label>
-                    <input type="text" id="companyName" name="companyName" required 
-                           placeholder="Your umbrella company name"
-                           autocomplete="organization">
+    <div class="container container-lg">
+        <div class="card" style="max-width: 800px; margin: 0 auto;">
+            <div class="card-header text-center">
+                <div class="logo-container mb-lg">
+                    <div class="logo">M</div>
                 </div>
-                
-                <div class="form-group">
-                    <label for="ownerName">Owner/General Manager Name</label>
-                    <input type="text" id="ownerName" name="ownerName" required 
-                           placeholder="Full name of the owner or general manager"
-                           autocomplete="name">
-                </div>
+                <h1 class="card-title text-3xl mb-md">
+                    Register Your <span class="gradient-text">Business</span>
+                </h1>
+                <p class="card-subtitle">
+                    Get started with Macros POS by setting up your business profile
+                </p>
+            </div>
 
-                <div class="form-group">
-                    <label for="companyEmail">Company Email</label>
-                    <input type="email" id="companyEmail" name="companyEmail" required 
-                           placeholder="company@example.com"
-                           autocomplete="email">
-                </div>
+            <div class="card-body">
+                <form class="registration-form" id="businessRegistrationForm">
+                    <div class="card mb-xl">
+                        <div class="card-header">
+                            <h3 class="card-title text-xl">🏢 Company Information</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="grid grid-cols-1 gap-lg">
+                                <div class="form-group">
+                                    <label for="companyName" class="form-label">Company Name</label>
+                                    <input type="text" id="companyName" name="companyName" 
+                                           class="form-input" required 
+                                           placeholder="Your umbrella company name"
+                                           autocomplete="organization">
+                                    <p class="form-hint">The main name of your business or organization</p>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="ownerName" class="form-label">Owner/General Manager Name</label>
+                                    <input type="text" id="ownerName" name="ownerName" 
+                                           class="form-input" required 
+                                           placeholder="Full name of the owner or general manager"
+                                           autocomplete="name">
+                                    <p class="form-hint">Primary contact person for this business</p>
+                                </div>
 
-                <div class="form-group">
-                    <label for="companyPhone">Company Phone</label>
-                    <input type="tel" id="companyPhone" name="companyPhone" required 
+                                <div class="grid grid-cols-1 gap-lg">
+                                    <div class="form-group">
+                                        <label for="companyEmail" class="form-label">Company Email</label>
+                                        <input type="email" id="companyEmail" name="companyEmail" 
+                                               class="form-input" required 
+                                               placeholder="company@example.com"
+                                               autocomplete="email">
+                                        <p class="form-hint">Primary email for business communications</p>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="companyPhone" class="form-label">Company Phone</label>
+                                        <input type="tel" id="companyPhone" name="companyPhone" 
+                                               class="form-input" required 
+                                               placeholder="+1 (555) 123-4567"
+                                               autocomplete="tel">
+                                        <p class="form-hint">Main business phone number</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div> 
                            placeholder="(000) 000-0000"
                            autocomplete="tel">
                 </div>

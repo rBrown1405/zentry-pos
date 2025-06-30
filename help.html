@@ -5,49 +5,108 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Macros POS - Help Center</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        /* Help Page Specific Styles */
-        .help-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            margin-top: 2rem;
-            margin-bottom: 2rem;
-        }
+    <meta name="description" content="Get help and support for Macros POS">
+    <meta name="theme-color" content="#2563eb">
+</head>
+<body class="page-wrapper">
+    <!-- Back Button -->
+    <a href="javascript:history.back()" class="btn btn-ghost btn-sm" style="position: fixed; top: 2rem; left: 2rem; z-index: 100;">
+        <span class="button-icon">←</span>
+        <span class="button-text">Back</span>
+    </a>
 
-        .help-header {
-            text-align: center;
-            margin-bottom: 3rem;
-            padding-bottom: 2rem;
-            border-bottom: 3px solid #000;
-        }
+    <div class="container container-xl">
+        <div class="card">
+            <div class="card-header text-center">
+                <div class="logo-container mb-lg">
+                    <div class="logo">M</div>
+                </div>
+                <h1 class="card-title text-4xl mb-md">
+                    <span class="gradient-text">Help Center</span>
+                </h1>
+                <p class="card-subtitle text-lg">
+                    Find answers to your questions and get the most out of Macros POS
+                </p>
+            </div>
 
-        .help-title {
-            font-size: 3rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+            <div class="card-body">
+                <!-- Quick Actions -->
+                <div class="grid grid-auto-fit gap-lg mb-2xl">
+                    <div class="card interactive" onclick="scrollToSection('getting-started')">
+                        <div class="card-body text-center">
+                            <div class="text-4xl mb-md">🚀</div>
+                            <h3 class="text-lg font-semibold mb-sm">Getting Started</h3>
+                            <p class="text-sm text-secondary">New to Macros POS? Start here</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card interactive" onclick="scrollToSection('common-issues')">
+                        <div class="card-body text-center">
+                            <div class="text-4xl mb-md">🔧</div>
+                            <h3 class="text-lg font-semibold mb-sm">Common Issues</h3>
+                            <p class="text-sm text-secondary">Quick fixes for common problems</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card interactive" onclick="scrollToSection('features')">
+                        <div class="card-body text-center">
+                            <div class="text-4xl mb-md">⭐</div>
+                            <h3 class="text-lg font-semibold mb-sm">Features Guide</h3>
+                            <p class="text-sm text-secondary">Learn about all POS features</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card interactive" onclick="scrollToSection('contact')">
+                        <div class="card-body text-center">
+                            <div class="text-4xl mb-md">📞</div>
+                            <h3 class="text-lg font-semibold mb-sm">Contact Support</h3>
+                            <p class="text-sm text-secondary">Get personalized help</p>
+                        </div>
+                    </div>
+                </div>
 
-        .help-subtitle {
-            font-size: 1.2rem;
-            color: #666;
-            margin-bottom: 2rem;
-        }
-
-        .help-navigation {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            justify-content: center;
-            margin-bottom: 3rem;
+                <!-- Getting Started Section -->
+                <section id="getting-started" class="mb-2xl">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title text-2xl">🚀 Getting Started</h2>
+                            <p class="card-subtitle">Your first steps with Macros POS</p>
+                        </div>
+                        <div class="card-body">
+                            <div class="grid gap-lg">
+                                <div class="help-item">
+                                    <h3 class="text-lg font-semibold mb-sm text-primary">1. Account Setup</h3>
+                                    <p class="text-base text-secondary mb-md">Create your business account and configure basic settings.</p>
+                                    <ul class="text-sm text-secondary ml-lg">
+                                        <li class="mb-xs">• Register your business information</li>
+                                        <li class="mb-xs">• Set up your first property/location</li>
+                                        <li class="mb-xs">• Configure business type (Restaurant, Hotel, Retail)</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="help-item">
+                                    <h3 class="text-lg font-semibold mb-sm text-primary">2. Staff Management</h3>
+                                    <p class="text-base text-secondary mb-md">Add and manage your team members.</p>
+                                    <ul class="text-sm text-secondary ml-lg">
+                                        <li class="mb-xs">• Create staff accounts with unique IDs</li>
+                                        <li class="mb-xs">• Assign roles and permissions</li>
+                                        <li class="mb-xs">• Set up access levels</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="help-item">
+                                    <h3 class="text-lg font-semibold mb-sm text-primary">3. Menu Setup</h3>
+                                    <p class="text-base text-secondary mb-md">Configure your menu items and pricing.</p>
+                                    <ul class="text-sm text-secondary ml-lg">
+                                        <li class="mb-xs">• Add menu categories and items</li>
+                                        <li class="mb-xs">• Set prices and descriptions</li>
+                                        <li class="mb-xs">• Configure modifiers and options</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
         }
 
         .help-nav-btn {

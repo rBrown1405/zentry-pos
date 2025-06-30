@@ -3,46 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Macros POS LOL - Welcome</title>
+    <title>Macros POS - Welcome</title>
     <link rel="stylesheet" href="styles.css">
+    <meta name="description" content="Modern Point of Sale System - Start your POS journey with Macros">
+    <meta name="theme-color" content="#2563eb">
 </head>
-<body>    <div class="welcome-container">
-        <div class="logo-container">
-            <div class="logo">M</div>
-        </div>          <h1 class="welcome-title">Welcome to <span class="highlight">Macros</span></h1>
-        <p class="welcome-subtitle">Point of Sale System - Fresh Start</p>
-        <p class="welcome-description">Ready to begin your POS journey?</p>        <div class="quick-access">
-            <button class="start-button primary" onclick="window.location.href='login.html'">
-                <span class="button-text">🚀 Get Started</span>
-            </button>
-        </div>
-          <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">🏢</div>
-                <h3>Business Setup</h3>
-                <p>Create and configure your business account</p>
+<body class="page-wrapper">
+    <div class="container">
+        <div class="welcome-container card">
+            <div class="logo-container mb-xl">
+                <div class="logo">M</div>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">👥</div>
-                <h3>Staff Management</h3>
-                <p>Register staff and manage user accounts</p>
+            
+            <h1 class="welcome-title text-center">
+                Welcome to <span class="highlight gradient-text">Macros</span>
+            </h1>
+            <p class="welcome-subtitle text-center text-secondary">
+                Modern Point of Sale System
+            </p>
+            <p class="welcome-description text-center text-secondary mb-2xl">
+                Ready to transform your business with cutting-edge POS technology?
+            </p>
+            
+            <div class="flex justify-center mb-2xl">
+                <a href="login.html" class="btn btn-primary btn-lg">
+                    <span class="button-text">🚀 Get Started</span>
+                    <span class="button-icon">→</span>
+                </a>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">🚀</div>
-                <h3>Ready to Build</h3>
-                <p>Start fresh with login and registration</p>
+            
+            <div class="features-grid">
+                <div class="feature-card interactive">
+                    <div class="feature-icon">🏢</div>
+                    <h3 class="text-lg font-semibold text-primary">Business Setup</h3>
+                    <p class="text-sm text-secondary">Create and configure your business account with ease</p>
+                </div>
+                <div class="feature-card interactive">
+                    <div class="feature-icon">👥</div>
+                    <h3 class="text-lg font-semibold text-primary">Staff Management</h3>
+                    <p class="text-sm text-secondary">Register staff and manage user accounts efficiently</p>
+                </div>
+                <div class="feature-card interactive">
+                    <div class="feature-icon">⚡</div>
+                    <h3 class="text-lg font-semibold text-primary">Lightning Fast</h3>
+                    <p class="text-sm text-secondary">Experience blazing fast performance and reliability</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="loading-screen">
-        <div class="loading-content">
-            <div class="loading-logo">M</div>
-            <div class="loading-spinner"></div>
-            <p class="loading-text">Loading Macros POS...</p>
-        </div>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
     </div>
 
+    <!-- Scripts -->
+    <script src="js/modern-enhancements.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

@@ -3,27 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Macros POS LOL - Point of Sale</title>
+    <title>Macros POS - Point of Sale</title>
+    <link rel="stylesheet" href="styles.css">
+    <meta name="description" content="Modern Point of Sale Interface">
+    <meta name="theme-color" content="#2563eb">
     <style>
-        /* Complete CSS Reset for Full Viewport */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        html, body {
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden;
-            font-family: 'Courier New', monospace;
-        }
-        
-        /* POS Interface Container - Full Viewport */
+        /* POS-specific styles that extend the main CSS framework */
         .pos-container {
-            border: 3px solid #000;
             height: 100vh;
             width: 100vw;
             display: flex;
@@ -31,19 +17,21 @@
             position: fixed;
             top: 0;
             left: 0;
-            background: #ffffff;
+            background: var(--bg-secondary);
+            overflow: hidden;
         }
 
-        /* Header Styles */
+        /* Modern Header */
         .pos-header {
-            background: #2d3748;
-            color: white;
-            padding: 1rem 2rem;
+            background: var(--surface-primary);
+            border-bottom: 1px solid var(--border-primary);
+            padding: var(--space-lg) var(--space-xl);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 3px solid #000;
             flex-shrink: 0;
+            backdrop-filter: blur(12px);
+            box-shadow: var(--shadow-sm);
         }
 
         .header-left {
@@ -52,151 +40,320 @@
         }
 
         .system-name {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 0.25rem;
+            font-size: var(--text-xl);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--space-xs);
         }
 
         .account-info {
-            font-size: 0.85rem;
-            opacity: 0.9;
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+            font-weight: 500;
         }
 
         .hotel-name {
-            font-size: 0.8rem;
-            opacity: 0.8;
-            margin-top: 0.1rem;
+            font-size: var(--text-xs);
+            color: var(--text-tertiary);
+            margin-top: var(--space-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .header-tabs {
             display: flex;
-            gap: 0.5rem;
-        }        .tab-button {
-            background: #4a5568;
-            border: 2px solid #000;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 4px;
+            gap: var(--space-sm);
+            background: var(--bg-tertiary);
+            padding: var(--space-xs);
+            border-radius: var(--radius-xl);
+        }
+
+        .pos-tab-button {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: var(--space-sm) var(--space-lg);
+            border-radius: var(--radius-lg);
             cursor: pointer;
             font-weight: 500;
-            transition: all 0.2s;
+            transition: all var(--transition-fast);
             text-decoration: none;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-size: var(--text-sm);
         }
 
-        .tab-button:hover {
-            background: #2d3748;
+        .pos-tab-button:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.5);
         }
 
-        .tab-button.active {
-            background: #1a202c;
-            border-color: #fff;
+        .pos-tab-button.active {
+            background: var(--surface-primary);
+            color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
         }
 
         .header-actions {
             display: flex;
-            gap: 0.75rem;
+            gap: var(--space-sm);
             align-items: center;
         }
 
         .header-btn {
-            background: #4a5568;
-            border: 2px solid #000;
-            color: white;
-            padding: 0.75rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1.1rem;
-            transition: all 0.2s;
-            width: 45px;
-            height: 45px;
+            width: 48px;
+            height: 48px;
             display: flex;
             align-items: center;
             justify-content: center;
+            background: var(--surface-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            color: var(--text-secondary);
+            font-size: var(--text-lg);
         }
 
         .header-btn:hover {
-            background: #2d3748;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
 
-        /* Main Content Layout - Full Remaining Space */
+        /* Main Content Layout */
         .pos-main {
             display: flex;
             flex: 1;
             overflow: hidden;
             min-height: 0;
-        }        /* Left Panel - Menu Grid */
+        }
+
+        /* Modern Panel Styles */
+        .menu-panel, .kitchen-panel, .order-panel {
+            background: var(--surface-primary);
+            border-right: 1px solid var(--border-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
         .menu-panel {
             flex: 2;
-            padding: 1.5rem;
+            padding: var(--space-xl);
             overflow-y: auto;
-            background: #ffffff;
-            border-right: 3px solid #000;
-            position: relative;
         }
 
-        .menu-panel::before {
-            content: "Menu Section";
-            position: absolute;
-            top: 0.5rem;
-            left: 50%;
-            transform: translateX(-50%);
-            font-weight: bold;
-            font-size: 1.1rem;
-            color: #2d3748;
-        }
-
-        /* Kitchen Panel */
         .kitchen-panel {
             flex: 2;
-            padding: 1.5rem;
+            padding: var(--space-xl);
             overflow-y: auto;
-            background: #ffffff;
-            border-right: 3px solid #000;
+        }
+
+        .order-panel {
+            flex: 1;
+            min-width: 400px;
+            padding: var(--space-xl);
+            overflow-y: auto;
+            background: var(--bg-secondary);
+        }
+
+        /* Panel Headers */
+        .panel-header {
+            margin-bottom: var(--space-xl);
+            padding-bottom: var(--space-lg);
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .panel-title {
+            font-size: var(--text-xl);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--space-sm);
+        }
+
+        .panel-subtitle {
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+        }
+
+        /* Modern Menu Grid */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: var(--space-lg);
+        }
+
+        .menu-item {
+            background: var(--surface-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-xl);
+            padding: var(--space-lg);
+            cursor: pointer;
+            transition: all var(--transition-fast);
             position: relative;
+            overflow: hidden;
         }
 
-        .kitchen-header {
-            text-align: center;
-            margin-bottom: 2rem;
-            padding: 1rem;
-            background: #f8fafc;
-            border: 2px solid #000;
-            border-radius: 8px;
+        .menu-item:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-color);
         }
 
-        .kitchen-header h2 {
-            font-size: 1.3rem;
-            color: #2d3748;
-            margin: 0;
+        .menu-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+            transform: scaleX(0);
+            transition: transform var(--transition-normal);
         }
 
+        .menu-item:hover::before {
+            transform: scaleX(1);
+        }
+
+        /* Modern Kitchen Orders */
         .kitchen-orders {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: var(--space-lg);
         }
 
         .kitchen-order {
-            background: white;
-            border: 3px solid #000;
-            border-radius: 8px;
-            padding: 1.5rem;
+            background: var(--surface-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
             position: relative;
+            transition: all var(--transition-fast);
         }
 
         .kitchen-order.preparing {
-            border-color: #f59e0b;
-            background: #fef3c7;
+            border-color: var(--warning-color);
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
         }
 
         .kitchen-order.ready {
-            border-color: #059669;
-            background: #f0fdf4;
-        }        .kitchen-order.served {
-            border-color: #6b7280;
-            background: #f9fafb;
+            border-color: var(--success-color);
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
         }
+
+        .kitchen-order.served {
+            border-color: var(--text-tertiary);
+            background: var(--bg-tertiary);
+            opacity: 0.7;
+        }
+
+        /* Modern Cart Styles */
+        .order-summary {
+            background: var(--surface-primary);
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
+            margin-bottom: var(--space-lg);
+            border: 1px solid var(--border-primary);
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-md) 0;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .pos-main {
+                flex-direction: column;
+            }
+            
+            .menu-panel, .kitchen-panel, .order-panel {
+                flex: none;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border-primary);
+            }
+            
+            .header-tabs {
+                display: none;
+            }
+            
+            .pos-header {
+                padding: var(--space-md) var(--space-lg);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .menu-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: var(--space-md);
+            }
+            
+            .kitchen-orders {
+                grid-template-columns: 1fr;
+            }
+            
+            .order-panel {
+                min-width: auto;
+                padding: var(--space-lg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="pos-container">
+        <!-- Modern Header -->
+        <header class="pos-header">
+            <div class="header-left">
+                <div class="system-name">Macros POS</div>
+                <div class="account-info" id="accountInfo">Loading...</div>
+                <div class="hotel-name" id="hotelName"></div>
+            </div>
+            
+            <nav class="header-tabs">
+                <a href="#" class="pos-tab-button active" data-tab="orders">
+                    <span>📋</span>
+                    <span>Orders</span>
+                </a>
+                <a href="menu-editor.html" class="pos-tab-button" data-tab="menu">
+                    <span>📝</span>
+                    <span>Menu</span>
+                </a>
+                <a href="floor-plan-editor.html" class="pos-tab-button" data-tab="floor">
+                    <span>🏢</span>
+                    <span>Floor Plan</span>
+                </a>
+                <a href="settings.html" class="pos-tab-button" data-tab="settings">
+                    <span>⚙️</span>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            
+            <div class="header-actions">
+                <button class="header-btn" onclick="showHelp()" title="Help">
+                    <span>❓</span>
+                </button>
+                <button class="header-btn" onclick="showNotifications()" title="Notifications">
+                    <span>🔔</span>
+                </button>
+                <button class="header-btn" onclick="showSync()" title="Sync Status">
+                    <span>🔄</span>
+                </button>
+                <button class="header-btn" onclick="logout()" title="Logout">
+                    <span>🚪</span>
+                </button>
+            </div>
+        </header>
 
         /* Tables Panel */
         .tables-panel {

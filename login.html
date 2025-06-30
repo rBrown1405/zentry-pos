@@ -2,100 +2,147 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Macros POS - Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Macros POS - Login</title>
     <link rel="stylesheet" href="styles.css">
+    <meta name="description" content="Sign in to your Macros POS account">
+    <meta name="theme-color" content="#2563eb">
 </head>
-<body>
-    <div class="animated-background">
-        <div class="gradient-sphere"></div>
-        <div class="gradient-sphere"></div>
-        <div class="gradient-sphere"></div>
-    </div>
-    
-    <div class="login-container">
-        <div class="logo-container">
-            <div class="logo">M</div>
-        </div>
-        <h1 class="login-title">Sign In to <span class="highlight">Macros</span></h1>
-        <!-- Add error message container -->
-        <div class="error-message" id="errorMessage" style="display: none;"></div>
-        <div class="login-form">            <div class="login-tabs">
-                <button class="tab-button active" onclick="switchLoginTab('staff')">Staff Login</button>
-                <button class="tab-button" onclick="switchLoginTab('company')">Company Login</button>
-                <button class="tab-button" onclick="switchLoginTab('superadmin')">Super Admin</button>
+<body class="page-wrapper">
+    <div class="container">
+        <div class="login-container">
+            <div class="logo-container mb-xl">
+                <div class="logo">M</div>
             </div>
-
-            <!-- Staff Login Form -->
-            <div id="staffLogin" class="login-tab-content active">
-                <div class="input-group">
-                    <label for="staffId" class="input-label">Staff ID</label>
-                    <input type="text" id="staffId" placeholder="Enter your Staff ID" autocomplete="off">
-                    <p class="input-hint">Your unique staff identifier provided by your manager</p>
+            
+            <h1 class="login-title">
+                Sign In to <span class="highlight gradient-text">Macros</span>
+            </h1>
+            
+            <!-- Error message container -->
+            <div class="error-message" id="errorMessage" style="display: none;"></div>
+            
+            <div class="login-form">
+                <div class="login-tabs">
+                    <button class="tab-button active" onclick="switchLoginTab('staff')" aria-selected="true">
+                        Staff Login
+                    </button>
+                    <button class="tab-button" onclick="switchLoginTab('company')" aria-selected="false">
+                        Company Login
+                    </button>
+                    <button class="tab-button" onclick="switchLoginTab('superadmin')" aria-selected="false">
+                        Super Admin
+                    </button>
                 </div>
-                <button class="login-button" onclick="handleStaffLogin()">
-                    <span class="button-text">Staff Sign In</span>
-                    <span class="button-icon">→</span>
-                </button>
-            </div>            <!-- Company Login Form -->            <div id="companyLogin" class="login-tab-content">
-                <form onsubmit="handleCompanyLogin(event)">
-                    <div class="input-group">
-                        <label for="businessId" class="input-label">Business ID</label>
-                        <input type="text" id="businessId" name="businessId" 
-                               placeholder="Enter your Business ID" 
-                               autocomplete="off" required>
-                        <p class="input-hint">Your unique business identifier</p>
+
+                <!-- Staff Login Form -->
+                <div id="staffLogin" class="login-tab-content active">
+                    <div class="form-group">
+                        <label for="staffId" class="form-label">Staff ID</label>
+                        <input type="text" id="staffId" class="form-input" 
+                               placeholder="Enter your Staff ID" 
+                               autocomplete="off" 
+                               aria-describedby="staffIdHint">
+                        <p class="form-hint" id="staffIdHint">
+                            Your unique staff identifier provided by your manager
+                        </p>
                     </div>
-                    <button type="submit" class="login-button">
-                        <span class="button-text">Company Sign In</span>
+                    <button class="btn btn-primary btn-lg" onclick="handleStaffLogin()">
+                        <span class="button-text">Staff Sign In</span>
                         <span class="button-icon">→</span>
                     </button>
-                </form>
-            </div>
+                </div>
 
-            <!-- Super Admin Login Form -->
-            <div id="superadminLogin" class="login-tab-content">
-                <form onsubmit="handleSuperAdminLogin(event)">
-                    <div class="input-group">
-                        <label for="adminUsername" class="input-label">Super Admin Email</label>
-                        <input type="email" id="adminUsername" name="adminUsername" 
-                               placeholder="Enter super admin email" 
-                               autocomplete="email" required>
-                        <p class="input-hint">Enter the email address you used when creating your super admin account</p>
-                    </div>
-                    <div class="input-group">
-                        <label for="adminPassword" class="input-label">Super Admin Password</label>
-                        <input type="password" id="adminPassword" name="adminPassword" 
-                               placeholder="Enter super admin password" 
-                               autocomplete="current-password" required>
-                        <p class="input-hint">Enter the password you set for your super admin account</p>
-                    </div>
-                    <button type="submit" class="login-button">
-                        <span class="button-text">Super Admin Sign In</span>
-                        <span class="button-icon">🔐</span>
+                <!-- Company Login Form -->
+                <div id="companyLogin" class="login-tab-content">
+                    <form onsubmit="handleCompanyLogin(event)">
+                        <div class="form-group">
+                            <label for="businessId" class="form-label">Business ID</label>
+                            <input type="text" id="businessId" name="businessId" 
+                                   class="form-input"
+                                   placeholder="Enter your Business ID" 
+                                   autocomplete="off" 
+                                   required
+                                   aria-describedby="businessIdHint">
+                            <p class="form-hint" id="businessIdHint">
+                                Your unique business identifier
+                            </p>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <span class="button-text">Company Sign In</span>
+                            <span class="button-icon">→</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Super Admin Login Form -->
+                <div id="superadminLogin" class="login-tab-content">
+                    <form onsubmit="handleSuperAdminLogin(event)">
+                        <div class="form-group">
+                            <label for="adminUsername" class="form-label">Super Admin Email</label>
+                            <input type="email" id="adminUsername" name="adminUsername" 
+                                   class="form-input"
+                                   placeholder="Enter super admin email" 
+                                   autocomplete="email" 
+                                   required
+                                   aria-describedby="adminUsernameHint">
+                            <p class="form-hint" id="adminUsernameHint">
+                                Enter the email address you used when creating your super admin account
+                            </p>
+                        </div>
+                        <div class="form-group">
+                            <label for="adminPassword" class="form-label">Super Admin Password</label>
+                            <input type="password" id="adminPassword" name="adminPassword" 
+                                   class="form-input"
+                                   placeholder="Enter super admin password" 
+                                   autocomplete="current-password" 
+                                   required
+                                   aria-describedby="adminPasswordHint">
+                            <p class="form-hint" id="adminPasswordHint">
+                                Enter the password you set for your super admin account
+                            </p>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <span class="button-text">Super Admin Sign In</span>
+                            <span class="button-icon">🔐</span>
+                        </button>
+                        
+                        <div class="mt-lg text-center">
+                            <p class="form-hint text-xs">
+                                Super Admin has global access to all businesses and properties
+                            </p>
+                            <a href="setup-super-admin.html" class="btn btn-ghost btn-sm mt-md">
+                                🔧 Setup Super Admin Accounts
+                            </a>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="additional-options">
+                    <button class="help-button" onclick="navigateWithTransition('help.html')">
+                        <span class="btn btn-ghost">Need Help?</span>
                     </button>
-                    <p class="input-hint" style="margin-top: 10px; font-size: 12px; color: #666;">
-                        Super Admin has global access to all businesses and properties
+                    <button class="btn btn-secondary" onclick="navigateWithTransition('account-selection.html')">
+                        <span class="button-text">New Business / Staff Registration</span>
+                        <span class="button-icon">+</span>
+                    </button>
+                    <p class="registration-hint text-center text-xs text-secondary mt-sm">
+                        Create a new business account or register as staff member
                     </p>
-                    <div style="margin-top: 15px; text-align: center;">
-                        <a href="setup-super-admin.html" style="color: #007bff; text-decoration: none; font-size: 12px;">
-                            🔧 Need to setup super admin accounts? Click here
-                        </a>
-                    </div>
-                </form>
+                </div>
             </div>
-
-            <div class="additional-options">
-                <button class="help-button" onclick="navigateWithTransition('help.html')">
-                    <span class="button-3d">Need Help?</span>
-                </button>
-                <button class="new-user-button" onclick="navigateWithTransition('account-selection.html')">
-                    <span class="button-text">New Business / Staff Registration</span>
-                    <span class="button-icon">+</span>
-                </button>
-                <p class="registration-hint">Create a new business account or register as staff member</p>            </div>
         </div>
-    </div>    <!-- Cache buster -->
-    <script src="js/cache-buster.js?v=20250627003"></script>
+    </div>
+
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/modern-enhancements.js"></script>
+    <script src="js/modern-navigation.js"></script>
+    <script src="js/cache-buster.js?v=20250630001"></script>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -104,8 +151,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
     
     <!-- Firebase configuration -->
-    <script src="js/firebase-config.js?v=20250627003"></script>
-    <script src="js/firebase-services.js?v=20250627003"></script>
+    <script src="js/firebase-config.js?v=20250630001"></script>
+    <script src="js/firebase-services.js?v=20250630001"></script>
     
     <!-- Application scripts -->
     <script src="js/api-manager.js"></script>

@@ -5,98 +5,158 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Macros POS - Account Selection</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        /* Account Selection Specific Styles - Matching Login Design with Better Spacing */
-        .account-selection-content {
-            width: 100%;
-            padding: 1rem 0;
-        }
-        
-        .account-selection-subtitle {
-            text-align: center;
-            margin-bottom: 3rem;
-            color: #666;
-            font-size: 1.1rem;
-            line-height: 1.6;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            padding: 0 1rem;
-        }
-        
-        .account-options {
-            display: flex;
-            flex-direction: column;
-            gap: 2.5rem;
-            margin-bottom: 3rem;
-            padding: 0 0.5rem;
-        }
-        
-        .account-option {
-            background: rgba(255, 255, 255, 0.95);
-            border: 2px solid #000;
-            border-radius: 16px;
-            padding: 2.5rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            backdrop-filter: blur(10px);
-            min-height: 280px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        
-        .account-option::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            transition: left 0.5s;
-        }
-        
-        .account-option:hover::before {
-            left: 100%;
-        }
-        
-        .account-option:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
-            border-color: #667eea;
-        }
-        
-        .option-header {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-        
-        .option-icon {
-            font-size: 3rem;
-            line-height: 1;
-            opacity: 0.9;
-        }
-        
-        .option-title {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: #1a202c;
-            margin: 0;
-            line-height: 1.2;
-        }
-        
-        .option-description {
-            color: #4a5568;
-            margin: 0 0 2rem 0;
-            font-size: 1.1rem;
-            line-height: 1.6;
-            padding: 0 0.5rem;
-        }
+    <meta name="description" content="Choose your account type to get started with Macros POS">
+    <meta name="theme-color" content="#2563eb">
+</head>
+<body class="page-wrapper">
+    <!-- Back Button -->
+    <a href="login.html" class="btn btn-ghost btn-sm" style="position: fixed; top: 2rem; left: 2rem; z-index: 100;">
+        <span class="button-icon">←</span>
+        <span class="button-text">Back to Login</span>
+    </a>
+
+    <div class="container">
+        <div class="card" style="max-width: 900px; width: 100%; margin: 0 auto;">
+            <div class="card-header text-center">
+                <div class="logo-container mb-lg">
+                    <div class="logo">M</div>
+                </div>
+                <h1 class="card-title text-3xl mb-md">
+                    Choose Your <span class="gradient-text">Account Type</span>
+                </h1>
+                <p class="card-subtitle text-lg">
+                    Select the option that best describes your role to get started with Macros POS
+                </p>
+            </div>
+
+            <div class="card-body">
+                <div class="grid gap-xl">
+                    <!-- Business Owner Option -->
+                    <div class="account-option card interactive" onclick="navigateWithTransition('business-registration.html')">
+                        <div class="card-body">
+                            <div class="flex items-center gap-lg mb-lg">
+                                <div class="option-icon">🏢</div>
+                                <div>
+                                    <h3 class="text-2xl font-bold text-primary">Business Owner</h3>
+                                    <p class="text-base text-secondary mt-xs">Create a new business account</p>
+                                </div>
+                            </div>
+                            <p class="text-base text-secondary mb-lg">
+                                Set up your restaurant, hotel, or retail business with our comprehensive POS system. 
+                                Perfect for business owners who want to manage their entire operation.
+                            </p>
+                            <div class="features-list">
+                                <div class="feature-item flex items-center gap-sm mb-sm">
+                                    <span class="text-success">✓</span>
+                                    <span class="text-sm">Complete business setup and configuration</span>
+                                </div>
+                                <div class="feature-item flex items-center gap-sm mb-sm">
+                                    <span class="text-success">✓</span>
+                                    <span class="text-sm">Staff management and permissions</span>
+                                </div>
+                                <div class="feature-item flex items-center gap-sm mb-sm">
+                                    <span class="text-success">✓</span>
+                                    <span class="text-sm">Full access to all business features</span>
+                                </div>
+                                <div class="feature-item flex items-center gap-sm">
+                                    <span class="text-success">✓</span>
+                                    <span class="text-sm">Analytics and reporting tools</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="btn btn-primary btn-lg" style="width: 100%;">
+                                <span class="button-text">Start Business Setup</span>
+                                <span class="button-icon">→</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Staff Member Option -->
+                    <div class="account-option card interactive" onclick="navigateWithTransition('staff-registration.html')">
+                        <div class="card-body">
+                            <div class="flex items-center gap-lg mb-lg">
+                                <div class="option-icon">👤</div>
+                                <div>
+                                    <h3 class="text-2xl font-bold text-primary">Staff Member</h3>
+                                    <p class="text-base text-secondary mt-xs">Join an existing business</p>
+                                </div>
+                            </div>
+                            <p class="text-base text-secondary mb-lg">
+                                Register as a staff member to join an existing business. You'll need an invitation 
+                                code or business ID from your manager to get started.
+                            </p>
+                            <div class="features-list">
+                                <div class="feature-item flex items-center gap-sm mb-sm">
+                                    <span class="text-success">✓</span>
+                                    <span class="text-sm">Quick and easy registration process</span>
+                                </div>
+                                <div class="feature-item flex items-center gap-sm mb-sm">
+                                    <span class="text-success">✓</span>
+                                    <span class="text-sm">Access to assigned business features</span>
+                                </div>
+                                <div class="feature-item flex items-center gap-sm mb-sm">
+                                    <span class="text-success">✓</span>
+                                    <span class="text-sm">Role-based permissions and access</span>
+                                </div>
+                                <div class="feature-item flex items-center gap-sm">
+                                    <span class="text-success">✓</span>
+                                    <span class="text-sm">Integrated training and support</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="btn btn-secondary btn-lg" style="width: 100%;">
+                                <span class="button-text">Register as Staff</span>
+                                <span class="button-icon">+</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-2xl">
+                    <p class="text-sm text-secondary mb-lg">
+                        Need help choosing the right option? 
+                        <a href="help.html" class="text-primary hover:underline">Check our help guide</a>
+                    </p>
+                    
+                    <div class="flex justify-center gap-md">
+                        <a href="help.html" class="btn btn-ghost btn-sm">
+                            <span class="button-icon">❓</span>
+                            <span class="button-text">Get Help</span>
+                        </a>
+                        <a href="login.html" class="btn btn-ghost btn-sm">
+                            <span class="button-icon">🔑</span>
+                            <span class="button-text">I Already Have an Account</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/modern-enhancements.js"></script>
+    <script src="js/modern-navigation.js"></script>
+    <script src="navigation.js"></script>
+    <script>
+        // Add some interactive animations
+        document.addEventListener('DOMContentLoaded', function() {
+            const accountOptions = document.querySelectorAll('.account-option');
+            
+            accountOptions.forEach((option, index) => {
+                option.style.animationDelay = `${index * 0.1}s`;
+                option.classList.add('slideInUp');
+            });
+        });
+    </script>
+</body>
+</html>
         
         .option-features {
             display: flex;
