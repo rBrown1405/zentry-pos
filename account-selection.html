@@ -8,46 +8,44 @@
     <meta name="description" content="Choose your account type to get started with Macros POS">
     <meta name="theme-color" content="#2563eb">
 </head>
-<body class="page-wrapper">
+<body class="min-h-screen bg-gray-50 p-4">
     <!-- Back Button -->
-    <a href="login.html" class="btn btn-ghost btn-sm" style="position: fixed; top: 2rem; left: 2rem; z-index: 100;">
-        <span class="button-icon">←</span>
-        <span class="button-text">Back to Login</span>
+    <a href="login.html" class="btn btn-secondary btn-sm" style="position: fixed; top: 20px; left: 20px; z-index: 100;">
+        ← Back to Login
     </a>
 
-    <div class="container">
-        <div class="card" style="max-width: 900px; width: 100%; margin: 0 auto;">
-            <div class="card-header text-center">
-                <div class="logo-container mb-lg">
-                    <div class="logo">M</div>
+    <div class="container" style="max-width: 900px; margin: 0 auto; padding-top: 60px;">
+        <div class="card">
+            <div class="text-center mb-8">
+                <div style="width: 60px; height: 60px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; margin: 0 auto 24px;">
+                    M
                 </div>
-                <h1 class="card-title text-3xl mb-md">
-                    Choose Your <span class="gradient-text">Account Type</span>
+                <h1 class="mb-4">
+                    Choose Your <span class="text-primary">Account Type</span>
                 </h1>
-                <p class="card-subtitle text-lg">
+                <p class="text-lg text-gray-600">
                     Select the option that best describes your role to get started with Macros POS
                 </p>
             </div>
 
-            <div class="card-body">
-                <div class="grid gap-xl">
-                    <!-- Business Owner Option -->
-                    <div class="account-option card interactive" onclick="navigateWithTransition('business-registration.html')">
-                        <div class="card-body">
-                            <div class="flex items-center gap-lg mb-lg">
-                                <div class="option-icon">🏢</div>
-                                <div>
-                                    <h3 class="text-2xl font-bold text-primary">Business Owner</h3>
-                                    <p class="text-base text-secondary mt-xs">Create a new business account</p>
-                                </div>
-                            </div>
-                            <p class="text-base text-secondary mb-lg">
-                                Set up your restaurant, hotel, or retail business with our comprehensive POS system. 
-                                Perfect for business owners who want to manage their entire operation.
-                            </p>
-                            <div class="features-list">
-                                <div class="feature-item flex items-center gap-sm mb-sm">
-                                    <span class="text-success">✓</span>
+            <div class="grid gap-6">
+                <!-- Business Owner Option -->
+                <div class="card border-2 border-gray-200 hover:border-primary cursor-pointer transition-colors" 
+                     onclick="navigateWithTransition('business-registration.html')">
+                    <div class="flex items-start gap-4 mb-4">
+                        <div style="font-size: 48px;">🏢</div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-primary mb-2">Business Owner</h3>
+                            <p class="text-gray-600">Create a new business account</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-4">
+                        Set up your restaurant, hotel, or retail business with our comprehensive POS system. 
+                        Perfect for business owners who want to manage their entire operation.
+                    </p>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-success">✓</span>
                                     <span class="text-sm">Complete business setup and configuration</span>
                                 </div>
                                 <div class="feature-item flex items-center gap-sm mb-sm">

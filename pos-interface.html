@@ -8,46 +8,108 @@
     <meta name="description" content="Modern Point of Sale Interface">
     <meta name="theme-color" content="#2563eb">
     <style>
-        /* POS-specific styles that extend the main CSS framework */
+        /* POS-specific styles */
         .pos-container {
             height: 100vh;
             width: 100vw;
             display: flex;
             flex-direction: column;
-            position: fixed;
-            top: 0;
-            left: 0;
-            background: var(--bg-secondary);
-            overflow: hidden;
+            background: var(--gray-50);
         }
 
-        /* Modern Header */
         .pos-header {
-            background: var(--surface-primary);
-            border-bottom: 1px solid var(--border-primary);
-            padding: var(--space-lg) var(--space-xl);
+            background: var(--white);
+            border-bottom: var(--border-width) solid var(--border-color);
+            padding: var(--space-4) var(--space-6);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
-            backdrop-filter: blur(12px);
             box-shadow: var(--shadow-sm);
         }
 
-        .header-left {
+        .pos-main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: var(--space-4);
+            padding: var(--space-4);
+            overflow: hidden;
+        }
+
+        .menu-section {
+            background: var(--white);
+            border-radius: var(--border-radius-lg);
+            padding: var(--space-6);
+            overflow-y: auto;
+        }
+
+        .cart-section {
+            background: var(--white);
+            border-radius: var(--border-radius-lg);
+            padding: var(--space-6);
             display: flex;
             flex-direction: column;
         }
 
-        .system-name {
-            font-size: var(--text-xl);
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: var(--space-xs);
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: var(--space-3);
         }
 
-        .account-info {
-            font-size: var(--text-sm);
+        .menu-item {
+            aspect-ratio: 1;
+            background: var(--gray-50);
+            border: var(--border-width) solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: var(--space-3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .menu-item:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow);
+        }
+
+        .cart-items {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: var(--space-4);
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-3);
+            border-bottom: var(--border-width) solid var(--border-color);
+        }
+
+        .cart-total {
+            border-top: var(--border-width) solid var(--border-color);
+            padding-top: var(--space-4);
+            margin-top: var(--space-4);
+        }
+
+        @media (max-width: 768px) {
+            .pos-main {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto;
+            }
+            
+            .cart-section {
+                max-height: 40vh;
+            }
+        }
+    </style>
+</head>
             color: var(--text-secondary);
             font-weight: 500;
         }
