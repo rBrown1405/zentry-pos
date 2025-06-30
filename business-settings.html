@@ -1291,6 +1291,11 @@
         // Select business function
         function selectBusiness(businessId, businessName) {
             try {
+                // Check if umbrella manager is available
+                if (!window.umbrellaManager) {
+                    throw new Error('Business management system not initialized. Please reload the page and try again.');
+                }
+                
                 // Set the business in umbrella manager
                 const businessData = { id: businessId, companyName: businessName };
                 window.umbrellaManager.setCurrentBusiness(businessId, businessData);
@@ -1312,25 +1317,49 @@
 
         // Event listeners
         document.addEventListener('DOMContentLoaded', async function() {
-            // Initialize Firebase services and Umbrella Manager
+            console.log('🔥 Business Settings page loading...');
+            
+            // Initialize Firebase services and Umbrella Manager with better error handling
             try {
-                if (window.firebaseServices) {
-                    await window.firebaseServices.initialize();
-                    if (window.FirebaseManager) {
-                        window.firebaseManager = new window.FirebaseManager();
-                        await window.firebaseManager.initialize();
-                        
-                        if (window.UmbrellaAccountManager) {
-                            window.umbrellaManager = new window.UmbrellaAccountManager(window.firebaseManager);
-                            await window.umbrellaManager.initialize();
-                        }
-                    }
+                // Wait for Firebase services
+                if (!window.firebaseServices) {
+                    throw new Error('Firebase services not loaded. Please reload the page.');
                 }
+                
+                console.log('🔥 Initializing Firebase services...');
+                await window.firebaseServices.initialize();
+                
+                if (!window.FirebaseManager) {
+                    throw new Error('FirebaseManager not loaded. Please reload the page.');
+                }
+                
+                console.log('🔥 Initializing Firebase Manager...');
+                window.firebaseManager = new window.FirebaseManager();
+                await window.firebaseManager.initialize();
+                
+                if (!window.UmbrellaAccountManager) {
+                    throw new Error('UmbrellaAccountManager not loaded. Please reload the page.');
+                }
+                
+                console.log('🔥 Initializing Umbrella Account Manager...');
+                window.umbrellaManager = new window.UmbrellaAccountManager(window.firebaseManager);
+                await window.umbrellaManager.initialize();
+                
+                console.log('✅ All managers initialized successfully');
+                
             } catch (error) {
-                console.warn('Firebase initialization failed:', error);
+                console.error('❌ Firebase initialization failed:', error);
+                showSetupMessage(`Firebase initialization failed: ${error.message}. Please reload the page and try again.`);
+                return;
             }
             
-            loadSettings();
+            // Load settings after initialization
+            try {
+                loadSettings();
+            } catch (error) {
+                console.error('❌ Failed to load settings:', error);
+                showSetupMessage('Failed to load business settings. This might be because no business has been set up yet. Please use the Firebase Business Setup tool first.');
+            }
             
             // Update theme preview when colors change
             document.getElementById('primaryColor').addEventListener('change', updateThemePreview);

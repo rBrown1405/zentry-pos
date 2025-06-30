@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Business Setup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        button:hover { background: #0056b3; }
+        .error { color: #dc3545; margin: 20px 0; }
+        .success { color: #28a745; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Quick Business Setup</h1>
+        <p>It looks like you need to set up business data before using the settings page.</p>
+        
+        <div id="status"></div>
+        
+        <h3>Choose an option:</h3>
+        
+        <button onclick="window.location.href='firebase-business-setup.html'">
+            🏢 Use Full Setup Tool
+        </button>
+        
+        <button onclick="createQuickBusiness()">
+            ⚡ Quick Setup (One-Click)
+        </button>
+        
+        <button onclick="checkExistingBusinesses()">
+            🔍 Check Existing Businesses
+        </button>
+        
+        <br><br>
+        
+        <button onclick="window.location.href='business-settings.html'">
+            ← Back to Business Settings
+        </button>
+        
+        <div id="result"></div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-services.js"></script>
+
+    <script>
+        async function createQuickBusiness() {
+            const statusDiv = document.getElementById('status');
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                statusDiv.innerHTML = '<div style="color: orange;">Creating quick business setup...</div>';
+                
+                if (!window.firebaseServices) {
+                    throw new Error('Firebase not loaded');
+                }
+                
+                await window.firebaseServices.initialize();
+                const db = window.firebaseServices.getDb();
+                
+                // Create a quick business
+                const businessData = {
+                    businessID: 'QUICK_SETUP_001',
+                    companyName: 'My Restaurant',
+                    businessType: 'restaurant',
+                    companyEmail: 'admin@myrestaurant.com',
+                    companyPhone: '+1-555-0123',
+                    address: {
+                        full: 'Quick Setup Address',
+                        street: '123 Main St',
+                        city: 'Demo City',
+                        state: 'ST',
+                        zipCode: '12345',
+                        country: 'US'
+                    },
+                    settings: {
+                        primaryColor: '#007bff',
+                        secondaryColor: '#6c757d',
+                        logoText: 'MR',
+                        autoPrintReceipts: false,
+                        showTableNumbers: true,
+                        enableTips: true,
+                        taxRate: 8.25,
+                        currency: 'USD',
+                        hotelMode: false
+                    },
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    status: 'active'
+                };
+
+                await db.collection('businesses').doc('QUICK_SETUP_001').set(businessData);
+                
+                statusDiv.innerHTML = '<div class="success">✅ Quick business created successfully!</div>';
+                resultDiv.innerHTML = `
+                    <p>Business "My Restaurant" has been created.</p>
+                    <button onclick="window.location.href='business-settings.html'" style="background: #28a745;">
+                        Open Business Settings
+                    </button>
+                `;
+                
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="error">❌ Failed to create business: ' + error.message + '</div>';
+            }
+        }
+
+        async function checkExistingBusinesses() {
+            const statusDiv = document.getElementById('status');
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                statusDiv.innerHTML = '<div style="color: orange;">Checking for existing businesses...</div>';
+                
+                if (!window.firebaseServices) {
+                    throw new Error('Firebase not loaded');
+                }
+                
+                await window.firebaseServices.initialize();
+                const db = window.firebaseServices.getDb();
+                
+                const snapshot = await db.collection('businesses').limit(10).get();
+                
+                if (snapshot.empty) {
+                    statusDiv.innerHTML = '<div style="color: orange;">No businesses found in database.</div>';
+                    resultDiv.innerHTML = '<p>You need to create a business first using one of the setup options above.</p>';
+                } else {
+                    statusDiv.innerHTML = '<div class="success">Found existing businesses:</div>';
+                    let businessList = '<div style="text-align: left; margin: 20px 0;"><h4>Existing Businesses:</h4>';
+                    
+                    snapshot.forEach(doc => {
+                        const business = doc.data();
+                        businessList += `
+                            <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px;">
+                                <strong>${business.companyName || business.businessID}</strong><br>
+                                <small>ID: ${doc.id} | Type: ${business.businessType || 'Unknown'}</small>
+                            </div>
+                        `;
+                    });
+                    
+                    businessList += '</div>';
+                    businessList += '<button onclick="window.location.href=\'business-settings.html\'" style="background: #28a745;">Open Business Settings</button>';
+                    
+                    resultDiv.innerHTML = businessList;
+                }
+                
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="error">❌ Failed to check businesses: ' + error.message + '</div>';
+            }
+        }
+
+        // Auto-check on load
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(checkExistingBusinesses, 1000);
+        });
+    </script>
+</body>
+</html>
